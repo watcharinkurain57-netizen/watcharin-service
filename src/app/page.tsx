@@ -2,6 +2,7 @@ import Image from "next/image";
 import { EcosystemGrid } from "@/components/EcosystemGrid";
 import { ScrollFader } from "@/components/ScrollFader";
 import { ContactForm } from "@/components/ContactForm";
+import { LogoMark } from "@/components/Logo";
 
 export default function Home() {
   return (
@@ -9,8 +10,8 @@ export default function Home() {
       {/* ========== NAV ========== */}
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-slate-200/60">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <a href="#home" className="flex items-center gap-2.5 font-bold text-base">
-            <span className="w-2.5 h-2.5 rounded-full bg-brand-500" />
+          <a href="#home" className="flex items-center gap-2 font-bold text-base">
+            <LogoMark className="w-7 h-7" idSuffix="nav" />
             <span>Watcharin <span className="text-brand-600">Service</span></span>
           </a>
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600">
@@ -350,8 +351,8 @@ export default function Home() {
       <footer className="bg-slate-50 border-t border-slate-200 py-12">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-            <div className="flex items-center gap-2.5 font-bold">
-              <span className="w-2.5 h-2.5 rounded-full bg-brand-500" />
+            <div className="flex items-center gap-2 font-bold">
+              <LogoMark className="w-7 h-7" idSuffix="footer" />
               <span>Watcharin <span className="text-brand-600">Service</span></span>
               <span className="text-slate-400 font-normal text-sm ml-2 hidden sm:inline">— วางระบบธุรกิจครบวงจร</span>
             </div>
