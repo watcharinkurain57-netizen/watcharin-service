@@ -5,6 +5,7 @@ export const profile = {
   email: "watcharin@watcharin-service.com",
   website: "watcharin-service.com",
   github: "github.com/watcharinkurain57-netizen",
+  linkedin: "linkedin.com/in/watcharin-kurain-28bb593b1",
   location: "Thailand",
   summary:
     "Software Architect with 4+ years across full-stack development, enterprise engineering, and architectural design. Currently building Watcharin Ecosystem — five interconnected business systems forming an AI-powered value chain.",

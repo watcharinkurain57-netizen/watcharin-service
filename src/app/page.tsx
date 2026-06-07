@@ -3,6 +3,7 @@ import { EcosystemGrid } from "@/components/EcosystemGrid";
 import { ScrollFader } from "@/components/ScrollFader";
 import { ContactForm } from "@/components/ContactForm";
 import { LogoMark } from "@/components/Logo";
+import { SocialLinks } from "@/components/Social";
 
 export default function Home() {
   return (
@@ -529,11 +530,15 @@ export default function Home() {
             <div className="flex items-center gap-6 text-sm text-slate-500">
               <a href="#about" className="hover:text-slate-900">About</a>
               <a href="#services" className="hover:text-slate-900">Services</a>
-              <a href="#work" className="hover:text-slate-900">Work</a>
+              <a href="#cases" className="hover:text-slate-900">Work</a>
               <a href="#resume" className="hover:text-slate-900">Resume</a>
+              <a href="#faq" className="hover:text-slate-900">FAQ</a>
               <a href="#contact" className="hover:text-slate-900">Contact</a>
             </div>
-            <div className="text-sm text-slate-500">© 2026 Watcharin Service</div>
+            <SocialLinks />
+          </div>
+          <div className="mt-8 pt-6 border-t border-slate-200 text-center text-sm text-slate-500">
+            © 2026 Watcharin Service · วางระบบธุรกิจครบวงจร จากแนวคิด สู่ระบบจริง
           </div>
         </div>
       </footer>

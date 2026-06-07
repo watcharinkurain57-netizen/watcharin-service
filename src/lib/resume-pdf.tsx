@@ -190,6 +190,11 @@ export function ResumeDocument() {
                 {profile.github}
               </Link>
             </Text>
+            <Text style={s.contactItem}>
+              <Link src={`https://${profile.linkedin}`} style={s.contactLink}>
+                {profile.linkedin}
+              </Link>
+            </Text>
             <Text style={s.contactItem}>{profile.location}</Text>
           </View>
         </View>
