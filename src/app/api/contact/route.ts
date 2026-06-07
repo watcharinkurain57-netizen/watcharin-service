@@ -53,11 +53,13 @@ export async function POST(req: Request) {
     );
   }
 
-  const resend = new Resend(process.env.RESEND_API_KEY);
-  const subject = `[watcharin-service.com] New inquiry from ${name}`;
-
+  // NOTE: everything wrapped so we never crash uncaught (which Cloudflare masks
+  // as a generic "error code: 502" page).
   try {
-    const { error } = await resend.emails.send({
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    const subject = `[watcharin-service.com] New inquiry from ${name}`;
+
+    const { data, error } = await resend.emails.send({
       from: `Watcharin Service <${FROM_EMAIL}>`,
       to: TO_EMAIL,
       replyTo: email,
@@ -76,18 +78,37 @@ export async function POST(req: Request) {
 
     if (error) {
       console.error("Resend error:", error);
+      // TEMP DIAGNOSTIC: 422 passes through Cloudflare (5xx is masked).
       return Response.json(
-        { error: "ส่งข้อความไม่สำเร็จ กรุณาลองใหม่อีกครั้ง" },
-        { status: 502 }
+        {
+          error: "ส่งข้อความไม่สำเร็จ กรุณาลองใหม่อีกครั้ง",
+          _diag: {
+            stage: "resend-error",
+            from: FROM_EMAIL,
+            to: TO_EMAIL,
+            name: error.name,
+            message: error.message,
+          },
+        },
+        { status: 422 }
       );
     }
 
-    return Response.json({ ok: true });
+    return Response.json({ ok: true, id: data?.id });
   } catch (err) {
     console.error("Contact handler exception:", err);
+    // TEMP DIAGNOSTIC: 422 passes through Cloudflare (5xx is masked).
     return Response.json(
-      { error: "เกิดข้อผิดพลาดภายในระบบ" },
-      { status: 500 }
+      {
+        error: "เกิดข้อผิดพลาดภายในระบบ",
+        _diag: {
+          stage: "exception",
+          from: FROM_EMAIL,
+          to: TO_EMAIL,
+          message: err instanceof Error ? err.message : String(err),
+        },
+      },
+      { status: 422 }
     );
   }
 }
