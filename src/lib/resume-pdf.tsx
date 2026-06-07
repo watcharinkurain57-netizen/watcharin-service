@@ -1,3 +1,4 @@
+import path from "path";
 import {
   Document,
   Page,
@@ -5,14 +6,21 @@ import {
   View,
   StyleSheet,
   Link,
+  Font,
 } from "@react-pdf/renderer";
-import {
-  profile,
-  experience,
-  education,
-  skills,
-  ecosystem,
-} from "./resume-data";
+import { getResume, type Lang } from "./resume-data";
+
+// Thai-capable font (also covers Latin). Loaded lazily by @react-pdf only when
+// the "Sarabun" family is actually rendered (i.e. the Thai resume).
+Font.register({
+  family: "Sarabun",
+  fonts: [
+    { src: path.join(process.cwd(), "public/fonts/Sarabun-Regular.ttf"), fontWeight: 400 },
+    { src: path.join(process.cwd(), "public/fonts/Sarabun-Medium.ttf"), fontWeight: 500 },
+    { src: path.join(process.cwd(), "public/fonts/Sarabun-SemiBold.ttf"), fontWeight: 600 },
+    { src: path.join(process.cwd(), "public/fonts/Sarabun-Bold.ttf"), fontWeight: 700 },
+  ],
+});
 
 const C = {
   brand: "#10b981",
@@ -158,7 +166,11 @@ const s = StyleSheet.create({
   },
 });
 
-export function ResumeDocument() {
+export function ResumeDocument({ lang = "en" }: { lang?: Lang }) {
+  const { profile, experience, education, skills, ecosystem, labels } =
+    getResume(lang);
+  const fontFamily = lang === "th" ? "Sarabun" : "Helvetica";
+
   return (
     <Document
       title={`${profile.name} — Resume`}
@@ -167,7 +179,7 @@ export function ResumeDocument() {
       creator="watcharin-service.com"
       producer="watcharin-service.com"
     >
-      <Page size="A4" style={s.page}>
+      <Page size="A4" style={[s.page, { fontFamily }]}>
         <View style={s.header}>
           <View>
             <Text style={s.name}>{profile.name}</Text>
@@ -200,12 +212,12 @@ export function ResumeDocument() {
         </View>
 
         <View style={s.section}>
-          <Text style={s.sectionTitle}>Summary</Text>
+          <Text style={s.sectionTitle}>{labels.summary}</Text>
           <Text style={s.summary}>{profile.summary}</Text>
         </View>
 
         <View style={s.section}>
-          <Text style={s.sectionTitle}>Experience</Text>
+          <Text style={s.sectionTitle}>{labels.experience}</Text>
           {experience.map((job) => (
             <View key={job.company} style={s.job} wrap={false}>
               <View style={s.jobHeader}>
@@ -224,7 +236,7 @@ export function ResumeDocument() {
         </View>
 
         <View style={s.section} wrap={false}>
-          <Text style={s.sectionTitle}>Education</Text>
+          <Text style={s.sectionTitle}>{labels.education}</Text>
           <View style={s.educationRow}>
             <View>
               <Text style={s.educationDegree}>{education.degree}</Text>
@@ -235,7 +247,7 @@ export function ResumeDocument() {
         </View>
 
         <View style={s.section} wrap={false}>
-          <Text style={s.sectionTitle}>Skills & Tech Stack</Text>
+          <Text style={s.sectionTitle}>{labels.skills}</Text>
           {skills.map((cat) => (
             <View key={cat.category} style={s.skillCat}>
               <Text style={s.skillCatName}>{cat.category}</Text>
@@ -251,7 +263,9 @@ export function ResumeDocument() {
         </View>
 
         <View style={s.section} wrap={false}>
-          <Text style={s.sectionTitle}>Currently Building — {ecosystem.name}</Text>
+          <Text style={s.sectionTitle}>
+            {labels.building} — {ecosystem.name}
+          </Text>
           <Text style={s.ecosystemDesc}>{ecosystem.description}</Text>
           {ecosystem.systems.map((sys) => (
             <Text key={sys} style={s.ecosystemItem}>
