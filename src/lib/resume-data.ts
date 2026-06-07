@@ -103,7 +103,7 @@ const en: ResumeData = {
   education: {
     degree: "B.Eng. in Computer Engineering",
     school: "Rajamangala University of Technology Phra Nakhon (RMUTP)",
-    year: "Graduated 2018",
+    year: "2018 – 2022",
   },
   skills: skillsShared,
   ecosystem: {
@@ -167,7 +167,7 @@ const th: ResumeData = {
   education: {
     degree: "ปริญญาตรี วิศวกรรมคอมพิวเตอร์",
     school: "มหาวิทยาลัยเทคโนโลยีราชมงคลพระนคร (RMUTP)",
-    year: "จบปี 2561 (2018)",
+    year: "2561 – 2565 (2018 – 2022)",
   },
   skills: skillsShared,
   ecosystem: {

@@ -335,24 +335,14 @@ export default function Home() {
           <div className="text-center mb-12 scroll-fade">
             <div className="inline-block px-3 py-1 rounded-full bg-brand-50 text-brand-700 text-sm font-medium mb-4">Resume</div>
             <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4">ประวัติและทักษะ</h2>
-            <div className="flex flex-wrap items-center justify-center gap-3">
-              <a
-                href="/api/resume"
-                target="_blank"
-                rel="noopener"
-                className="inline-flex items-center gap-2 bg-white border border-slate-200 text-slate-900 font-semibold px-5 py-2.5 rounded-full hover:border-brand-300 hover:text-brand-600 transition"
-              >
-                📄 Resume (EN)
-              </a>
-              <a
-                href="/api/resume/th"
-                target="_blank"
-                rel="noopener"
-                className="inline-flex items-center gap-2 bg-white border border-slate-200 text-slate-900 font-semibold px-5 py-2.5 rounded-full hover:border-brand-300 hover:text-brand-600 transition"
-              >
-                📄 เรซูเม่ (ไทย)
-              </a>
-            </div>
+            <a
+              href="/api/resume"
+              target="_blank"
+              rel="noopener"
+              className="inline-flex items-center gap-2 text-brand-600 font-semibold hover:gap-3 transition-all"
+            >
+              📄 Download PDF Resume →
+            </a>
           </div>
 
           <div className="mb-16 scroll-fade">
@@ -402,7 +392,7 @@ export default function Home() {
               <div className="flex-1">
                 <div className="flex flex-wrap justify-between gap-2 mb-1">
                   <h4 className="font-bold text-lg">ปริญญาตรี วิศวกรรมคอมพิวเตอร์</h4>
-                  <span className="text-sm text-slate-500">จบปี 2561 (2018)</span>
+                  <span className="text-sm text-slate-500">2561 – 2565 (2018 – 2022)</span>
                 </div>
                 <div className="text-brand-600 font-medium">มหาวิทยาลัยเทคโนโลยีราชมงคลพระนคร</div>
                 <div className="text-sm text-slate-500 mt-1">Rajamangala University of Technology Phra Nakhon (RMUTP)</div>
