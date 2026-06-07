@@ -1,0 +1,101 @@
+@import "tailwindcss";
+
+@theme {
+  /* Brand: emerald-based palette */
+  --color-brand-50: #ecfdf5;
+  --color-brand-100: #d1fae5;
+  --color-brand-200: #a7f3d0;
+  --color-brand-300: #6ee7b7;
+  --color-brand-400: #34d399;
+  --color-brand-500: #10b981;
+  --color-brand-600: #059669;
+  --color-brand-700: #047857;
+  --color-brand-800: #065f46;
+  --color-brand-900: #064e3b;
+
+  /* Fonts */
+  --font-sans: var(--font-inter), var(--font-ibm-thai), system-ui, -apple-system,
+    "Segoe UI", sans-serif;
+}
+
+/* ========== Custom styles from mockup ========== */
+.gradient-hero {
+  background:
+    radial-gradient(ellipse 80% 50% at 20% 30%, #ecfdf5 0%, transparent 50%),
+    radial-gradient(ellipse 60% 50% at 80% 80%, #cffafe 0%, transparent 50%),
+    white;
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, #047857 0%, #0891b2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.gradient-btn {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  box-shadow: 0 4px 14px 0 rgba(16, 185, 129, 0.35);
+  transition: all 0.2s;
+}
+.gradient-btn:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  box-shadow: 0 8px 24px 0 rgba(16, 185, 129, 0.45);
+}
+
+.grain {
+  background-image: radial-gradient(circle at 1px 1px, rgba(0, 0, 0, 0.025) 1px, transparent 0);
+  background-size: 20px 20px;
+}
+
+.card-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px -10px rgba(16, 185, 129, 0.18);
+}
+
+.scroll-fade {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: all 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.scroll-fade.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+.pulse-dot {
+  animation: pulse-soft 2s infinite;
+}
+
+.ring-glow {
+  box-shadow:
+    0 0 0 4px rgba(16, 185, 129, 0.1),
+    0 0 0 8px rgba(16, 185, 129, 0.05);
+}
+
+.stealth-blur {
+  filter: blur(7px);
+  pointer-events: none;
+  user-select: none;
+  letter-spacing: 0.05em;
+}
+
+.modal-show {
+  display: flex !important;
+  animation: modalIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.95) translateY(20px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+body {
+  font-family: var(--font-sans);
+}
