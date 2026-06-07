@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { EcosystemGrid } from "@/components/EcosystemGrid";
 import { ScrollFader } from "@/components/ScrollFader";
+import { ContactForm } from "@/components/ContactForm";
 
 export default function Home() {
   return (
@@ -222,7 +223,14 @@ export default function Home() {
           <div className="text-center mb-12 scroll-fade">
             <div className="inline-block px-3 py-1 rounded-full bg-brand-50 text-brand-700 text-sm font-medium mb-4">Resume</div>
             <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4">ประวัติและทักษะ</h2>
-            <a href="#" className="inline-flex items-center gap-2 text-brand-600 font-semibold hover:gap-3 transition-all">📄 Download PDF Resume →</a>
+            <a
+              href="/api/resume"
+              target="_blank"
+              rel="noopener"
+              className="inline-flex items-center gap-2 text-brand-600 font-semibold hover:gap-3 transition-all"
+            >
+              📄 Download PDF Resume →
+            </a>
           </div>
 
           <div className="mb-16 scroll-fade">
@@ -314,23 +322,27 @@ export default function Home() {
           <div className="absolute top-0 left-1/4 w-96 h-96 bg-brand-500 rounded-full blur-3xl" />
           <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-cyan-500 rounded-full blur-3xl" />
         </div>
-        <div className="relative max-w-4xl mx-auto px-6 text-center">
+        <div className="relative max-w-3xl mx-auto px-6 text-center">
           <div className="inline-block px-3 py-1 rounded-full bg-white/10 backdrop-blur border border-white/20 text-brand-200 text-sm font-medium mb-6">Let&apos;s work together</div>
           <h2 className="text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight mb-6 leading-tight">
             พร้อมเริ่ม<br />
             <span className="bg-gradient-to-r from-brand-300 via-cyan-300 to-brand-200 bg-clip-text text-transparent">โปรเจคของคุณ?</span>
           </h2>
           <p className="text-lg md:text-xl text-slate-300 mb-10 max-w-2xl mx-auto leading-relaxed">ปรึกษาฟรี ไม่มีค่าใช้จ่าย คุยเรื่อง requirement งบประมาณ และไอเดียก่อนตัดสินใจ</p>
-          <div className="flex flex-wrap gap-4 justify-center">
-            <a href="mailto:watcharin@watcharin-service.com" className="bg-white text-slate-900 font-semibold px-8 py-4 rounded-full hover:shadow-2xl transition text-base inline-flex items-center gap-2">
-              <span>📧</span> watcharin@watcharin-service.com
+          <ContactForm />
+          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 text-sm text-slate-400">
+            <span className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-brand-400 pulse-dot" />
+              ปกติตอบกลับใน 24 ชั่วโมง
+            </span>
+            <span className="hidden sm:inline text-slate-600">·</span>
+            <a
+              href="mailto:watcharin@watcharin-service.com"
+              className="text-slate-300 hover:text-white transition"
+            >
+              หรืออีเมลโดยตรง: watcharin@watcharin-service.com
             </a>
-            <a href="#" className="border border-white/30 backdrop-blur text-white font-semibold px-8 py-4 rounded-full hover:bg-white/10 transition text-base">LINE Official</a>
           </div>
-          <p className="text-sm text-slate-400 mt-10 flex items-center gap-2 justify-center">
-            <span className="w-1.5 h-1.5 rounded-full bg-brand-400 pulse-dot" />
-            ปกติตอบกลับใน 24 ชั่วโมง
-          </p>
         </div>
       </section>
 
