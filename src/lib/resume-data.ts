@@ -78,12 +78,9 @@ export const skills = [
 export const ecosystem = {
   name: "Watcharin Ecosystem",
   description:
-    "Five-system business ecosystem connecting team-building, R&D, manufacturing, e-commerce, and MLM organizational management — each powered by an AI Agent layer.",
+    "A connected, AI-powered business ecosystem — products designed to work together end to end, each layer driven by its own AI Agent.",
   systems: [
     "watcharin-service.com — System Design Studio (live)",
     "tang-tee.com — Team & trip coordination platform",
-    "khong-thai — Product R&D platform for Thai health & beauty",
-    "healthy-body — E-commerce for health products",
-    "ruam-tee.com — MLM / organizational management",
   ],
 };
