@@ -33,9 +33,15 @@ export default function Home() {
         <div className="relative max-w-7xl mx-auto px-6 py-20 md:py-28">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-brand-200 text-brand-700 text-sm font-medium mb-6 shadow-sm">
-                <span className="w-1.5 h-1.5 rounded-full bg-brand-500 pulse-dot" />
-                System Design Studio
+              <div className="flex flex-wrap items-center gap-2 mb-6">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-brand-200 text-brand-700 text-sm font-medium shadow-sm">
+                  <span className="w-1.5 h-1.5 rounded-full bg-brand-500 pulse-dot" />
+                  System Design Studio
+                </div>
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-50 border border-brand-200 text-brand-700 text-sm font-medium">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 pulse-dot" />
+                  เปิดรับ 1–2 โปรเจค/เดือน
+                </div>
               </div>
               <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold leading-[1.05] tracking-tight mb-6">
                 วางระบบธุรกิจ<br />ครบวงจร<br />
@@ -142,6 +148,75 @@ export default function Home() {
           </div>
           <div className="text-center mt-14 scroll-fade">
             <a href="#contact" className="gradient-btn text-white font-semibold px-7 py-3.5 rounded-full text-base inline-flex items-center gap-2">เริ่มจากคุยกันก่อน →</a>
+          </div>
+        </div>
+      </section>
+
+      {/* ========== CASE STUDIES ========== */}
+      <section id="cases" className="py-20 md:py-28">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center mb-16 scroll-fade">
+            <div className="inline-block px-3 py-1 rounded-full bg-brand-50 text-brand-700 text-sm font-medium mb-4">Case Studies</div>
+            <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4">ผลงานที่<span className="gradient-text">ส่งมอบจริง</span></h2>
+            <p className="text-slate-600 text-lg max-w-2xl mx-auto">งานที่เคยทำให้องค์กรระดับประเทศ — ชื่อลูกค้าปิดไว้ตามข้อตกลง NDA แต่ขอบเขตงานเป็นของจริง</p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              {
+                tag: "Enterprise Architecture",
+                client: "องค์กรพลังงานระดับประเทศ (กลุ่มมหาชน)",
+                role: "Software Architect",
+                challenge: "หลายระบบในองค์กรขนาดใหญ่ต้องเชื่อมต่อกัน และต้องวางโครงสร้างที่ scale ได้ในระยะยาว",
+                did: "ออกแบบ enterprise architecture, วาง pattern การ integrate ระบบ และแปลง business requirement เป็น blueprint ที่ทีมพัฒนานำไปต่อยอดได้",
+                stack: ["System Integration", "Architecture", "API"],
+                grad: "from-brand-500 to-brand-600",
+                icon: "🏛️",
+              },
+              {
+                tag: "ServiceNow ITSM / CRM",
+                client: "บริษัท IT Solutions มหาชน",
+                role: "Software Engineer",
+                challenge: "ลูกค้าองค์กรต้องการระบบ ITSM/CRM ครบวงจร และต้องดึงข้อมูลจากหลายระบบเข้ามารวมศูนย์",
+                did: "พัฒนา ServiceNow end-to-end (ITSM + CRM), เขียน Python API ดึงข้อมูลเข้าระบบ, ตั้งค่า Mid Server และงาน Opentext ITSM",
+                stack: ["ServiceNow", "Python", "Mid Server"],
+                grad: "from-cyan-500 to-cyan-600",
+                icon: "🔄",
+              },
+              {
+                tag: "Full-stack + Data",
+                client: "บริษัทอาหาร/FMCG มหาชน",
+                role: "Application & System Developer",
+                challenge: "ทีม operations ต้องการเครื่องมือดิจิทัล — ทั้ง web ภายใน, mobile app และ dashboard วิเคราะห์ข้อมูล",
+                did: "พัฒนา full-stack web (ASP.NET/C# + MSSQL), Android app ด้วย Kotlin และสร้าง dashboard วิเคราะห์ข้อมูลด้วย Tableau",
+                stack: ["ASP.NET", "Kotlin", "Tableau"],
+                grad: "from-amber-500 to-orange-600",
+                icon: "📊",
+              },
+            ].map((c) => (
+              <div key={c.tag} className="bg-white border border-slate-200 rounded-2xl p-6 card-hover scroll-fade flex flex-col">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${c.grad} flex items-center justify-center text-xl shadow-md`}>{c.icon}</div>
+                  <div className="text-sm font-semibold text-slate-900">{c.tag}</div>
+                </div>
+                <div className="text-xs text-slate-500 mb-1">{c.client}</div>
+                <div className="text-sm font-semibold text-brand-600 mb-4">{c.role}</div>
+                <div className="space-y-3 text-sm flex-1">
+                  <div>
+                    <div className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">โจทย์</div>
+                    <p className="text-slate-600 leading-relaxed">{c.challenge}</p>
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">สิ่งที่ทำ</div>
+                    <p className="text-slate-600 leading-relaxed">{c.did}</p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-5 pt-5 border-t border-slate-100">
+                  {c.stack.map((s) => (
+                    <span key={s} className="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-50 text-slate-600 border border-slate-200">{s}</span>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -352,6 +427,60 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ========== FAQ ========== */}
+      <section id="faq" className="py-20 md:py-28 bg-gradient-to-b from-white to-brand-50/40">
+        <div className="max-w-3xl mx-auto px-6">
+          <div className="text-center mb-12 scroll-fade">
+            <div className="inline-block px-3 py-1 rounded-full bg-brand-50 text-brand-700 text-sm font-medium mb-4">FAQ</div>
+            <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4">คำถามที่พบบ่อย</h2>
+            <p className="text-slate-600 text-lg">เรื่องที่ลูกค้ามักถามก่อนเริ่มงาน</p>
+          </div>
+          <div className="space-y-3 scroll-fade">
+            {[
+              {
+                q: "รับทำงานประเภทไหนบ้าง?",
+                a: "ระบบ Web Application, Mobile App (iOS/Android), การเชื่อม AI เข้ากับระบบ และระบบสำหรับองค์กร/อุตสาหกรรม — ครบตั้งแต่ออกแบบ architecture ไปจนถึง deploy ใช้งานจริง",
+              },
+              {
+                q: "คิดราคายังไง?",
+                a: "ประเมินเป็นรายโปรเจคตามขอบเขตงานและความซับซ้อน ไม่มีราคาตายตัว — เริ่มจากปรึกษาฟรีก่อนเสมอ แล้วผมจะสรุปขอบเขตงานพร้อมราคาให้ชัดเจนก่อนเริ่ม ไม่มีค่าใช้จ่ายแอบแฝง",
+              },
+              {
+                q: "โปรเจคหนึ่งใช้เวลานานแค่ไหน?",
+                a: "ขึ้นกับขอบเขตงาน — MVP ขนาดเล็กอาจใช้ไม่กี่สัปดาห์ ระบบใหญ่อาจหลายเดือน โดยแบ่งงานเป็น milestone ให้เห็นความคืบหน้าเป็นระยะ ไม่ต้องรอจนจบถึงจะเห็นผล",
+              },
+              {
+                q: "ทำคนเดียว หรือมีทีม?",
+                a: "หลักๆ ผมดูแลเองแบบ end-to-end โดยใช้ AI ช่วยเร่ง workflow ทำให้ส่งงานได้เร็วและคุมคุณภาพได้ — สำหรับโปรเจคใหญ่สามารถดึง partner/ผู้เชี่ยวชาญเฉพาะทางมาเสริมได้",
+              },
+              {
+                q: "มีดูแลหลังส่งมอบไหม?",
+                a: "มีครับ — ดูแล แก้บั๊ก และพัฒนาต่อเนื่องได้ตามข้อตกลง ระบบที่ส่งมอบจะมีเอกสารและโครงสร้างที่ดูแลต่อง่าย ไม่ผูกขาดให้ต้องจ้างผมตลอด",
+              },
+              {
+                q: "ทำงานแบบ remote ได้ไหม อยู่ที่ไหน?",
+                a: "อยู่ไทย ทำงานกับลูกค้าได้ทั่วประเทศ (และต่างประเทศ) ผ่านออนไลน์เป็นหลัก นัดประชุม online ได้ตามสะดวก — ถ้าจำเป็นต้องเจอตัวก็คุยกันได้",
+              },
+              {
+                q: "เริ่มต้นทำงานด้วยกันยังไง?",
+                a: "ง่ายมาก — ทักผ่านฟอร์มติดต่อด้านล่างหรืออีเมล บอกคร่าวๆ ว่าอยากทำอะไร แล้วเรานัดคุยฟรีเพื่อสรุป requirement และแนวทางก่อนตัดสินใจ",
+              },
+            ].map((item) => (
+              <details
+                key={item.q}
+                className="group bg-white border border-slate-200 rounded-2xl px-6 open:shadow-md transition-shadow"
+              >
+                <summary className="flex justify-between items-center gap-4 cursor-pointer py-5 font-semibold text-slate-900 list-none [&::-webkit-details-marker]:hidden">
+                  <span>{item.q}</span>
+                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center text-lg leading-none transition-transform group-open:rotate-45">+</span>
+                </summary>
+                <p className="pb-5 -mt-1 text-slate-600 text-sm leading-relaxed">{item.a}</p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ========== FINAL CTA ========== */}
       <section id="contact" className="py-20 md:py-32 bg-gradient-to-br from-slate-900 via-brand-900 to-slate-900 text-white relative overflow-hidden">
         <div className="absolute inset-0 opacity-40">
@@ -359,7 +488,13 @@ export default function Home() {
           <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-cyan-500 rounded-full blur-3xl" />
         </div>
         <div className="relative max-w-3xl mx-auto px-6 text-center">
-          <div className="inline-block px-3 py-1 rounded-full bg-white/10 backdrop-blur border border-white/20 text-brand-200 text-sm font-medium mb-6">Let&apos;s work together</div>
+          <div className="flex flex-wrap items-center justify-center gap-2 mb-6">
+            <div className="inline-block px-3 py-1 rounded-full bg-white/10 backdrop-blur border border-white/20 text-brand-200 text-sm font-medium">Let&apos;s work together</div>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/15 backdrop-blur border border-emerald-400/30 text-emerald-200 text-sm font-medium">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 pulse-dot" />
+              เปิดรับ 1–2 โปรเจค/เดือน
+            </div>
+          </div>
           <h2 className="text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight mb-6 leading-tight">
             พร้อมเริ่ม<br />
             <span className="bg-gradient-to-r from-brand-300 via-cyan-300 to-brand-200 bg-clip-text text-transparent">โปรเจคของคุณ?</span>
