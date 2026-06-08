@@ -5,9 +5,67 @@ import { ContactForm } from "@/components/ContactForm";
 import { LogoMark } from "@/components/Logo";
 import { SocialLinks } from "@/components/Social";
 
+const SITE = "https://watcharin-service.com";
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Person",
+      "@id": `${SITE}/#person`,
+      name: "Watcharin Kurain",
+      jobTitle: "Software Architect",
+      url: SITE,
+      image: `${SITE}/watcharin-profile.png`,
+      email: "watcharin@watcharin-service.com",
+      sameAs: [
+        "https://github.com/watcharinkurain57-netizen",
+        "https://www.linkedin.com/in/watcharin-kurain-28bb593b1/",
+      ],
+      alumniOf: {
+        "@type": "CollegeOrUniversity",
+        name: "Rajamangala University of Technology Phra Nakhon (RMUTP)",
+      },
+      address: { "@type": "PostalAddress", addressCountry: "TH" },
+      knowsAbout: [
+        "Software Architecture",
+        "Web Development",
+        "Mobile Development",
+        "AI Integration",
+        "System Design",
+        "ServiceNow",
+        "Enterprise Architecture",
+      ],
+    },
+    {
+      "@type": "ProfessionalService",
+      "@id": `${SITE}/#service`,
+      name: "Watcharin Service",
+      url: SITE,
+      image: `${SITE}/opengraph-image`,
+      description:
+        "System Design Studio — รับออกแบบและพัฒนาระบบ Web และ Mobile สำหรับธุรกิจและอุตสาหกรรม โดย Software Architect",
+      founder: { "@id": `${SITE}/#person` },
+      areaServed: "TH",
+      email: "watcharin@watcharin-service.com",
+      serviceType: [
+        "Web Development",
+        "Mobile App Development",
+        "AI Integration",
+        "System Design",
+        "Enterprise Architecture",
+      ],
+    },
+  ],
+};
+
 export default function Home() {
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* ========== NAV ========== */}
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-slate-200/60">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
@@ -15,11 +73,12 @@ export default function Home() {
             <LogoMark className="w-7 h-7" idSuffix="nav" />
             <span>Watcharin <span className="text-brand-600">Service</span></span>
           </a>
-          <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600">
+          <div className="hidden md:flex items-center gap-7 text-sm font-medium text-slate-600">
             <a href="#home" className="hover:text-slate-900 transition">Home</a>
-            <a href="#about" className="hover:text-slate-900 transition">About</a>
             <a href="#services" className="hover:text-slate-900 transition">Services</a>
-            <a href="#work" className="hover:text-slate-900 transition">Work</a>
+            <a href="#process" className="hover:text-slate-900 transition">Process</a>
+            <a href="#cases" className="hover:text-slate-900 transition">Work</a>
+            <a href="#about" className="hover:text-slate-900 transition">About</a>
             <a href="#resume" className="hover:text-slate-900 transition">Resume</a>
           </div>
           <a href="#contact" className="gradient-btn text-white text-sm font-semibold px-5 py-2.5 rounded-full">
