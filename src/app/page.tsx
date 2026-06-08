@@ -73,13 +73,13 @@ export default function Home() {
             <LogoMark className="w-7 h-7" idSuffix="nav" />
             <span>Watcharin <span className="text-brand-600">Service</span></span>
           </a>
-          <div className="hidden md:flex items-center gap-7 text-sm font-medium text-slate-600">
-            <a href="#home" className="hover:text-slate-900 transition">Home</a>
+          <div className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">
             <a href="#services" className="hover:text-slate-900 transition">Services</a>
             <a href="#process" className="hover:text-slate-900 transition">Process</a>
             <a href="#cases" className="hover:text-slate-900 transition">Work</a>
             <a href="#about" className="hover:text-slate-900 transition">About</a>
             <a href="#resume" className="hover:text-slate-900 transition">Resume</a>
+            <a href="#faq" className="hover:text-slate-900 transition">FAQ</a>
           </div>
           <a href="#contact" className="gradient-btn text-white text-sm font-semibold px-5 py-2.5 rounded-full">
             Contact →
