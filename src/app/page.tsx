@@ -55,6 +55,10 @@ const jsonLd = {
         "AI Integration",
         "System Design",
         "Enterprise Architecture",
+        "Industrial Systems Integration",
+        "MES (Manufacturing Execution System)",
+        "ERP Integration",
+        "PLC / Sensor Data Integration",
       ],
     },
   ],
@@ -76,6 +80,7 @@ export default function Home() {
           </a>
           <div className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">
             <a href="#services" className="hover:text-slate-900 transition">Services</a>
+            <a href="#industrial" className="hover:text-slate-900 transition">Industrial</a>
             <a href="#process" className="hover:text-slate-900 transition">Process</a>
             <a href="#cases" className="hover:text-slate-900 transition">Work</a>
             <a href="#about" className="hover:text-slate-900 transition">About</a>
@@ -189,7 +194,7 @@ export default function Home() {
               { icon: "🌐", title: "Web Systems", desc: "ระบบ Web Application สำหรับธุรกิจทุกขนาด ใช้ Next.js + TypeScript", grad: "from-brand-500 to-brand-600", shadow: "shadow-brand-500/30" },
               { icon: "📱", title: "Mobile Apps", desc: "แอพบน iOS และ Android ใช้ React Native / Expo", grad: "from-cyan-500 to-cyan-600", shadow: "shadow-cyan-500/30" },
               { icon: "🤖", title: "AI Integration", desc: "เชื่อม AI Agent เข้ากับระบบ — Claude, OpenAI, custom models", grad: "from-purple-500 to-purple-600", shadow: "shadow-purple-500/30" },
-              { icon: "🏭", title: "Industrial Solutions", desc: "ระบบสำหรับโรงงาน อุตสาหกรรม การจัดการการผลิต", grad: "from-amber-500 to-orange-600", shadow: "shadow-amber-500/30" },
+              { icon: "🏭", title: "Industrial Solutions", desc: "เชื่อม PLC/Sensor → MES → ERP เห็นการผลิต realtime วัด OEE ตัดงานคีย์มือ", grad: "from-amber-500 to-orange-600", shadow: "shadow-amber-500/30" },
             ].map((s) => (
               <div key={s.title} className="card-hover scroll-fade bg-white border border-slate-200 rounded-2xl p-6">
                 <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${s.grad} flex items-center justify-center text-2xl mb-5 shadow-lg ${s.shadow}`}>{s.icon}</div>
@@ -197,6 +202,138 @@ export default function Home() {
                 <p className="text-slate-600 text-sm leading-relaxed">{s.desc}</p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ========== INDUSTRIAL / SMART FACTORY ========== */}
+      <section id="industrial" className="py-20 md:py-28 bg-slate-50">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center mb-16 scroll-fade">
+            <div className="inline-block px-3 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-sm font-medium mb-4">Industrial Solutions</div>
+            <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4">
+              เชื่อมโรงงานทั้งสาย <span className="gradient-text">PLC/Sensor → MES → ERP</span>
+            </h2>
+            <p className="text-slate-600 text-lg max-w-2xl mx-auto">จากเครื่องจักรหน้างานถึงข้อมูลบริหาร — ออกแบบเป็นระบบเดียวที่เห็นการผลิตจริง วัด ROI ได้ และลงทีละเฟสอย่างมีแผน</p>
+          </div>
+
+          {/* Architecture stack */}
+          <div className="relative mb-16">
+            <div className="hidden lg:block absolute top-7 left-[12.5%] right-[12.5%] h-px bg-gradient-to-r from-amber-200 via-brand-200 to-cyan-200" />
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-6 relative">
+              {[
+                { icon: "🔌", tier: "EDGE", title: "PLC / Sensor / เครื่องจักร", desc: "ดึงข้อมูลหน้างานแบบ realtime รองรับ protocol อุตสาหกรรม (Modbus, OPC-UA)", grad: "from-amber-500 to-orange-600" },
+                { icon: "🏭", tier: "MES", title: "Manufacturing Execution", desc: "ติดตามการผลิต, OEE, downtime, QC และ traceability ราย lot/batch", grad: "from-brand-500 to-brand-600" },
+                { icon: "📦", tier: "ERP", title: "วางแผน / คลัง / จัดซื้อ", desc: "ส่งยอดผลิตจริงเข้าสู่การวางแผน สต็อก และบัญชี ไม่ต้องคีย์ซ้ำ", grad: "from-cyan-500 to-cyan-600" },
+                { icon: "📈", tier: "BI", title: "Dashboard ผู้บริหาร", desc: "เห็นทุกไลน์การผลิตแบบ realtime ตัดสินใจจากตัวเลขจริง", grad: "from-purple-500 to-purple-600" },
+              ].map((l) => (
+                <div key={l.tier} className="text-center scroll-fade">
+                  <div className={`w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br ${l.grad} flex items-center justify-center text-2xl shadow-lg ring-4 ring-slate-50 relative z-10`}>
+                    {l.icon}
+                  </div>
+                  <div className="text-xs font-bold text-slate-500 tracking-widest mt-4 mb-1">{l.tier}</div>
+                  <h3 className="text-base font-bold mb-2">{l.title}</h3>
+                  <p className="text-slate-600 text-sm leading-relaxed max-w-xs mx-auto">{l.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* ROI + Risk */}
+          <div className="grid md:grid-cols-2 gap-6 mb-8">
+            <div className="bg-white border border-slate-200 rounded-2xl p-7 scroll-fade">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center text-2xl shadow-lg mb-5">📈</div>
+              <h3 className="text-xl font-bold mb-4">โรงงานได้อะไร (ROI)</h3>
+              <ul className="space-y-3">
+                {[
+                  "ลด downtime — เห็นเครื่องหยุดและสาเหตุแบบ realtime แก้ได้ทันที",
+                  "เพิ่ม OEE — วัดประสิทธิภาพจริงทุกไลน์ ไม่ใช่ประมาณเอา",
+                  "ตัดงานคีย์มือ — ข้อมูลไหลจากเครื่องเข้าระบบอัตโนมัติ ลด error",
+                  "Traceability — ตามรอย lot/batch ได้ (สำคัญกับอาหาร/ยา/FMCG)",
+                  "ข้อมูลชุดเดียวทั้งโรงงาน — บริหารตัดสินใจจากตัวเลขจริง",
+                ].map((p) => (
+                  <li key={p} className="flex items-start gap-2.5 text-sm text-slate-600 leading-relaxed">
+                    <span className="text-emerald-500 mt-0.5 flex-shrink-0">✓</span>
+                    <span>{p}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="bg-white border border-slate-200 rounded-2xl p-7 scroll-fade">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center text-2xl shadow-lg mb-5">🛡️</div>
+              <h3 className="text-xl font-bold mb-4">คุมความเสี่ยงยังไง</h3>
+              <ul className="space-y-3">
+                {[
+                  "ไม่ rip-and-replace — ต่อยอดจากเครื่องจักร/PLC เดิม ไม่ต้องรื้อทั้งโรงงาน",
+                  "เริ่มจาก pilot line เดียวก่อน พิสูจน์ผลจริงแล้วค่อยขยาย",
+                  "Vendor-neutral — ไม่ผูกยี่ห้อ PLC/ERP เดียว ข้อมูลเป็นของโรงงาน",
+                  "รองรับ on-prem / edge — ไม่บังคับขึ้น cloud ถ้ากังวลความปลอดภัย/เน็ต",
+                  "ส่งมอบพร้อมเอกสาร — ทีมโรงงานดูแลต่อเองได้ ไม่ lock-in",
+                ].map((p) => (
+                  <li key={p} className="flex items-start gap-2.5 text-sm text-slate-600 leading-relaxed">
+                    <span className="text-emerald-500 mt-0.5 flex-shrink-0">✓</span>
+                    <span>{p}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          {/* Phased plans */}
+          <div className="text-center mb-8 scroll-fade">
+            <h3 className="text-2xl md:text-3xl font-extrabold mb-2">เลือกได้ตามงบและความพร้อม — เริ่มเล็ก โตทีละเฟส</h3>
+            <p className="text-slate-600">เริ่มจาก Plan A เพื่อพิสูจน์ ROI ก่อน แล้วต่อยอดสู่ B และ C เมื่อพร้อม</p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              {
+                phase: "PLAN A",
+                title: "Monitoring & Dashboard",
+                grad: "from-amber-500 to-orange-600",
+                blurb: "อ่านข้อมูลจาก PLC/sensor ขึ้น dashboard realtime + แจ้งเตือน",
+                points: ["ต่อ PLC/sensor ที่มีอยู่", "Realtime dashboard + alert", "เริ่มต้นเร็ว ลงทุนต่ำ"],
+                fit: "เหมาะกับ: อยากเห็นข้อมูลก่อน พิสูจน์ ROI",
+              },
+              {
+                phase: "PLAN B",
+                title: "MES — Production Execution",
+                grad: "from-brand-500 to-brand-600",
+                blurb: "ยกระดับเป็นระบบควบคุมการผลิตเต็มรูปแบบ",
+                points: ["OEE + downtime tracking", "QC + traceability ราย lot", "Work order / การผลิตราย line"],
+                fit: "เหมาะกับ: อยากคุมคุณภาพและประสิทธิภาพการผลิต",
+                featured: true,
+              },
+              {
+                phase: "PLAN C",
+                title: "MES ↔ ERP Integration",
+                grad: "from-cyan-500 to-cyan-600",
+                blurb: "เชื่อมยอดผลิตจริงเข้า ERP เป็นระบบเดียวทั้งโรงงาน",
+                points: ["เชื่อม ERP (วางแผน/คลัง/จัดซื้อ)", "ตัดสต็อก/ต้นทุนอัตโนมัติ", "ข้อมูลไหลครบ end-to-end"],
+                fit: "เหมาะกับ: อยากได้ระบบครบวงจรทั้งโรงงาน",
+              },
+            ].map((p) => (
+              <div key={p.phase} className={`bg-white rounded-2xl p-7 card-hover scroll-fade flex flex-col border ${p.featured ? "border-brand-300 ring-1 ring-brand-200" : "border-slate-200"}`}>
+                <div className="flex items-center justify-between mb-4">
+                  <span className={`text-xs font-bold tracking-widest bg-gradient-to-r ${p.grad} bg-clip-text text-transparent`}>{p.phase}</span>
+                  {p.featured && <span className="text-xs font-semibold text-brand-700 bg-brand-50 px-2 py-0.5 rounded-full border border-brand-200">นิยมเริ่ม</span>}
+                </div>
+                <h4 className="text-lg font-bold mb-2">{p.title}</h4>
+                <p className="text-sm text-slate-600 mb-4 leading-relaxed">{p.blurb}</p>
+                <ul className="space-y-2 mb-5 flex-1">
+                  {p.points.map((pt) => (
+                    <li key={pt} className="flex items-start gap-2 text-sm text-slate-600">
+                      <span className="text-emerald-500 mt-0.5 flex-shrink-0">✓</span>
+                      <span>{pt}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="text-xs text-slate-500 pt-4 border-t border-slate-100">{p.fit}</div>
+              </div>
+            ))}
+          </div>
+
+          <div className="text-center mt-14 scroll-fade">
+            <a href="#contact" className="gradient-btn text-white font-semibold px-7 py-3.5 rounded-full text-base inline-flex items-center gap-2">ปรึกษา solution โรงงานของคุณ (ฟรี) →</a>
           </div>
         </div>
       </section>
@@ -633,6 +770,10 @@ export default function Home() {
                 a: "มีครับ — ดูแล แก้บั๊ก และพัฒนาต่อเนื่องได้ตามข้อตกลง ระบบที่ส่งมอบจะมีเอกสารและโครงสร้างที่ดูแลต่อง่าย ไม่ผูกขาดให้ต้องจ้างผมตลอด",
               },
               {
+                q: "ทำระบบโรงงาน (PLC/Sensor, MES, ERP) ได้ไหม เริ่มยังไง?",
+                a: "ได้ครับ — ออกแบบเป็น solution ที่เชื่อมตั้งแต่ PLC/sensor หน้างาน → MES (ติดตามการผลิต OEE, traceability) → ERP โดยไม่ต้องรื้อเครื่องจักรเดิม เริ่มได้ทีละเฟส: Plan A ทำ dashboard อ่านข้อมูล realtime ก่อนเพื่อพิสูจน์ ROI แล้วค่อยต่อยอดเป็น MES และเชื่อม ERP เมื่อพร้อม เริ่มจาก pilot line เดียวก่อนเพื่อคุมความเสี่ยง ดูรายละเอียดได้ที่หัวข้อ Industrial Solutions ด้านบน",
+              },
+              {
                 q: "โค้ดและข้อมูลเป็นของใคร ถ้าเลิกจ้างกลางทาง?",
                 a: "เป็นของคุณ 100% — ทั้งซอร์สโค้ด, ข้อมูล, และ IP ระบบ deploy บน infrastructure ในชื่อบัญชีของคุณเอง (Vercel/Supabase/cloud) ไม่มี vendor lock-in ถ้าหยุดกลางทาง คุณได้ทุกอย่างที่ส่งมอบไปแล้วพร้อมเอกสาร ทีมอื่นรับไปต่อได้ทันที",
               },
@@ -712,6 +853,7 @@ export default function Home() {
             <div className="flex items-center gap-6 text-sm text-slate-500">
               <a href="#about" className="hover:text-slate-900">About</a>
               <a href="#services" className="hover:text-slate-900">Services</a>
+              <a href="#industrial" className="hover:text-slate-900">Industrial</a>
               <a href="#cases" className="hover:text-slate-900">Work</a>
               <a href="#resume" className="hover:text-slate-900">Resume</a>
               <a href="#faq" className="hover:text-slate-900">FAQ</a>
