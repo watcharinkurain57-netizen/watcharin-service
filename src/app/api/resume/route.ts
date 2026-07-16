@@ -2,8 +2,11 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import { ResumeDocument } from "@/lib/resume-pdf";
 
 export const runtime = "nodejs";
-export const dynamic = "force-static";
-export const revalidate = 86400;
+// Render on every request so an updated résumé is always served fresh —
+// this endpoint is low-traffic and the render is fast, so correctness wins
+// over caching. (A static/long-cached response would show a stale résumé for
+// up to 24h after an update.)
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   const buffer = await renderToBuffer(ResumeDocument({ lang: "en" }));
@@ -14,7 +17,7 @@ export async function GET() {
       "Content-Type": "application/pdf",
       "Content-Disposition":
         'inline; filename="Watcharin-Kurain-Resume.pdf"',
-      "Cache-Control": "public, max-age=86400, s-maxage=86400",
+      "Cache-Control": "no-store, must-revalidate",
     },
   });
 }

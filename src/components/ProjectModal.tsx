@@ -61,7 +61,19 @@ export function ProjectModal({ project, onClose }: Props) {
               </span>
             </div>
             <h2 className="text-3xl font-extrabold mb-1">{project.name}</h2>
-            <p className="text-sm text-slate-500 mb-1">{project.domain}</p>
+            {project.url ? (
+              <a
+                href={project.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-brand-600 font-medium mb-1 inline-flex items-center gap-1 hover:underline"
+              >
+                {project.domain}
+                <span aria-hidden>↗</span>
+              </a>
+            ) : (
+              <p className="text-sm text-slate-500 mb-1">{project.domain}</p>
+            )}
             <p className={`text-base font-medium ${project.accentText}`}>
               {project.category}
             </p>
@@ -123,13 +135,26 @@ export function ProjectModal({ project, onClose }: Props) {
             </div>
           </div>
 
-          <a
-            href="#contact"
-            onClick={onClose}
-            className="gradient-btn text-white font-semibold px-6 py-3 rounded-full inline-flex items-center gap-2"
-          >
-            ปรึกษาเกี่ยวกับโปรเจคนี้ →
-          </a>
+          <div className="flex flex-wrap items-center gap-3">
+            {project.url && (
+              <a
+                href={project.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-white border border-brand-200 text-brand-700 font-semibold px-6 py-3 rounded-full inline-flex items-center gap-2 hover:border-brand-400 hover:bg-brand-50 transition"
+              >
+                🌐 เยี่ยมชม {project.domain}
+                <span aria-hidden>↗</span>
+              </a>
+            )}
+            <a
+              href="#contact"
+              onClick={onClose}
+              className="gradient-btn text-white font-semibold px-6 py-3 rounded-full inline-flex items-center gap-2"
+            >
+              ปรึกษาเกี่ยวกับโปรเจคนี้ →
+            </a>
+          </div>
         </div>
       </div>
     </div>
