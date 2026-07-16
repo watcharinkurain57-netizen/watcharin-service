@@ -476,9 +476,7 @@ export default function Home() {
             <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4">ประวัติและทักษะ</h2>
             <div className="flex flex-wrap items-center justify-center gap-3">
               <a
-                href="/api/resume"
-                target="_blank"
-                rel="noopener"
+                href="/resume/en"
                 className="inline-flex items-center gap-2 bg-white border border-slate-200 text-slate-900 font-semibold px-5 py-2.5 rounded-full hover:border-brand-300 hover:text-brand-600 transition"
               >
                 📄 Resume (EN)
