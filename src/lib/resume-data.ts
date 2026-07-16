@@ -17,12 +17,14 @@ export type ResumeData = {
     location: string;
     summary: string;
   };
+  highlights: string[];
   experience: Experience[];
   education: { degree: string; school: string; year: string };
   skills: { category: string; items: string[] }[];
   ecosystem: { name: string; description: string; systems: string[] };
   labels: {
     summary: string;
+    highlights: string;
     experience: string;
     education: string;
     skills: string;
@@ -47,16 +49,20 @@ const skillsShared = [
     items: ["React", "Next.js", "TypeScript", "ASP.NET", "Tailwind CSS", "HTML/CSS", "JavaScript"],
   },
   {
-    category: "Backend / API",
-    items: ["C#", "Python", "Node.js", "REST API", "Microsoft SQL Server"],
+    category: "Backend / Data",
+    items: ["C#", "Python", "Node.js", "REST API", "PostgreSQL", "Microsoft SQL Server", "Row-Level Security"],
   },
   {
     category: "Mobile",
     items: ["Kotlin (Android)", "Swift (iOS)", "Flutter", "React Native"],
   },
   {
-    category: "Enterprise / Tools",
-    items: ["ServiceNow (ITSM, CRM)", "Opentext ITSM", "Tableau", "Docker", "GitHub", "AWS", "Cloudflare"],
+    category: "Cloud / DevOps / AI",
+    items: ["Supabase", "Vercel", "AWS", "Cloudflare", "Docker", "Claude API / AI Agents", "MapLibre", "Sentry"],
+  },
+  {
+    category: "Enterprise / Governance",
+    items: ["ServiceNow (ITSM, CRM)", "Opentext ITSM", "OAuth (Google/LINE)", "Tableau", "GitHub", "PDPA-aware design"],
   },
 ];
 
@@ -66,9 +72,25 @@ const en: ResumeData = {
     role: "Software Architect",
     tagline: "System Design Studio · End-to-End Web, Mobile & AI Systems",
     summary:
-      "Software Architect with 4+ years across full-stack development, enterprise engineering, and architectural design. Currently building Watcharin Ecosystem — interconnected business systems forming an AI-powered value chain.",
+      "Software Architect with 4+ years across full-stack development, enterprise engineering, and architectural design — with experience at public companies including PTT Digital Solutions and MFEC. Currently building and operating the Watcharin Ecosystem, having shipped 3 production systems end-to-end (watcharin-service.com, tang-tee.com, x-tier.pro): designing, developing, deploying, and maintaining each, using AI to accelerate delivery.",
   },
+  highlights: [
+    "Shipped 3 production systems end-to-end as sole architect & developer — all live today.",
+    "4+ years at public companies (PTT Digital Solutions, MFEC, Taokaenoi) — from full-stack to enterprise architecture.",
+    "AI-augmented delivery: working MVPs in weeks, not quarters, without trading away scalability.",
+    "Compliance-aware by design — built systems aligned with Thai Direct Sales law and PDPA.",
+  ],
   experience: [
+    {
+      role: "Founder & Software Architect",
+      company: "Watcharin Ecosystem (watcharin-service.com)",
+      period: "Jun 2026 – Present",
+      bullets: [
+        "Shipped 3 production systems end-to-end — watcharin-service.com, tang-tee.com, and x-tier.pro — owning architecture, development, deployment, and operations.",
+        "Built on a modern cloud stack: Next.js, Supabase (Postgres + Row-Level Security), Vercel, with Google/LINE OAuth and Claude AI integration.",
+        "Designed x-tier for compliance with Thai Direct Sales law and PDPA; instrumented every system with analytics and error monitoring (Sentry).",
+      ],
+    },
     {
       role: "Software Architect",
       company: "PTT Digital Solutions Co., Ltd.",
@@ -109,14 +131,16 @@ const en: ResumeData = {
   ecosystem: {
     name: "Watcharin Ecosystem",
     description:
-      "A connected, AI-powered business ecosystem — products designed to work together end to end, starting with the systems below.",
+      "A connected, AI-powered business ecosystem — products designed to work together end to end. Three systems are already live in production.",
     systems: [
       "watcharin-service.com — System Design Studio (live)",
-      "tang-tee.com — Team & trip coordination platform",
+      "tang-tee.com — Team & trip coordination platform (live)",
+      "x-tier.pro — Direct-selling organization management (live)",
     ],
   },
   labels: {
     summary: "Summary",
+    highlights: "Highlights",
     experience: "Experience",
     education: "Education",
     skills: "Skills & Tech Stack",
@@ -130,9 +154,25 @@ const th: ResumeData = {
     role: "Software Architect",
     tagline: "System Design Studio · ออกแบบและสร้างระบบ Web, Mobile และ AI ครบวงจร",
     summary:
-      "Software Architect ประสบการณ์ 4+ ปี ครอบคลุมงาน full-stack, enterprise engineering และการออกแบบสถาปัตยกรรมระบบ ปัจจุบันกำลังสร้าง Watcharin Ecosystem — ระบบธุรกิจที่เชื่อมกันเป็น value chain ขับเคลื่อนด้วย AI",
+      "Software Architect ประสบการณ์ 4+ ปี ครอบคลุมงาน full-stack, enterprise engineering และการออกแบบสถาปัตยกรรมระบบ — ผ่านงานองค์กรมหาชนอย่าง PTT Digital Solutions และ MFEC ปัจจุบันสร้างและดูแล Watcharin Ecosystem โดยส่งระบบขึ้น production จริงแล้ว 3 ระบบ (watcharin-service.com, tang-tee.com, x-tier.pro) แบบ end-to-end — ออกแบบ พัฒนา deploy และดูแลเอง โดยใช้ AI เร่ง delivery",
   },
+  highlights: [
+    "ส่งระบบขึ้น production จริง 3 ระบบแบบ end-to-end ในฐานะ architect และ developer คนเดียว — ใช้งานอยู่ตอนนี้ทั้งหมด",
+    "ประสบการณ์ 4+ ปีในองค์กรมหาชน (PTT Digital Solutions, MFEC, เถ้าแก่น้อย) ตั้งแต่ full-stack ถึง enterprise architecture",
+    "AI-augmented delivery: ส่ง MVP ที่ใช้งานได้จริงในหลักสัปดาห์ โดยไม่ทิ้งเรื่อง scalability",
+    "ออกแบบระบบให้สอดคล้องกฎหมายตั้งแต่ต้น — ทำตาม พ.ร.บ.ขายตรง และ PDPA",
+  ],
   experience: [
+    {
+      role: "Founder & Software Architect",
+      company: "Watcharin Ecosystem (watcharin-service.com)",
+      period: "มิ.ย. 2026 – ปัจจุบัน",
+      bullets: [
+        "ส่งระบบขึ้น production จริงแล้ว 3 ระบบแบบ end-to-end — watcharin-service.com, tang-tee.com และ x-tier.pro รับผิดชอบตั้งแต่ออกแบบ พัฒนา deploy จนถึงดูแลใช้งานจริง",
+        "ใช้ cloud stack สมัยใหม่: Next.js, Supabase (Postgres + Row-Level Security), Vercel พร้อม Google/LINE OAuth และการเชื่อม AI (Claude)",
+        "ออกแบบ x-tier ให้สอดคล้อง พ.ร.บ.ขายตรง และ PDPA พร้อมวางระบบ analytics และ error monitoring (Sentry) ในทุกระบบ",
+      ],
+    },
     {
       role: "Software Architect",
       company: "PTT Digital Solutions Co., Ltd.",
@@ -173,14 +213,16 @@ const th: ResumeData = {
   ecosystem: {
     name: "Watcharin Ecosystem",
     description:
-      "ระบบนิเวศธุรกิจที่ขับเคลื่อนด้วย AI — ออกแบบให้แต่ละระบบทำงานเชื่อมกันแบบครบวงจร เริ่มจากระบบด้านล่างนี้",
+      "ระบบนิเวศธุรกิจที่ขับเคลื่อนด้วย AI — ออกแบบให้แต่ละระบบทำงานเชื่อมกันแบบครบวงจร ตอนนี้มี 3 ระบบเปิดใช้งานจริงบน production แล้ว",
     systems: [
       "watcharin-service.com — System Design Studio (เปิดใช้งานแล้ว)",
-      "tang-tee.com — แพลตฟอร์มรวมทีมและจัดทริป",
+      "tang-tee.com — แพลตฟอร์มรวมทีมและจัดทริป (เปิดใช้งานแล้ว)",
+      "x-tier.pro — ระบบจัดการองค์กรขายตรง (เปิดใช้งานแล้ว)",
     ],
   },
   labels: {
     summary: "สรุปโดยย่อ",
+    highlights: "จุดเด่น",
     experience: "ประสบการณ์ทำงาน",
     education: "การศึกษา",
     skills: "ทักษะและเทคโนโลยี",

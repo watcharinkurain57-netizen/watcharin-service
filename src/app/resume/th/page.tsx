@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 const r = getResume("th");
 
 export default function ThaiResumePage() {
-  const { profile, experience, education, skills, ecosystem, labels } = r;
+  const { profile, highlights, experience, education, skills, ecosystem, labels } = r;
 
   return (
     <main
@@ -65,6 +65,18 @@ export default function ThaiResumePage() {
         {/* Summary */}
         <Section title={labels.summary}>
           <p className="text-[15px]">{profile.summary}</p>
+        </Section>
+
+        {/* Highlights */}
+        <Section title={labels.highlights}>
+          <ul className="space-y-1">
+            {highlights.map((h, i) => (
+              <li key={i} className="flex gap-2 text-[14.5px]">
+                <span className="text-brand-500 mt-0.5">•</span>
+                <span>{h}</span>
+              </li>
+            ))}
+          </ul>
         </Section>
 
         {/* Experience */}

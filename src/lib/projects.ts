@@ -5,9 +5,13 @@ export type Project = {
   icon: string;
   name: string;
   domain: string;
+  /** ลิงก์เว็บจริง — มีเฉพาะโปรเจกต์ที่เปิดใช้งานแล้ว */
+  url?: string;
   category: string;
   status: ProjectStatus;
   statusLabel: string;
+  /** สั้นๆ สำหรับการ์ดในกริด */
+  tagline: string;
   description: string;
   features: string[];
   techStack: string[];
@@ -26,9 +30,11 @@ export const projects: Record<string, Project> = {
     icon: "👤",
     name: "watcharin-service",
     domain: "watcharin-service.com",
+    url: "https://watcharin-service.com",
     category: "Portfolio + Service Hub",
     status: "ACTIVE",
-    statusLabel: "ACTIVE",
+    statusLabel: "🟢 LIVE",
+    tagline: "ศูนย์รวมโปรเจคและบริการทั้งหมดของผม",
     description:
       "เว็บไซต์หลักที่นำเสนอบริการ 'ออกแบบและสร้างระบบครบวงจร' ของ Watcharin พร้อมโชว์ผลงาน Ecosystem 5 ระบบ และเป็นจุดเริ่มต้นในการติดต่อสำหรับลูกค้าใหม่",
     features: [
@@ -44,33 +50,35 @@ export const projects: Record<string, Project> = {
     currentInfo: "✅ Live ที่ watcharin-service.com — Vercel + Cloudflare, auto-deploy ทุก git push",
     iconBg: "bg-brand-100",
     accentText: "text-brand-600",
-    statusBadge: "text-brand-700 bg-brand-50 border-brand-200",
+    statusBadge: "text-emerald-700 bg-emerald-50 border-emerald-200",
   },
   "tang-tee": {
     id: "tang-tee",
     icon: "🎉",
     name: "tang-tee",
     domain: "tang-tee.com",
+    url: "https://tang-tee.com",
     category: "Community + Trip Planning",
-    status: "BUILDING",
-    statusLabel: "BUILDING",
+    status: "ACTIVE",
+    statusLabel: "🟢 LIVE",
+    tagline: "ตั้งทีม จัดทริป รวมกิจกรรม Public/Private",
     description:
       "แพลตฟอร์มสำหรับ 'ตั้งตี้' — รวมกลุ่ม จัดทริป จัดกิจกรรม ทั้งแบบ Public และ Private รองรับตั้งแต่ทริปเที่ยวต่างจังหวัด ปาร์ตี้ผับบาร์ ไปจนถึงตั้งทีมทำงาน/ทีมขาย",
     features: [
-      "🚀 MVP: ตั้งตี้เที่ยวต่างจังหวัด + ต่างประเทศ",
-      "💰 หารบิลอัตโนมัติ (auto bill splitting)",
-      "🏨 จัดการค่าใช้จ่ายทุกส่วน (ที่พัก, เดินทาง, อาหาร)",
+      "🚀 ตั้งตี้เที่ยวต่างจังหวัด + ต่างประเทศ",
+      "💰 หารบิลอัตโนมัติ + AI อ่านใบเสร็จช่วยลงรายการ",
+      "🗺️ แผนที่ค้นหาตี้ทั่วไทย — filter ภาค/จังหวัด/อำเภอ + near-me",
       "🔗 เชิญสมาชิกผ่าน link หรือ LINE",
-      "⭐ รีวิวหลังทริปจบ",
-      "🤖 AI ช่วยวางแผนทริป (แนะนำที่พัก, สถานที่)",
+      "⭐ รีวิวหลังทริปจบ + Web Push / อีเมลแจ้งเตือน",
+      "🛡️ ระบบ Moderation + fair-usage สำหรับดูแลชุมชน",
       "🎵 อนาคต: ตี้ผับ/บาร์, ตั้งทีมทำงาน, ทีมขาย, ทีม R&D",
     ],
-    techStack: ["Next.js 16", "Supabase", "Cloudflare", "Claude API", "Tailwind", "React Native (Phase 2)"],
-    timeline: "Phase 1.2 — MVP 8-10 สัปดาห์ (เริ่มหลัง watcharin-service เสร็จ)",
-    currentInfo: "📐 อยู่ขั้นวางแผน + ออกแบบ — กำลังสรุป feature scope สำหรับ MVP",
+    techStack: ["Next.js 16", "Supabase", "Vercel", "Claude API", "Tailwind", "MapLibre", "Sentry"],
+    timeline: "Live — tang-tee.com (2026)",
+    currentInfo: "✅ Live ที่ tang-tee.com — ตั้งตี้ หารบิล แผนที่ค้นหาตี้ รีวิว ครบทุกฟีเจอร์หลัก",
     iconBg: "bg-cyan-100",
     accentText: "text-cyan-600",
-    statusBadge: "text-amber-700 bg-amber-50 border-amber-200",
+    statusBadge: "text-emerald-700 bg-emerald-50 border-emerald-200",
   },
   "stealth-healthy": {
     id: "stealth-healthy",
@@ -80,6 +88,7 @@ export const projects: Record<string, Project> = {
     category: "E-commerce Platform",
     status: "STEALTH",
     statusLabel: "🔒 STEALTH",
+    tagline: "ขายสินค้าสุขภาพ จัดกลุ่มตามส่วนของร่างกาย",
     description:
       "โปรเจค E-commerce สายสุขภาพและความงาม จัดสินค้าตามส่วนของร่างกาย รายละเอียดเฉพาะถูกซ่อนไว้เพื่อป้องกัน competition และ domain squatting",
     features: [
@@ -94,27 +103,32 @@ export const projects: Record<string, Project> = {
     statusBadge: "text-slate-700 bg-slate-100 border-slate-300",
     stealth: true,
   },
-  "stealth-ruamtee": {
-    id: "stealth-ruamtee",
+  "x-tier": {
+    id: "x-tier",
     icon: "🤝",
-    name: "🔒 Stealth Project",
-    domain: "ปิดเป็นความลับ",
-    category: "MLM + Organization Management",
-    status: "STEALTH",
-    statusLabel: "🔒 STEALTH",
+    name: "x-tier",
+    domain: "www.x-tier.pro",
+    url: "https://www.x-tier.pro",
+    category: "Direct-Selling + Organization Management",
+    status: "ACTIVE",
+    statusLabel: "🟢 LIVE",
+    tagline: "จัดการองค์กรขายตรง ตั้งเป้า เทรน ติดตามทีม",
     description:
-      "แพลตฟอร์มจัดการองค์กรขาย รูปแบบ MLM และระบบฝึกอบรม ติดตามทีม รายละเอียดเฉพาะถูกซ่อนไว้",
+      "แพลตฟอร์มจัดการองค์กรขายตรง/เครือข่าย — ตั้งเป้ายอด ติดตามทีม ระบบฝึกอบรม และแคตตาล็อกสินค้า ออกแบบให้สอดคล้องกับ พ.ร.บ.ขายตรง และ PDPA",
     features: [
-      "🔒 รายละเอียดถูกซ่อน — เปิดเผยเฉพาะ partner ที่ลงนาม NDA",
-      "📞 ติดต่อ Watcharin โดยตรงสำหรับการพูดคุยเชิงลึก",
+      "🎯 ตั้งเป้ายอด (targets) + ติดตามความคืบหน้าของทีม",
+      "🧾 ระบบเคลม (claim) ตรวจสอบได้",
+      "📚 ระบบเทรน/ฝึกอบรมสมาชิก",
+      "🛍️ แคตตาล็อกสินค้า",
+      "🔐 ล็อกอินด้วย Google + LINE",
+      "⚖️ ออกแบบให้สอดคล้อง พ.ร.บ.ขายตรง ม.19 + PDPA",
     ],
-    techStack: ["Modern stack — รายละเอียดเปิดเผยเมื่อ launch"],
-    timeline: "Phase 4 (2027+)",
-    currentInfo: "🧠 อยู่ในขั้นวางแผนและออกแบบ",
+    techStack: ["Next.js 16", "Supabase", "Vercel", "Tailwind", "Google/LINE OAuth"],
+    timeline: "Live — www.x-tier.pro (2026)",
+    currentInfo: "✅ Live ที่ www.x-tier.pro — MVP + เป้า/เคลม/แคตตาล็อก/เทรน + เฟส 2 ครบ",
     iconBg: "bg-purple-100",
     accentText: "text-purple-600",
-    statusBadge: "text-slate-700 bg-slate-100 border-slate-300",
-    stealth: true,
+    statusBadge: "text-emerald-700 bg-emerald-50 border-emerald-200",
   },
   "stealth-khongthai": {
     id: "stealth-khongthai",
@@ -124,6 +138,7 @@ export const projects: Record<string, Project> = {
     category: "R&D Platform",
     status: "STEALTH",
     statusLabel: "🔒 STEALTH",
+    tagline: "วิจัยและออกแบบสินค้าไทย สายสุขภาพ-ความงาม",
     description:
       "แพลตฟอร์มวิจัยและออกแบบสินค้าไทย สายสุขภาพและความงาม รายละเอียดเฉพาะถูกซ่อนไว้",
     features: [
@@ -146,18 +161,19 @@ export const projects: Record<string, Project> = {
     category: "Business Model",
     status: "OVERVIEW",
     statusLabel: "OVERVIEW",
+    tagline: "value chain ของทุกระบบ เชื่อมกันด้วย AI",
     description:
       "Watcharin Ecosystem คือระบบนิเวศธุรกิจครบวงจร 5 ระบบที่เชื่อมกันเป็น value chain ตั้งแต่รวมคน → R&D → ผลิต → ขาย → จัดการองค์กร โดยใช้ AI ขับเคลื่อนทุกขั้นตอน",
     features: [
-      "1️⃣ tang-tee → รวมทีม + จัดกิจกรรม",
+      "1️⃣ tang-tee → รวมทีม + จัดกิจกรรม 🟢 Live",
       "2️⃣ 🔒 Stealth → R&D + ออกแบบสินค้า",
       "3️⃣ 🏭 โรงงานผลิต (partner)",
       "4️⃣ 🔒 Stealth → E-commerce ขายสินค้า",
-      "5️⃣ 🔒 Stealth → MLM + จัดการทีมขาย",
+      "5️⃣ x-tier → จัดการองค์กรขายตรง/ทีมขาย 🟢 Live",
     ],
     techStack: ["Vertical integration", "AI-orchestrated", "Multi-tenant SaaS"],
     timeline: "18-24 เดือน (ทั้งระบบ)",
-    currentInfo: "🚀 กำลังเริ่ม Phase 1 — watcharin-service + tang-tee",
+    currentInfo: "🚀 Phase 1 Live — watcharin-service + tang-tee + x-tier",
     iconBg: "bg-brand-500",
     accentText: "text-brand-600",
     statusBadge: "text-brand-700 bg-brand-50 border-brand-200",
@@ -167,7 +183,7 @@ export const projects: Record<string, Project> = {
 export const ecosystemDisplay = [
   "watcharin-service",
   "tang-tee",
+  "x-tier",
   "stealth-healthy",
-  "stealth-ruamtee",
   "stealth-khongthai",
 ] as const;

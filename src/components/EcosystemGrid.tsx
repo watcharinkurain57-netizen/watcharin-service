@@ -42,15 +42,7 @@ export function EcosystemGrid() {
                 {p.category}
               </p>
               <p className="text-slate-600 text-sm leading-relaxed">
-                {p.stealth
-                  ? p.id === "stealth-healthy"
-                    ? "ขายสินค้าสุขภาพ จัดกลุ่มตามส่วนของร่างกาย"
-                    : p.id === "stealth-ruamtee"
-                      ? "จัดการองค์กรขาย ฝึกอบรม ติดตามทีม"
-                      : "วิจัยและออกแบบสินค้าไทย สายสุขภาพ-ความงาม"
-                  : p.id === "watcharin-service"
-                    ? "ศูนย์รวมโปรเจคและบริการทั้งหมดของผม"
-                    : "ตั้งทีม จัดทริป รวมกิจกรรม Public/Private"}
+                {p.tagline}
               </p>
               <div
                 className={`mt-4 text-sm font-medium flex items-center gap-1 ${

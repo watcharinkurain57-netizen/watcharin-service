@@ -167,7 +167,7 @@ const s = StyleSheet.create({
 });
 
 export function ResumeDocument({ lang = "en" }: { lang?: Lang }) {
-  const { profile, experience, education, skills, ecosystem, labels } =
+  const { profile, highlights, experience, education, skills, ecosystem, labels } =
     getResume(lang);
   const fontFamily = lang === "th" ? "Sarabun" : "Helvetica";
 
@@ -214,6 +214,16 @@ export function ResumeDocument({ lang = "en" }: { lang?: Lang }) {
         <View style={s.section}>
           <Text style={s.sectionTitle}>{labels.summary}</Text>
           <Text style={s.summary}>{profile.summary}</Text>
+        </View>
+
+        <View style={s.section} wrap={false}>
+          <Text style={s.sectionTitle}>{labels.highlights}</Text>
+          {highlights.map((h, i) => (
+            <View key={i} style={s.bullet}>
+              <Text style={s.bulletDot}>•</Text>
+              <Text style={s.bulletText}>{h}</Text>
+            </View>
+          ))}
         </View>
 
         <View style={s.section}>

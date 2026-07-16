@@ -4,6 +4,7 @@ import { ScrollFader } from "@/components/ScrollFader";
 import { ContactForm } from "@/components/ContactForm";
 import { LogoMark } from "@/components/Logo";
 import { SocialLinks } from "@/components/Social";
+import { getResume } from "@/lib/resume-data";
 
 const SITE = "https://watcharin-service.com";
 
@@ -116,18 +117,18 @@ export default function Home() {
               </div>
               <div className="flex items-center gap-8 text-sm">
                 <div>
-                  <div className="font-extrabold text-3xl text-slate-900">5+</div>
-                  <div className="text-slate-500 mt-1">ระบบใน Ecosystem</div>
+                  <div className="font-extrabold text-3xl text-slate-900">3</div>
+                  <div className="text-slate-500 mt-1">ระบบ Live production</div>
                 </div>
                 <div className="w-px h-12 bg-slate-200" />
                 <div>
-                  <div className="font-extrabold text-3xl gradient-text">AI-First</div>
-                  <div className="text-slate-500 mt-1">Approach</div>
+                  <div className="font-extrabold text-3xl text-slate-900">4+</div>
+                  <div className="text-slate-500 mt-1">ปีประสบการณ์องค์กร</div>
                 </div>
                 <div className="w-px h-12 bg-slate-200 hidden sm:block" />
                 <div className="hidden sm:block">
-                  <div className="font-extrabold text-3xl text-slate-900">End-to-End</div>
-                  <div className="text-slate-500 mt-1">Solution</div>
+                  <div className="font-extrabold text-3xl gradient-text">100%</div>
+                  <div className="text-slate-500 mt-1">โค้ด/IP เป็นของคุณ</div>
                 </div>
               </div>
             </div>
@@ -147,6 +148,29 @@ export default function Home() {
                 <div className="text-xs text-slate-500 mb-0.5">Founder & Lead Engineer</div>
                 <div className="font-bold text-slate-900 text-sm">Watcharin Kurain</div>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ========== TRUST BAR ========== */}
+      <section className="border-y border-slate-200 bg-white">
+        <div className="max-w-7xl mx-auto px-6 py-8">
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
+            <p className="text-sm font-medium text-slate-500 shrink-0">
+              ประสบการณ์จากองค์กรมหาชนชั้นนำ
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
+              {[
+                "PTT Digital Solutions",
+                "MFEC",
+                "Taokaenoi",
+                "RMUTP",
+              ].map((name) => (
+                <span key={name} className="text-base md:text-lg font-bold text-slate-400">
+                  {name}
+                </span>
+              ))}
             </div>
           </div>
         </div>
@@ -298,28 +322,84 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ========== WHY ========== */}
-      <section className="py-20 md:py-28">
+      {/* ========== FOR DECISION-MAKERS (ROI / RISK / PLAN) ========== */}
+      <section id="value" className="py-20 md:py-28">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16 scroll-fade">
-            <div className="inline-block px-3 py-1 rounded-full bg-brand-50 text-brand-700 text-sm font-medium mb-4">Why Watcharin</div>
+            <div className="inline-block px-3 py-1 rounded-full bg-brand-50 text-brand-700 text-sm font-medium mb-4">For Decision-Makers</div>
             <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4">
-              ทำไมต้อง <span className="gradient-text">Watcharin Service</span>
+              จ้างแล้ว<span className="gradient-text">ได้อะไร</span> — และเราจัดการความเสี่ยงยังไง
             </h2>
-            <p className="text-slate-600 text-lg max-w-2xl mx-auto">เราต่างจาก dev ทั่วไปอย่างไร — มาดูกัน</p>
+            <p className="text-slate-600 text-lg max-w-2xl mx-auto">มองในมุมผู้บริหาร: คุณค่าที่วัดได้ การควบคุมความเสี่ยง และแผนส่งมอบที่โปร่งใส</p>
           </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              {
+                icon: "📈",
+                grad: "from-brand-500 to-brand-600",
+                title: "ROI & คุณค่าทางธุรกิจ",
+                points: [
+                  "Time-to-market เร็วขึ้นด้วย AI-augmented delivery — เห็น MVP ใช้งานได้ในหลักสัปดาห์",
+                  "Architect คนเดียวรับผิดชอบ end-to-end — ตัดต้นทุนการประสานงานหลายทีม/หลาย vendor",
+                  "Production-proven จริง: 3 ระบบที่ออกแบบเองใช้งานอยู่บน production ตอนนี้",
+                  "ออกแบบให้ scale ได้ตั้งแต่ต้น — ลดค่า rebuild ในระยะยาว",
+                ],
+              },
+              {
+                icon: "🛡️",
+                grad: "from-emerald-500 to-emerald-600",
+                title: "การบริหารความเสี่ยง",
+                points: [
+                  "ส่งมอบเป็น milestone — เห็น working software ทุกรอบ ไม่ต้องรอจนจบ",
+                  "โค้ดและ IP เป็นของคุณ 100% deploy บน infra ของคุณเอง ไม่มี vendor lock-in",
+                  "NDA + ออกแบบให้สอดคล้อง PDPA เป็นมาตรฐาน (เคยทำ x-tier ตาม พ.ร.บ.ขายตรง มาแล้ว)",
+                  "ส่งมอบพร้อมเอกสาร architecture — ทีมคุณรับไปดูแลต่อเองได้",
+                ],
+              },
+              {
+                icon: "🗺️",
+                grad: "from-cyan-500 to-cyan-600",
+                title: "แผนงาน & ความโปร่งใส",
+                points: [
+                  "Roadmap แบ่งเป็นเฟสชัดเจน + ประเมิน scope และ timeline ก่อนเริ่ม",
+                  "จ่ายตาม milestone ที่ส่งมอบ ไม่ใช่เหมาก้อนเดียวจ่ายหน้างาน",
+                  "อัปเดตความคืบหน้าโปร่งใส ปรับ scope ได้ระหว่างทาง",
+                  "Fixed-scope quote ก่อนเริ่มงาน ไม่มีค่าใช้จ่ายแอบแฝง",
+                ],
+              },
+            ].map((c) => (
+              <div key={c.title} className="bg-white border border-slate-200 rounded-2xl p-7 card-hover scroll-fade flex flex-col">
+                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${c.grad} flex items-center justify-center text-2xl shadow-lg mb-5`}>{c.icon}</div>
+                <h3 className="text-xl font-bold mb-4">{c.title}</h3>
+                <ul className="space-y-3">
+                  {c.points.map((p) => (
+                    <li key={p} className="flex items-start gap-2.5 text-sm text-slate-600 leading-relaxed">
+                      <span className="text-emerald-500 mt-0.5 flex-shrink-0">✓</span>
+                      <span>{p}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+
+          {/* quick differentiators strip */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mt-8">
             {[
               ["End-to-End", "จากแนวคิดถึง production — ไม่ทิ้งกลางทาง"],
               ["AI-First", "ผสาน AI ในทุกระบบ ไม่ใช่แค่ตัวเสริม"],
               ["Business+", "เข้าใจธุรกิจ ไม่ใช่แค่เขียนโค้ด"],
-              ["Modern", "ใช้ stack ที่ทันสมัย scale ได้"],
+              ["No Lock-in", "โค้ด เอกสาร และ IP เป็นของคุณทั้งหมด"],
             ].map(([title, desc]) => (
               <div key={title} className="bg-gradient-to-br from-brand-50 to-white border border-brand-100 rounded-2xl p-6 card-hover scroll-fade">
-                <div className="text-4xl font-extrabold gradient-text mb-2">{title}</div>
+                <div className="text-3xl font-extrabold gradient-text mb-2">{title}</div>
                 <p className="text-slate-600 text-sm">{desc}</p>
               </div>
             ))}
+          </div>
+
+          <div className="text-center mt-14 scroll-fade">
+            <a href="#contact" className="gradient-btn text-white font-semibold px-7 py-3.5 rounded-full text-base inline-flex items-center gap-2">คุยเรื่องโปรเจคของคุณ →</a>
           </div>
         </div>
       </section>
@@ -413,10 +493,34 @@ export default function Home() {
           </div>
 
           <div className="mb-16 scroll-fade">
+            <h3 className="text-2xl font-bold mb-6 flex items-center gap-2">✨ จุดเด่น</h3>
+            <div className="grid sm:grid-cols-2 gap-4">
+              {getResume("th").highlights.map((h) => (
+                <div key={h} className="bg-white border border-slate-200 rounded-2xl p-5 flex items-start gap-3 card-hover">
+                  <span className="text-emerald-500 mt-0.5 flex-shrink-0 text-lg">✓</span>
+                  <p className="text-slate-700 text-sm leading-relaxed">{h}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="mb-16 scroll-fade">
             <h3 className="text-2xl font-bold mb-6 flex items-center gap-2">💼 Experience</h3>
             <div className="space-y-4">
+              <div className="bg-white border border-emerald-200 rounded-2xl p-6 flex gap-4 card-hover relative ring-1 ring-emerald-100">
+                <span className="absolute top-4 right-4 text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-1 rounded-full border border-emerald-200 inline-flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 pulse-dot" />NOW</span>
+                <div className="w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center text-2xl flex-shrink-0">🚀</div>
+                <div className="flex-1">
+                  <div className="flex flex-wrap justify-between gap-2 mb-1 pr-20">
+                    <h4 className="font-bold text-lg">Founder &amp; Software Architect</h4>
+                    <span className="text-sm text-slate-500">มิ.ย. 2026 – ปัจจุบัน</span>
+                  </div>
+                  <div className="text-emerald-600 font-medium mb-2">Watcharin Ecosystem</div>
+                  <p className="text-slate-600 text-sm leading-relaxed">ส่งระบบขึ้น production จริงแล้ว <strong>3 ระบบ</strong>แบบ end-to-end — <strong>watcharin-service.com</strong>, <strong>tang-tee.com</strong> และ <strong>x-tier.pro</strong> รับผิดชอบตั้งแต่ออกแบบ พัฒนา deploy จนถึงดูแลใช้งานจริง บน Next.js + Supabase (Postgres/RLS) + Vercel พร้อม AI (Claude) และออกแบบให้สอดคล้อง PDPA</p>
+                </div>
+              </div>
               <div className="bg-white border border-slate-200 rounded-2xl p-6 flex gap-4 card-hover relative">
-                <span className="absolute top-4 right-4 text-xs font-semibold text-brand-700 bg-brand-50 px-2 py-1 rounded-full border border-brand-200">LATEST</span>
+                <span className="absolute top-4 right-4 text-xs font-semibold text-brand-700 bg-brand-50 px-2 py-1 rounded-full border border-brand-200">ORG</span>
                 <div className="w-12 h-12 rounded-xl bg-brand-100 flex items-center justify-center text-2xl flex-shrink-0">🏛️</div>
                 <div className="flex-1">
                   <div className="flex flex-wrap justify-between gap-2 mb-1 pr-20">
@@ -470,26 +574,31 @@ export default function Home() {
           <div className="scroll-fade">
             <h3 className="text-2xl font-bold mb-6 flex items-center gap-2">⚡ Skills & Tech Stack</h3>
             <div className="grid sm:grid-cols-2 gap-6">
-              {[
-                { title: "🎨 Frontend / Web", color: "brand", skills: ["React", "Next.js", "TypeScript", "ASP.NET", "Tailwind CSS", "HTML / CSS", "JavaScript"] },
-                { title: "⚙️ Backend / API", color: "cyan", skills: ["C#", "Python", "Node.js", "REST API", "Microsoft SQL Server"] },
-                { title: "📱 Mobile", color: "purple", skills: ["Kotlin (Android)", "Swift (iOS)", "Flutter", "React Native"] },
-                { title: "🛠️ Enterprise / Tools", color: "orange", skills: ["ServiceNow (ITSM, CRM)", "Opentext ITSM", "Tableau", "Docker", "GitHub", "AWS", "Cloudflare"] },
-              ].map((cat) => (
-                <div key={cat.title} className="bg-white border border-slate-200 rounded-2xl p-6">
-                  <div className="font-bold mb-4 text-slate-900 flex items-center gap-2">{cat.title}</div>
-                  <div className="flex flex-wrap gap-2">
-                    {cat.skills.map((s) => (
-                      <span key={s} className={`px-3 py-1.5 rounded-lg text-sm font-medium border ${
-                        cat.color === "brand" ? "bg-brand-50 text-brand-700 border-brand-200" :
-                        cat.color === "cyan" ? "bg-cyan-50 text-cyan-700 border-cyan-200" :
-                        cat.color === "purple" ? "bg-purple-50 text-purple-700 border-purple-200" :
-                        "bg-orange-50 text-orange-700 border-orange-200"
-                      }`}>{s}</span>
-                    ))}
+              {getResume("en").skills.map((cat, i) => {
+                const meta = [
+                  { emoji: "🎨", color: "brand" },
+                  { emoji: "⚙️", color: "cyan" },
+                  { emoji: "📱", color: "purple" },
+                  { emoji: "☁️", color: "emerald" },
+                  { emoji: "🛠️", color: "orange" },
+                ][i % 5];
+                return (
+                  <div key={cat.category} className="bg-white border border-slate-200 rounded-2xl p-6">
+                    <div className="font-bold mb-4 text-slate-900 flex items-center gap-2">{meta.emoji} {cat.category}</div>
+                    <div className="flex flex-wrap gap-2">
+                      {cat.items.map((s) => (
+                        <span key={s} className={`px-3 py-1.5 rounded-lg text-sm font-medium border ${
+                          meta.color === "brand" ? "bg-brand-50 text-brand-700 border-brand-200" :
+                          meta.color === "cyan" ? "bg-cyan-50 text-cyan-700 border-cyan-200" :
+                          meta.color === "purple" ? "bg-purple-50 text-purple-700 border-purple-200" :
+                          meta.color === "emerald" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
+                          "bg-orange-50 text-orange-700 border-orange-200"
+                        }`}>{s}</span>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
@@ -524,6 +633,14 @@ export default function Home() {
               {
                 q: "มีดูแลหลังส่งมอบไหม?",
                 a: "มีครับ — ดูแล แก้บั๊ก และพัฒนาต่อเนื่องได้ตามข้อตกลง ระบบที่ส่งมอบจะมีเอกสารและโครงสร้างที่ดูแลต่อง่าย ไม่ผูกขาดให้ต้องจ้างผมตลอด",
+              },
+              {
+                q: "โค้ดและข้อมูลเป็นของใคร ถ้าเลิกจ้างกลางทาง?",
+                a: "เป็นของคุณ 100% — ทั้งซอร์สโค้ด, ข้อมูล, และ IP ระบบ deploy บน infrastructure ในชื่อบัญชีของคุณเอง (Vercel/Supabase/cloud) ไม่มี vendor lock-in ถ้าหยุดกลางทาง คุณได้ทุกอย่างที่ส่งมอบไปแล้วพร้อมเอกสาร ทีมอื่นรับไปต่อได้ทันที",
+              },
+              {
+                q: "ประเมินความคุ้มค่า (ROI) และความเสี่ยงยังไง?",
+                a: "เริ่มจากสรุป scope และ timeline ให้ชัดก่อนเริ่ม แล้วส่งมอบเป็น milestone — คุณเห็นของใช้งานได้จริงทุกรอบและจ่ายตามงานที่ส่งมอบ ความเสี่ยงจึงถูกคุมเป็นช่วงสั้นๆ ไม่ใช่เดิมพันก้อนเดียว ความคุ้มค่าหลักมาจากการมี architect เดียวรับผิดชอบ end-to-end (ลด overhead การประสานงาน) และโครงสร้างที่ scale ได้ตั้งแต่ต้น ลดค่า rebuild ในอนาคต",
               },
               {
                 q: "ทำงานแบบ remote ได้ไหม อยู่ที่ไหน?",
