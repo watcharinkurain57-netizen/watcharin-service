@@ -1,15 +1,16 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import type { RefObject } from "react";
 import type { ScrollState } from "@/lib/useScrollProgress";
 import type { DeviceTier } from "@/lib/useDeviceTier";
 import {
-  buildEdges,
+  CHAPTER_COUNT,
+  buildEdgeSets,
+  buildLayouts,
   cameraFor,
-  latticeLayout,
   mulberry32,
   nodeCountFor,
 } from "./chapters";
@@ -48,9 +49,9 @@ const VERTEX = /* glsl */ `
 `;
 
 /**
- * Additive soft sprite. This is what stands in for a bloom pass — a real
- * postprocessing chain would cost ~40KB and a full-screen render target for a
- * result that is barely distinguishable at these sizes.
+ * Additive soft sprite. This stands in for a bloom pass — real postprocessing
+ * would cost ~40KB plus a full-screen render target for a difference nobody
+ * can see at these point sizes.
  */
 const POINT_FRAGMENT = /* glsl */ `
   precision mediump float;
@@ -94,64 +95,79 @@ export function Lattice({
   tier: DeviceTier;
   scroll: RefObject<ScrollState>;
 }) {
-  const { pointsGeometry, lineGeometry, pointMaterial, lineMaterial, uniforms } =
-    useMemo(() => {
-      const rand = mulberry32(0x5eed);
-      const count = nodeCountFor(tier);
+  const built = useMemo(() => {
+    const count = nodeCountFor(tier);
+    const layouts = buildLayouts(count);
+    const edgeSets = buildEdgeSets(layouts, tier === 2 ? 240 : 110);
 
-      const lattice = latticeLayout(count, rand);
-      const seeds = new Float32Array(count);
-      for (let i = 0; i < count; i++) seeds[i] = rand();
-      const edges = buildEdges(lattice, rand, tier === 2 ? 240 : 110);
+    // One BufferAttribute per chapter layout, uploaded lazily by three the
+    // first time each is bound. 2600 nodes is ~31KB per layout.
+    const positionAttrs = layouts.map((l) =>
+      l.length ? new THREE.BufferAttribute(l, 3) : null,
+    );
+    const indexAttrs = edgeSets.map((e) =>
+      e.length ? new THREE.BufferAttribute(e, 1) : null,
+    );
 
-      // One buffer per attribute, shared by both geometries so the GPU holds a
-      // single copy. `aTo` points at the same layout for now — chapter 2+ swap
-      // in their own target and animate uMix.
-      const positionAttr = new THREE.BufferAttribute(lattice, 3);
-      const seedAttr = new THREE.BufferAttribute(seeds, 1);
+    const rand = mulberry32(0x5eed);
+    const seeds = new Float32Array(count);
+    for (let i = 0; i < count; i++) seeds[i] = rand();
+    const seedAttr = new THREE.BufferAttribute(seeds, 1);
 
-      const attach = (geometry: THREE.BufferGeometry) => {
-        geometry.setAttribute("position", positionAttr);
-        geometry.setAttribute("aFrom", positionAttr);
-        geometry.setAttribute("aTo", positionAttr);
-        geometry.setAttribute("aSeed", seedAttr);
-        return geometry;
-      };
+    const pointsGeometry = new THREE.BufferGeometry();
+    const lineGeometry = new THREE.BufferGeometry();
+    for (const g of [pointsGeometry, lineGeometry]) {
+      g.setAttribute("aSeed", seedAttr);
+    }
 
-      const pointsGeometry = attach(new THREE.BufferGeometry());
-      const lineGeometry = attach(new THREE.BufferGeometry());
-      lineGeometry.setIndex(new THREE.BufferAttribute(edges, 1));
+    const uniforms = {
+      uMix: { value: 0 },
+      uTime: { value: 0 },
+      uFade: { value: 0 },
+      uSize: { value: tier === 2 ? 1 : 1.2 },
+      uPixelRatio: { value: 1 },
+      uColorA: { value: new THREE.Color("#6ee7b7") },
+      uColorB: { value: new THREE.Color("#0e7490") },
+    };
 
-      const uniforms = {
-        uMix: { value: 0 },
-        uTime: { value: 0 },
-        uFade: { value: 0 },
-        uSize: { value: tier === 2 ? 1 : 1.2 },
-        uPixelRatio: { value: 1 },
-        uColorA: { value: new THREE.Color("#6ee7b7") },
-        uColorB: { value: new THREE.Color("#0e7490") },
-      };
+    const shared = {
+      uniforms,
+      vertexShader: VERTEX,
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      depthTest: false,
+    } as const;
 
-      const shared = {
-        uniforms,
-        vertexShader: VERTEX,
-        transparent: true,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false,
-        depthTest: false,
-      } as const;
+    const pointMaterial = new THREE.ShaderMaterial({
+      ...shared,
+      fragmentShader: POINT_FRAGMENT,
+    });
+    const lineMaterial = new THREE.ShaderMaterial({
+      ...shared,
+      fragmentShader: LINE_FRAGMENT,
+    });
 
-      const pointMaterial = new THREE.ShaderMaterial({
-        ...shared,
-        fragmentShader: POINT_FRAGMENT,
-      });
-      const lineMaterial = new THREE.ShaderMaterial({
-        ...shared,
-        fragmentShader: LINE_FRAGMENT,
-      });
+    return {
+      positionAttrs,
+      indexAttrs,
+      pointsGeometry,
+      lineGeometry,
+      pointMaterial,
+      lineMaterial,
+      uniforms,
+    };
+  }, [tier]);
 
-      return { pointsGeometry, lineGeometry, pointMaterial, lineMaterial, uniforms };
-    }, [tier]);
+  const {
+    positionAttrs,
+    indexAttrs,
+    pointsGeometry,
+    lineGeometry,
+    pointMaterial,
+    lineMaterial,
+    uniforms,
+  } = built;
 
   // useMemo objects are ours to clean up; R3F only auto-disposes what it created.
   useEffect(
@@ -164,20 +180,47 @@ export function Lattice({
     [pointsGeometry, lineGeometry, pointMaterial, lineMaterial],
   );
 
+  const boundChapter = useRef(-1);
+
   useFrame(({ camera, clock, gl }, delta) => {
     const s = scroll.current;
     if (!s) return;
 
+    const chapter = Math.min(CHAPTER_COUNT, Math.max(1, s.chapter));
+
+    // Swap the morph pair only when the chapter changes — six times per page,
+    // not per frame. Chapter N blends layout N into layout N+1, so mix=1 of
+    // one chapter is exactly mix=0 of the next and the seam is invisible.
+    if (boundChapter.current !== chapter) {
+      boundChapter.current = chapter;
+      const from = positionAttrs[chapter];
+      const to = positionAttrs[chapter + 1] ?? from;
+      if (from && to) {
+        for (const g of [pointsGeometry, lineGeometry]) {
+          g.setAttribute("position", from);
+          g.setAttribute("aFrom", from);
+          g.setAttribute("aTo", to);
+        }
+      }
+      const index = indexAttrs[chapter];
+      if (index) lineGeometry.setIndex(index);
+    }
+
+    // Assigned, not damped: chapterProgress is already continuous, and damping
+    // would lag the value across a boundary and break that exact seam.
+    uniforms.uMix.value = s.chapterProgress;
     uniforms.uTime.value = clock.elapsedTime;
     uniforms.uPixelRatio.value = gl.getPixelRatio();
 
-    const target = cameraFor(s.chapter, s.chapterProgress);
+    const target = cameraFor(chapter, s.chapterProgress);
 
-    // Damping rather than direct assignment: scroll events arrive in bursts and
-    // a raw mapping makes the camera stutter. Frame-rate independent.
+    // The camera *is* damped: scroll events arrive in bursts and a raw mapping
+    // makes the motion stutter. Frame-rate independent.
     const k = 3.5;
-    camera.position.z = THREE.MathUtils.damp(camera.position.z, target.z, k, delta);
+    camera.position.x = THREE.MathUtils.damp(camera.position.x, target.x, k, delta);
     camera.position.y = THREE.MathUtils.damp(camera.position.y, target.y, k, delta);
+    camera.position.z = THREE.MathUtils.damp(camera.position.z, target.z, k, delta);
+    camera.lookAt(0, 0, 0);
     uniforms.uFade.value = THREE.MathUtils.damp(
       uniforms.uFade.value,
       target.fade,

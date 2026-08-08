@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { Lattice } from "./Lattice";
+import { DataFlow } from "./DataFlow";
 import { useScrollProgress } from "@/lib/useScrollProgress";
 import type { DeviceTier } from "@/lib/useDeviceTier";
 
@@ -48,6 +49,10 @@ export function Scene({ tier }: { tier: DeviceTier }) {
       }}
     >
       <Lattice tier={tier} scroll={scroll} />
+      {/* Flow particles are the one thing phones don't get — an extra draw call
+          of 520 additive sprites is exactly the sort of thing that shows up as
+          battery drain rather than as dropped frames. */}
+      {tier === 2 && <DataFlow scroll={scroll} />}
     </Canvas>
   );
 }

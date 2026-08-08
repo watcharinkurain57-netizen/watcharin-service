@@ -46,13 +46,20 @@ export function detectDeviceTier(): DeviceTier {
   return 2;
 }
 
-/** `null` until measured on the client — SSR must never guess a tier. */
+/**
+ * `null` on the server — SSR must never guess a tier.
+ *
+ * Detection runs in the state initialiser rather than in an effect: doing it in
+ * an effect means an extra render pass for every visitor, and the consumer
+ * renders nothing until it has a tier anyway, so there is no hydration
+ * mismatch to worry about.
+ */
 export function useDeviceTier(): DeviceTier | null {
-  const [tier, setTier] = useState<DeviceTier | null>(null);
+  const [tier, setTier] = useState<DeviceTier | null>(() =>
+    typeof window === "undefined" ? null : detectDeviceTier(),
+  );
 
   useEffect(() => {
-    setTier(detectDeviceTier());
-
     // A visitor can flip reduced-motion mid-session; honour it immediately.
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
     const onChange = () => setTier(detectDeviceTier());
