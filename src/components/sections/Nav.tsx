@@ -10,9 +10,11 @@ export function Nav() {
             <span>Watcharin <span className="text-brand-400">Service</span></span>
           </a>
           <div className="hidden md:flex items-center gap-6 text-sm font-medium text-ink-muted">
+            {/* Order mirrors the chapter order on the page so anchor jumps
+                never move the reader backwards. */}
             <a href="#services" className="hover:text-ink transition">Services</a>
-            <a href="#industrial" className="hover:text-ink transition">Industrial</a>
             <a href="#process" className="hover:text-ink transition">Process</a>
+            <a href="#industrial" className="hover:text-ink transition">Industrial</a>
             <a href="#cases" className="hover:text-ink transition">Work</a>
             <a href="#about" className="hover:text-ink transition">About</a>
             <a href="#resume" className="hover:text-ink transition">Resume</a>

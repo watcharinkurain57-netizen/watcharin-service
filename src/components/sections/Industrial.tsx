@@ -73,8 +73,17 @@ export function Industrial() {
             </div>
           </div>
 
-          {/* Phased plans */}
-          <div className="text-center mb-8 scroll-fade">
+          {/* Phased plans — deeper-funnel detail, collapsed by default to keep
+              this (already long) section scannable. Native <details> keeps every
+              word in the DOM for SEO and gives keyboard/AT support for free. */}
+          <details className="group scroll-fade">
+            <summary className="cursor-pointer list-none text-center [&::-webkit-details-marker]:hidden">
+              <span className="inline-flex items-center gap-2 rounded-full border border-brand-500/30 bg-brand-500/10 px-5 py-2.5 text-sm font-semibold text-brand-300 transition hover:border-brand-400/50">
+                ดูแผนลงทุนทีละเฟส — Plan A / B / C
+                <span className="text-lg leading-none transition-transform group-open:rotate-45">+</span>
+              </span>
+            </summary>
+          <div className="text-center mt-10 mb-8">
             <h3 className="text-2xl md:text-3xl font-extrabold mb-2">เลือกได้ตามงบและความพร้อม — เริ่มเล็ก โตทีละเฟส</h3>
             <p className="text-ink-muted">เริ่มจาก Plan A เพื่อพิสูจน์ ROI ก่อน แล้วต่อยอดสู่ B และ C เมื่อพร้อม</p>
           </div>
@@ -106,7 +115,7 @@ export function Industrial() {
                 fit: "เหมาะกับ: อยากได้ระบบครบวงจรทั้งโรงงาน",
               },
             ].map((p) => (
-              <div key={p.phase} className={`bg-surface-raised rounded-2xl p-7 card-hover scroll-fade flex flex-col border ${p.featured ? "border-brand-400/50 ring-1 ring-brand-500/30" : "border-line"}`}>
+              <div key={p.phase} className={`bg-surface-raised rounded-2xl p-7 card-hover flex flex-col border ${p.featured ? "border-brand-400/50 ring-1 ring-brand-500/30" : "border-line"}`}>
                 <div className="flex items-center justify-between mb-4">
                   <span className={`text-xs font-bold tracking-widest bg-gradient-to-r ${p.grad} bg-clip-text text-transparent`}>{p.phase}</span>
                   {p.featured && <span className="text-xs font-semibold text-brand-300 bg-brand-500/10 px-2 py-0.5 rounded-full border border-brand-500/30">นิยมเริ่ม</span>}
@@ -125,6 +134,7 @@ export function Industrial() {
               </div>
             ))}
           </div>
+          </details>
 
           <div className="text-center mt-14 scroll-fade">
             <a href="#contact" className="gradient-btn text-white font-semibold px-7 py-3.5 rounded-full text-base inline-flex items-center gap-2">ปรึกษา solution โรงงานของคุณ (ฟรี) →</a>

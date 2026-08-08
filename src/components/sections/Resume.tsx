@@ -88,7 +88,18 @@ export function Resume() {
             </div>
           </div>
 
-          <div className="mb-16 scroll-fade">
+          {/* Education + skills are already covered in full on /resume/th and
+              /resume/en, so they collapse here. Native <details> keeps the text
+              in the DOM, so nothing is lost for SEO. */}
+          <details className="group scroll-fade">
+            <summary className="mb-8 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+              <span className="inline-flex items-center gap-2 rounded-full border border-line bg-surface-raised px-5 py-2.5 text-sm font-semibold text-ink-muted transition hover:border-brand-400/50 hover:text-brand-300">
+                🎓 การศึกษา และ ⚡ ทักษะทั้งหมด
+                <span className="text-lg leading-none transition-transform group-open:rotate-45">+</span>
+              </span>
+            </summary>
+
+          <div className="mb-16">
             <h3 className="text-2xl font-bold mb-6 flex items-center gap-2">🎓 Education</h3>
             <div className="bg-surface-raised border border-line rounded-2xl p-6 flex gap-4 card-hover">
               <div className="w-12 h-12 rounded-xl bg-cyan-500/15 flex items-center justify-center text-2xl flex-shrink-0">🏫</div>
@@ -103,7 +114,7 @@ export function Resume() {
             </div>
           </div>
 
-          <div className="scroll-fade">
+          <div>
             <h3 className="text-2xl font-bold mb-6 flex items-center gap-2">⚡ Skills & Tech Stack</h3>
             <div className="grid sm:grid-cols-2 gap-6">
               {getResume("en").skills.map((cat, i) => {
@@ -133,6 +144,7 @@ export function Resume() {
               })}
             </div>
           </div>
+          </details>
         </div>
       </section>
   );

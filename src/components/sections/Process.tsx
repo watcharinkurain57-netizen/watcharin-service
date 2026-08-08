@@ -1,12 +1,14 @@
 /* HOW I WORK */
 export function Process() {
   return (
-<section id="process" className="py-20 md:py-28 bg-gradient-to-br from-surface via-brand-500/5 to-cyan-500/5">
+<section id="process" className="pb-20 md:pb-28">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-16 scroll-fade">
-            <div className="inline-block px-3 py-1 rounded-full bg-surface-raised border border-brand-500/30 text-brand-300 text-sm font-medium mb-4 shadow-sm">How I Work</div>
-            <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4">เริ่มงานกับเรา<span className="gradient-text">ง่ายแค่ 4 ขั้น</span></h2>
-            <p className="text-ink-muted text-lg max-w-2xl mx-auto">ไม่ต้องมี requirement ครบก่อน — เริ่มจากคุยกันก่อน แล้วเราช่วยจัดให้เป็นระบบ</p>
+          {/* Sub-heading, not a section header: this flows on from Services
+              inside the same chapter, so a second full-size h2 would compete. */}
+          <div className="text-center mb-10 scroll-fade">
+            <div className="inline-block px-3 py-1 rounded-full bg-surface-raised border border-brand-500/30 text-brand-300 text-sm font-medium mb-3">How I Work</div>
+            <h3 className="text-2xl md:text-3xl font-extrabold tracking-tight mb-3">เริ่มงานกับเรา<span className="gradient-text">ง่ายแค่ 4 ขั้น</span></h3>
+            <p className="text-ink-muted max-w-2xl mx-auto">ไม่ต้องมี requirement ครบก่อน — เริ่มจากคุยกันก่อน แล้วเราช่วยจัดให้เป็นระบบ</p>
           </div>
           <div className="relative">
             {/* connector line (desktop) */}

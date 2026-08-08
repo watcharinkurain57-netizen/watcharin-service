@@ -1,3 +1,5 @@
+import { faq } from "@/lib/faq";
+import { Chapter } from "@/components/Chapter";
 import { Nav } from "@/components/sections/Nav";
 import { Hero } from "@/components/sections/Hero";
 import { TrustBar } from "@/components/sections/TrustBar";
@@ -69,6 +71,17 @@ const jsonLd = {
         "PLC / Sensor Data Integration",
       ],
     },
+    {
+      // Built from the same array that renders the accordion, so the markup and
+      // the structured data cannot drift apart.
+      "@type": "FAQPage",
+      "@id": `${SITE}/#faq`,
+      mainEntity: faq.map(({ q, a }) => ({
+        "@type": "Question",
+        name: q,
+        acceptedAnswer: { "@type": "Answer", text: a },
+      })),
+    },
   ],
 };
 
@@ -80,18 +93,40 @@ export default function Home() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <Nav />
-      <Hero />
-      <TrustBar />
-      <Services />
-      <Industrial />
-      <Process />
-      <CaseStudies />
-      <FeaturedWork />
-      <DecisionMakers />
-      <About />
-      <Resume />
-      <Faq />
-      <FinalCta />
+
+      {/* Six chapters. Order is the sales funnel: what I build → how I work
+          → the industrial deep-dive → proof → why me → contact. Each chapter
+          becomes one state of the WebGL scene in a later phase. */}
+      <Chapter index={1} label="hero">
+        <Hero />
+        <TrustBar />
+      </Chapter>
+
+      <Chapter index={2} label="capabilities">
+        <Services />
+        <Process />
+      </Chapter>
+
+      <Chapter index={3} label="industrial">
+        <Industrial />
+      </Chapter>
+
+      <Chapter index={4} label="ecosystem">
+        <CaseStudies />
+        <FeaturedWork />
+      </Chapter>
+
+      <Chapter index={5} label="why-me">
+        <DecisionMakers />
+        <About />
+        <Resume />
+      </Chapter>
+
+      <Chapter index={6} label="contact">
+        <Faq />
+        <FinalCta />
+      </Chapter>
+
       <SiteFooter />
       <ScrollFader />
     </>
