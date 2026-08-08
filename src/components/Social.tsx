@@ -56,7 +56,7 @@ export function SocialLinks({ className = "" }: { className?: string }) {
           aria-label={label}
           title={label}
           {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-          className="w-9 h-9 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-500 hover:text-brand-600 hover:border-brand-300 hover:-translate-y-0.5 transition-all"
+          className="w-9 h-9 rounded-lg bg-surface-raised border border-line flex items-center justify-center text-ink-faint hover:text-brand-400 hover:border-brand-400/50 hover:-translate-y-0.5 transition-all"
         >
           <Icon className="w-[18px] h-[18px]" />
         </a>

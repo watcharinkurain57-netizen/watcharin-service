@@ -24,7 +24,7 @@ export function ResumeSheet({ lang }: { lang: Lang }) {
 
   return (
     <main
-      className="min-h-screen bg-slate-100 py-8 px-4 print:bg-white print:p-0"
+      className="theme-light min-h-screen bg-slate-100 py-8 px-4 print:bg-white print:p-0"
       style={{ fontFamily: t.font }}
     >
       <style>{`

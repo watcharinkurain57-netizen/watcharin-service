@@ -13,21 +13,64 @@
   --color-brand-800: #065f46;
   --color-brand-900: #064e3b;
 
+  /* ---------- Semantic surfaces (dark by default) ----------
+     Every component references these instead of hardcoding
+     slate/white, so the whole theme flips from one place.
+     Near-neutral near-black keeps emerald reading as the only
+     colour on the page — technical, not "matrix green". */
+  --color-surface: #080b0a;
+  --color-surface-raised: #101514;
+  --color-surface-overlay: #161d1b;
+  --color-line: #222c29;
+  --color-line-strong: #33423e;
+  /* Muted/faint are tuned to clear WCAG AA (4.5:1) against --color-surface,
+     because both are used on small text (captions, meta, footers). */
+  --color-ink: #eef2f0;
+  --color-ink-muted: #a8b8b3;
+  --color-ink-faint: #82948f;
+
   /* Fonts */
   --font-sans: var(--font-inter), var(--font-ibm-thai), system-ui, -apple-system,
     "Segoe UI", sans-serif;
 }
 
-/* ========== Custom styles from mockup ========== */
+:root {
+  color-scheme: dark;
+}
+
+/* ---------- Light scope ----------
+   The resume routes (/resume/en, /resume/th) are print pages — they
+   must stay light or they print as a solid black page. They set their
+   own explicit colours, so this only needs to flip the token values
+   and color-scheme for anything shared that resolves through tokens. */
+.theme-light {
+  color-scheme: light;
+  --color-surface: #ffffff;
+  --color-surface-raised: #ffffff;
+  --color-surface-overlay: #f8fafc;
+  --color-line: #e2e8f0;
+  --color-line-strong: #cbd5e1;
+  --color-ink: #0f172a;
+  --color-ink-muted: #475569;
+  --color-ink-faint: #94a3b8;
+}
+
+@media print {
+  :root {
+    color-scheme: light;
+  }
+}
+
+/* ========== Custom styles ========== */
 .gradient-hero {
   background:
-    radial-gradient(ellipse 80% 50% at 20% 30%, #ecfdf5 0%, transparent 50%),
-    radial-gradient(ellipse 60% 50% at 80% 80%, #cffafe 0%, transparent 50%),
-    white;
+    radial-gradient(ellipse 70% 55% at 18% 22%, rgba(16, 185, 129, 0.16) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 82% 78%, rgba(6, 182, 212, 0.13) 0%, transparent 60%),
+    var(--color-surface);
 }
 
 .gradient-text {
-  background: linear-gradient(135deg, #047857 0%, #0891b2 100%);
+  background: linear-gradient(135deg, #34d399 0%, #22d3ee 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -35,25 +78,34 @@
 
 .gradient-btn {
   background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  box-shadow: 0 4px 14px 0 rgba(16, 185, 129, 0.35);
+  box-shadow: 0 4px 20px 0 rgba(16, 185, 129, 0.3);
   transition: all 0.2s;
 }
+/* On dark, hover brightens instead of darkening. */
 .gradient-btn:hover {
-  background: linear-gradient(135deg, #059669 0%, #047857 100%);
-  box-shadow: 0 8px 24px 0 rgba(16, 185, 129, 0.45);
+  background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+  box-shadow: 0 8px 30px 0 rgba(16, 185, 129, 0.45);
 }
 
 .grain {
-  background-image: radial-gradient(circle at 1px 1px, rgba(0, 0, 0, 0.025) 1px, transparent 0);
-  background-size: 20px 20px;
+  background-image: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.035) 1px, transparent 0);
+  background-size: 22px 22px;
 }
 
+/* Drop shadows are invisible on near-black — lift reads through a
+   brightening border plus an emerald bloom instead. */
 .card-hover {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .card-hover:hover {
   transform: translateY(-4px);
-  box-shadow: 0 20px 40px -10px rgba(16, 185, 129, 0.18);
+  border-color: var(--color-line-strong);
+  box-shadow:
+    0 0 0 1px rgba(16, 185, 129, 0.15),
+    0 18px 40px -16px rgba(16, 185, 129, 0.28);
 }
 
 .scroll-fade {
@@ -76,8 +128,9 @@
 
 .ring-glow {
   box-shadow:
-    0 0 0 4px rgba(16, 185, 129, 0.1),
-    0 0 0 8px rgba(16, 185, 129, 0.05);
+    0 0 0 4px rgba(16, 185, 129, 0.14),
+    0 0 0 8px rgba(16, 185, 129, 0.07),
+    0 0 60px rgba(16, 185, 129, 0.15);
 }
 
 .stealth-blur {
@@ -98,4 +151,20 @@
 
 body {
   font-family: var(--font-sans);
+}
+
+::selection {
+  background: rgba(16, 185, 129, 0.28);
+  color: #ffffff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-fade {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .pulse-dot {
+    animation: none;
+  }
 }
