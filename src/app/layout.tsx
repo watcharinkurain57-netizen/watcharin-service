@@ -80,7 +80,7 @@ export default function RootLayout({
       lang="th"
       className={`${inter.variable} ${ibmPlexThai.variable} h-full antialiased scroll-smooth`}
     >
-      <body className="min-h-full flex flex-col bg-white text-slate-900">
+      <body className="min-h-full flex flex-col bg-surface text-ink">
         {children}
         <Analytics />
         <SpeedInsights />

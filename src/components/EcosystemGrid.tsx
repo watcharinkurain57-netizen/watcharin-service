@@ -17,7 +17,7 @@ export function EcosystemGrid() {
               key={id}
               type="button"
               onClick={() => setOpenProject(p)}
-              className={`text-left bg-white border border-slate-200 rounded-2xl p-6 card-hover scroll-fade cursor-pointer ${
+              className={`text-left bg-surface-raised border border-line rounded-2xl p-6 card-hover scroll-fade cursor-pointer ${
                 p.stealth ? "relative" : ""
               }`}
             >
@@ -41,12 +41,12 @@ export function EcosystemGrid() {
               <p className={`text-sm font-medium mb-3 ${p.accentText}`}>
                 {p.category}
               </p>
-              <p className="text-slate-600 text-sm leading-relaxed">
+              <p className="text-ink-muted text-sm leading-relaxed">
                 {p.tagline}
               </p>
               <div
                 className={`mt-4 text-sm font-medium flex items-center gap-1 ${
-                  p.stealth ? "text-slate-500" : p.accentText
+                  p.stealth ? "text-ink-faint" : p.accentText
                 }`}
               >
                 {p.stealth ? "ข้อมูลถูกซ่อน →" : "ดูรายละเอียด →"}

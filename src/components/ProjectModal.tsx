@@ -36,13 +36,13 @@ export function ProjectModal({ project, onClose }: Props) {
         type="button"
         aria-label="Close modal"
         onClick={onClose}
-        className="absolute inset-0 bg-slate-900/70 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
       />
-      <div className="relative bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+      <div className="relative bg-surface-raised rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 z-10 font-bold cursor-pointer"
+          className="absolute top-4 right-4 w-10 h-10 rounded-full bg-surface-overlay hover:bg-surface-overlay flex items-center justify-center text-ink-muted z-10 font-bold cursor-pointer"
         >
           ✕
         </button>
@@ -66,13 +66,13 @@ export function ProjectModal({ project, onClose }: Props) {
                 href={project.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm text-brand-600 font-medium mb-1 inline-flex items-center gap-1 hover:underline"
+                className="text-sm text-brand-400 font-medium mb-1 inline-flex items-center gap-1 hover:underline"
               >
                 {project.domain}
                 <span aria-hidden>↗</span>
               </a>
             ) : (
-              <p className="text-sm text-slate-500 mb-1">{project.domain}</p>
+              <p className="text-sm text-ink-faint mb-1">{project.domain}</p>
             )}
             <p className={`text-base font-medium ${project.accentText}`}>
               {project.category}
@@ -80,18 +80,18 @@ export function ProjectModal({ project, onClose }: Props) {
           </div>
 
           <div className="mb-6">
-            <p className="text-slate-700 leading-relaxed">{project.description}</p>
+            <p className="text-ink leading-relaxed">{project.description}</p>
           </div>
 
           <div className="mb-6">
-            <h3 className="font-bold text-slate-900 mb-3 flex items-center gap-2">
+            <h3 className="font-bold text-ink mb-3 flex items-center gap-2">
               📋 Key Features
             </h3>
             <ul className="space-y-2">
               {project.features.map((f, i) => (
                 <li
                   key={i}
-                  className="text-sm text-slate-700 flex items-start gap-2"
+                  className="text-sm text-ink flex items-start gap-2"
                 >
                   <span className="text-brand-500 mt-0.5">✓</span>
                   <span>{f}</span>
@@ -101,14 +101,14 @@ export function ProjectModal({ project, onClose }: Props) {
           </div>
 
           <div className="mb-6">
-            <h3 className="font-bold text-slate-900 mb-3 flex items-center gap-2">
+            <h3 className="font-bold text-ink mb-3 flex items-center gap-2">
               ⚡ Tech Stack
             </h3>
             <div className="flex flex-wrap gap-2">
               {project.techStack.map((t) => (
                 <span
                   key={t}
-                  className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 text-sm font-medium border border-slate-200"
+                  className="px-3 py-1.5 rounded-lg bg-surface-overlay text-ink text-sm font-medium border border-line"
                 >
                   {t}
                 </span>
@@ -117,19 +117,19 @@ export function ProjectModal({ project, onClose }: Props) {
           </div>
 
           <div className="mb-6 grid sm:grid-cols-2 gap-4">
-            <div className="bg-slate-50 rounded-xl p-4">
-              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">
+            <div className="bg-surface-raised/30 rounded-xl p-4">
+              <div className="text-xs font-semibold text-ink-faint uppercase tracking-wide mb-1">
                 Timeline
               </div>
-              <div className="text-sm font-semibold text-slate-900">
+              <div className="text-sm font-semibold text-ink">
                 {project.timeline}
               </div>
             </div>
-            <div className="bg-brand-50 rounded-xl p-4">
-              <div className="text-xs font-semibold text-brand-700 uppercase tracking-wide mb-1">
+            <div className="bg-brand-500/10 rounded-xl p-4">
+              <div className="text-xs font-semibold text-brand-300 uppercase tracking-wide mb-1">
                 Status
               </div>
-              <div className="text-sm font-semibold text-slate-900">
+              <div className="text-sm font-semibold text-ink">
                 {project.currentInfo}
               </div>
             </div>
@@ -141,7 +141,7 @@ export function ProjectModal({ project, onClose }: Props) {
                 href={project.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bg-white border border-brand-200 text-brand-700 font-semibold px-6 py-3 rounded-full inline-flex items-center gap-2 hover:border-brand-400 hover:bg-brand-50 transition"
+                className="bg-surface-raised border border-brand-500/30 text-brand-300 font-semibold px-6 py-3 rounded-full inline-flex items-center gap-2 hover:border-brand-400/70 hover:bg-brand-500/10 transition"
               >
                 🌐 เยี่ยมชม {project.domain}
                 <span aria-hidden>↗</span>
