@@ -170,7 +170,6 @@ export default function Home() {
                 "PTT Digital Solutions",
                 "MFEC",
                 "Taokaenoi",
-                "RMUTP",
               ].map((name) => (
                 <span key={name} className="text-base md:text-lg font-bold text-ink-faint">
                   {name}
