@@ -11,6 +11,11 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
+    // scripts/ runs straight through node --experimental-strip-types, which
+    // resolves the real file and so needs the .ts extension written out. Safe
+    // with noEmit: it permits the extension, it does not ask for it, and
+    // nothing under src/ uses one.
+    "allowImportingTsExtensions": true,
     "jsx": "react-jsx",
     "incremental": true,
     "plugins": [

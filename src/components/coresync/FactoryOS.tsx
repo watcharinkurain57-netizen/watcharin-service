@@ -3,16 +3,37 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
+  type WoCard,
   BRAND,
   lineSensorStates,
   machines,
   navItems,
+  nextWorkOrderId,
   sensorStatusLabel,
   viewTitles,
 } from "@/lib/coresync-data";
-import { AiView, DigitalTwinView, GenericView, OverviewView } from "./views";
+import {
+  AiView,
+  DigitalTwinView,
+  EnergyView,
+  GenericView,
+  MaintenanceView,
+  OverviewView,
+  QualityView,
+  WorkOrdersView,
+} from "./views";
 
 type ModalTarget = { line: number; machineKey: string };
+
+const BUILT_VIEWS = [
+  "overview",
+  "digital",
+  "ai",
+  "quality",
+  "energy",
+  "maintenance",
+  "workorders",
+];
 
 export function FactoryOS() {
   const [view, setView] = useState("overview");
@@ -24,6 +45,13 @@ export function FactoryOS() {
   const [question, setQuestion] = useState("");
   const [answered, setAnswered] = useState(false);
   const [thinking, setThinking] = useState(false);
+  const [defect, setDefect] = useState("scratch");
+  const [energyPeriod, setEnergyPeriod] = useState("today");
+  const [asset, setAsset] = useState("camera");
+  const [woFilter, setWoFilter] = useState("all");
+  // Work orders raised by clicking around the demo. They land on the board, so
+  // "the AI told me to do this" and "here is the job" are visibly one thing.
+  const [raised, setRaised] = useState<WoCard[]>([]);
 
   useEffect(() => {
     if (!toast) return;
@@ -43,6 +71,27 @@ export function FactoryOS() {
   const openMachine = (line: number, machineKey: string) => {
     setSelectedLine(line);
     setModal({ line, machineKey });
+  };
+
+  const raiseWorkOrder = (assetName: string, task: string, location: string) => {
+    const id = `WO-${nextWorkOrderId + raised.length}`;
+    setRaised((prev) => [
+      ...prev,
+      {
+        id,
+        asset: assetName,
+        task,
+        location,
+        priority: "high",
+        kind: "corrective",
+        assignee: "Unassigned",
+        due: "Today",
+        column: "requested",
+        estHours: 2,
+        fresh: true,
+      },
+    ]);
+    setToast(`${id} created — open Work Orders to see it on the board`);
   };
 
   const ask = (value?: string) => {
@@ -130,7 +179,9 @@ export function FactoryOS() {
               }}
               selectedLine={selectedLine}
               onMachineClick={openMachine}
-              onCreateWorkOrder={() => setToast("Work order WO-24972 created from AI recommendation")}
+              onCreateWorkOrder={() =>
+                raiseWorkOrder("Robot Arm", "Joint 2 inspection from AI recommendation", "Line 2")
+              }
               dimmed={dimmed}
               onToggle2D={() => setDimmed((v) => !v)}
             />
@@ -144,7 +195,36 @@ export function FactoryOS() {
               thinking={thinking}
             />
           )}
-          {!["overview", "digital", "ai"].includes(view) && (
+          {view === "quality" && (
+            <QualityView
+              selectedDefect={defect}
+              onSelectDefect={setDefect}
+              onRaiseWorkOrder={raiseWorkOrder}
+            />
+          )}
+          {view === "energy" && (
+            <EnergyView
+              period={energyPeriod}
+              onPeriod={setEnergyPeriod}
+              onRaiseWorkOrder={raiseWorkOrder}
+            />
+          )}
+          {view === "maintenance" && (
+            <MaintenanceView
+              selectedAsset={asset}
+              onSelectAsset={setAsset}
+              onRaiseWorkOrder={raiseWorkOrder}
+            />
+          )}
+          {view === "workorders" && (
+            <WorkOrdersView
+              filter={woFilter}
+              onFilter={setWoFilter}
+              raised={raised}
+              onRaiseWorkOrder={raiseWorkOrder}
+            />
+          )}
+          {!BUILT_VIEWS.includes(view) && (
             <GenericView title={activeNav?.label ?? "Factory Module"} />
           )}
         </main>
@@ -160,8 +240,13 @@ export function FactoryOS() {
             setDtFilter(String(modal.line));
           }}
           onWorkOrder={() => {
+            const machine = machines.find((m) => m.key === modal.machineKey);
             setModal(null);
-            setToast("Work order WO-24972 created");
+            raiseWorkOrder(
+              machine?.name.filter(Boolean).join(" ") ?? "Equipment",
+              "Raised from equipment detail",
+              `Line ${modal.line}`,
+            );
           }}
           onStop={() => {
             setModal(null);

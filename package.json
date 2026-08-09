@@ -6,7 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "audit:coresync": "node --experimental-strip-types scripts/audit-coresync.ts"
   },
   "dependencies": {
     "@react-three/fiber": "^9.7.0",
