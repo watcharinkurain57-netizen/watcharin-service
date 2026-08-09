@@ -11,5 +11,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "weekly",
       priority: 1,
     },
+    {
+      // The Factory OS demo is a sales asset in its own right — it answers
+      // "what does an MES dashboard actually look like" for search traffic.
+      url: `${SITE_URL}/coresync`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
   ];
 }

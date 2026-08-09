@@ -1,0 +1,317 @@
+/**
+ * CoreSync Systems — Factory OS demo styling.
+ *
+ * Every selector is nested under `.coresync-root` and the custom properties are
+ * declared there rather than on `:root`, so this product's cyan palette cannot
+ * reach the emerald design tokens the rest of the site runs on. Keyframes are
+ * prefixed `cs-` for the same reason — animation names are global.
+ *
+ * The original mockup put `overflow:hidden;height:100%` on html and body. That
+ * is not done here: the shell is a `100dvh` block instead, so nothing about this
+ * route leaks into document-level scrolling on other pages.
+ */
+
+.coresync-root {
+  --bg: #050b13;
+  --panel: #0a1422;
+  --panel2: #0c1929;
+  --line: #12304b;
+  --text: #eaf5ff;
+  --muted: #7792aa;
+  --cyan: #1aa7ff;
+  --cyan2: #29d4ff;
+  --green: #32e58b;
+  --yellow: #ffbf36;
+  --red: #ff5252;
+  --purple: #9c6bff;
+  --shadow: 0 0 30px rgba(15, 146, 255, 0.1), inset 0 0 0 1px rgba(94, 171, 226, 0.08);
+
+  height: 100dvh;
+  overflow: hidden;
+  color: var(--text);
+  background: radial-gradient(circle at 60% 20%, #0d1b2d 0, #050b13 45%, #02060a 100%);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+.coresync-root * { box-sizing: border-box; }
+.coresync-root button { font: inherit; }
+
+/* The site sets an emerald focus ring; inside the product it should be cyan. */
+.coresync-root :where(a, button, input, [tabindex]):focus-visible {
+  outline: 2px solid var(--cyan2);
+  outline-offset: 2px;
+}
+.coresync-root ::selection { background: rgba(26, 167, 255, 0.3); color: #fff; }
+
+.coresync-root .app { display: grid; grid-template-columns: 186px 1fr; height: 100%; min-width: 1180px; }
+
+/* ---------- narrow-screen explainer ----------
+   The console and the explainer are both server-rendered and a media query
+   picks which one is visible, so the indexed page always ships real content. */
+.coresync-root .desktop-notice { display: none; }
+
+@media (max-width: 1179px) {
+  .coresync-root .app { display: none; }
+  .coresync-root .desktop-notice { display: grid; place-items: center; min-height: 100dvh; padding: 32px 20px; }
+}
+
+.coresync-root .dn-card { max-width: 460px; background: linear-gradient(180deg, rgba(12, 27, 44, 0.96), rgba(7, 18, 30, 0.96)); border: 1px solid #142c43; border-radius: 14px; padding: 24px; box-shadow: var(--shadow); }
+.coresync-root .dn-logo { width: 40px; height: 40px; border: 1px solid #1b8fdd; border-radius: 10px; display: grid; place-items: center; color: #58c8ff; font-weight: 800; box-shadow: 0 0 18px rgba(26, 167, 255, 0.25); margin-bottom: 16px; }
+.coresync-root .dn-card h1 { margin: 0 0 6px; font-size: 22px; }
+.coresync-root .dn-kicker { margin: 0 0 16px; font-size: 12px; letter-spacing: 2px; color: #7fc6f5; }
+.coresync-root .dn-lead { color: #a9bdd0; font-size: 14px; line-height: 1.6; margin: 0 0 14px; }
+.coresync-root .dn-note { color: #7792aa; font-size: 13px; line-height: 1.6; margin: 0 0 20px; }
+.coresync-root .dn-cta { display: block; text-align: center; border: 1px solid #1377bd; background: linear-gradient(180deg, #0a4b7a, #073758); color: #e7f6ff; border-radius: 8px; padding: 11px 14px; text-decoration: none; font-weight: 600; font-size: 14px; }
+.coresync-root .dn-cta:hover { filter: brightness(1.15); }
+.coresync-root .dn-disclaimer { color: #5d7488; font-size: 11px; margin: 14px 0 0; }
+
+/* ---------- sidebar ---------- */
+.coresync-root .sidebar { background: linear-gradient(180deg, #06101b, #07111c 65%, #050a10); border-right: 1px solid #15263a; display: flex; flex-direction: column; padding: 14px 10px; position: relative; z-index: 3; }
+.coresync-root .brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px 16px; border-bottom: 1px solid #12263b; margin-bottom: 10px; }
+.coresync-root .logo { width: 32px; height: 32px; border: 1px solid #1b8fdd; border-radius: 8px; display: grid; place-items: center; color: #58c8ff; font-weight: 800; box-shadow: 0 0 18px rgba(26, 167, 255, 0.25); flex-shrink: 0; }
+.coresync-root .brand b { font-size: 16px; letter-spacing: 1px; display: block; }
+.coresync-root .brand small { display: block; font-size: 8px; letter-spacing: 2px; color: #8aa1b7; margin-top: 1px; }
+.coresync-root .nav { display: flex; flex-direction: column; gap: 4px; overflow-y: auto; scrollbar-width: none; }
+.coresync-root .nav::-webkit-scrollbar { display: none; }
+.coresync-root .nav button { border: 0; background: transparent; color: #b8c7d7; text-align: left; padding: 10px; border-radius: 7px; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: 0.2s; font-size: 13px; }
+.coresync-root .nav button:hover { background: #0d2034; color: #fff; }
+.coresync-root .nav button.active { background: linear-gradient(90deg, rgba(18, 116, 203, 0.35), rgba(7, 34, 57, 0.7)); color: #dff4ff; box-shadow: inset 2px 0 0 var(--cyan); }
+.coresync-root .ico { width: 18px; text-align: center; opacity: 0.9; }
+.coresync-root .badge { margin-left: auto; background: #bc2c31; color: #fff; padding: 2px 6px; font-size: 10px; border-radius: 99px; }
+.coresync-root .side-foot { margin-top: auto; border-top: 1px solid #12263b; padding: 12px 9px; color: #71869a; font-size: 10px; }
+.coresync-root .home-link { display: block; margin-top: 10px; color: #7fc6f5; text-decoration: none; font-size: 10px; }
+.coresync-root .home-link:hover { color: #cdefff; text-decoration: underline; }
+
+/* ---------- topbar ---------- */
+.coresync-root .main { display: flex; flex-direction: column; min-width: 0; }
+.coresync-root .topbar { height: 56px; display: flex; align-items: center; padding: 0 18px; border-bottom: 1px solid #172a3f; background: rgba(4, 11, 18, 0.88); backdrop-filter: blur(12px); z-index: 2; flex-shrink: 0; }
+.coresync-root .title { font-weight: 750; font-size: 18px; }
+.coresync-root .live { margin-left: 10px; font-size: 12px; color: #9eb3c5; display: flex; align-items: center; gap: 6px; }
+.coresync-root .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 12px var(--green); animation: cs-pulse 1.8s infinite; }
+.coresync-root .demo-tag { margin-left: 12px; font-size: 9px; letter-spacing: 1px; text-transform: uppercase; padding: 4px 8px; border-radius: 99px; border: 1px solid #6b5a1f; background: rgba(255, 191, 54, 0.1); color: var(--yellow); }
+.coresync-root .top-actions { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+.coresync-root .top-actions button { border: 1px solid #17334d; background: #0b1826; color: #b8cddd; border-radius: 8px; padding: 8px 11px; cursor: pointer; }
+.coresync-root .shift { color: #8fd8ff !important; border-color: #0d4a7a !important; background: #07233a !important; }
+.coresync-root .profile { display: flex; gap: 8px; align-items: center; margin-left: 6px; font-size: 12px; }
+.coresync-root .avatar { width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, #3c607c, #8bd4ff); display: grid; place-items: center; color: #06111a; font-weight: 800; }
+.coresync-root .profile small { display: block; color: #7f96aa; font-size: 9px; }
+
+/* ---------- content ---------- */
+.coresync-root .content { padding: 12px 14px 14px; overflow: auto; flex: 1; scrollbar-width: none; }
+.coresync-root .content::-webkit-scrollbar { display: none; }
+.coresync-root .view { animation: cs-fade 0.25s ease; }
+.coresync-root .grid-kpi { display: grid; grid-template-columns: repeat(6, minmax(130px, 1fr)); gap: 9px; margin-bottom: 10px; }
+.coresync-root .card { background: linear-gradient(180deg, rgba(12, 27, 44, 0.96), rgba(7, 18, 30, 0.96)); border: 1px solid #142c43; border-radius: 10px; box-shadow: var(--shadow); }
+.coresync-root .kpi { padding: 12px 13px; min-height: 86px; display: flex; align-items: flex-start; gap: 10px; }
+.coresync-root .kpi .iconbox { width: 36px; height: 36px; border-radius: 10px; background: #0d2b46; display: grid; place-items: center; color: #4fbfff; font-size: 18px; flex-shrink: 0; }
+.coresync-root .kpi label { color: #a9bdd0; font-size: 11px; }
+.coresync-root .kpi strong { font-size: 22px; display: block; margin-top: 3px; }
+.coresync-root .kpi strong small { font-size: 12px; color: #9fb5c8; }
+.coresync-root .trend { font-size: 10px; color: var(--green); margin-top: 4px; }
+.coresync-root .trend.bad { color: var(--red); }
+
+/* ---------- overview ---------- */
+.coresync-root .overview-grid { display: grid; grid-template-columns: 230px 1fr 300px; gap: 10px; }
+.coresync-root .section-title { font-size: 11px; color: #bad0e3; font-weight: 700; letter-spacing: 0.4px; padding: 10px 12px 7px; display: flex; align-items: center; gap: 8px; }
+.coresync-root .section-title .badge { margin-left: 0; }
+.coresync-root .line-card { margin: 0 10px 9px; padding: 10px; border: 1px solid #183450; border-radius: 9px; background: #081725; cursor: pointer; transition: 0.2s; position: relative; overflow: hidden; width: calc(100% - 20px); text-align: left; color: inherit; }
+.coresync-root .line-card:hover, .coresync-root .line-card.sel { border-color: #1d8fe0; transform: translateY(-1px); box-shadow: 0 0 18px rgba(24, 157, 255, 0.12); }
+.coresync-root .line-card:before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--green); }
+.coresync-root .line-card.warn:before { background: var(--yellow); }
+.coresync-root .line-card.maint:before { background: var(--cyan); }
+.coresync-root .line-head { display: flex; align-items: center; justify-content: space-between; }
+.coresync-root .status { padding: 3px 7px; border-radius: 99px; font-size: 9px; background: rgba(50, 229, 139, 0.12); color: var(--green); white-space: nowrap; }
+.coresync-root .status.warn { background: rgba(255, 191, 54, 0.12); color: var(--yellow); }
+.coresync-root .status.maint { background: rgba(26, 167, 255, 0.12); color: #6ccaff; }
+.coresync-root .ring { width: 58px; height: 58px; border-radius: 50%; display: grid; place-items: center; position: relative; margin-top: 8px; flex-shrink: 0; }
+.coresync-root .ring:after { content: ""; width: 46px; height: 46px; border-radius: 50%; background: #081725; position: absolute; }
+.coresync-root .ring span { position: relative; z-index: 1; font-weight: 800; font-size: 13px; }
+.coresync-root .line-metrics { display: flex; gap: 14px; align-items: center; }
+.coresync-root .line-metrics small { color: #859bb0; display: block; font-size: 10px; }
+.coresync-root .line-metrics b { font-size: 13px; }
+
+.coresync-root .factory-card { padding: 10px; position: relative; overflow: hidden; min-height: 570px; }
+.coresync-root .factory-toolbar { display: flex; align-items: center; gap: 10px; padding: 2px 2px 10px; }
+.coresync-root .legend { display: flex; gap: 12px; margin-left: auto; color: #86a0b7; font-size: 10px; }
+.coresync-root .legend span { display: flex; gap: 5px; align-items: center; }
+.coresync-root .ld { width: 7px; height: 7px; border-radius: 50%; }
+.coresync-root .factory-floor { position: relative; perspective: 900px; min-height: 510px; padding-top: 10px; }
+.coresync-root .floor-glow { position: absolute; inset: 5px 10px 10px; background: radial-gradient(ellipse at center, rgba(7, 94, 151, 0.17), transparent 65%); pointer-events: none; }
+
+/* padding-top carries the line label. The first machine's sensor dot sits at the
+   very top of column one, so there is no horizontal room for a label beside it —
+   the machine row is pushed down instead, giving the label a band of its own. */
+.coresync-root .prod-line { height: 148px; margin: 4px 14px 9px; border: 1px solid #0e68a8; border-radius: 14px; background: linear-gradient(180deg, rgba(13, 44, 68, 0.78), rgba(4, 18, 30, 0.9)); box-shadow: 0 0 24px rgba(8, 117, 190, 0.12), inset 0 0 24px rgba(23, 116, 177, 0.05); display: grid; grid-template-columns: repeat(9, 1fr); align-items: center; padding: 42px 12px 8px; position: relative; transform: rotateX(3deg); transition: 0.25s; }
+.coresync-root .prod-line.selected { border-color: #28afff; box-shadow: 0 0 30px rgba(40, 175, 255, 0.2), inset 0 0 30px rgba(34, 140, 220, 0.1); }
+/* The label sits INSIDE the line box. The original mockup placed it outside
+   (left:-6px + translateX(-100%)), where the enclosing card's overflow:hidden
+   clipped it to "E 1" / "E 2" / "E 3". Inside at top-left it clears the first
+   machine's sensor dot, which sits at that column's centre. */
+.coresync-root .prod-line .line-label { position: absolute; left: 12px; top: 8px; font-style: italic; font-size: 11px; color: #54c1ff; border: 1px solid #145991; background: #061424; padding: 4px 8px; border-radius: 6px; white-space: nowrap; z-index: 2; }
+.coresync-root .machine { position: relative; text-align: center; cursor: pointer; transition: 0.2s; min-width: 0; background: transparent; border: 0; padding: 0; color: inherit; }
+.coresync-root .machine:hover { transform: translateY(-6px) scale(1.03); }
+.coresync-root .machine .micon { width: 48px; height: 46px; margin: auto; border-radius: 7px; background: linear-gradient(180deg, #19334b, #0b1722); border: 1px solid #31546d; box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.02), 0 6px 16px rgba(0, 0, 0, 0.28); position: relative; display: grid; place-items: center; font-size: 23px; }
+.coresync-root .machine.robot .micon { border-color: #8f6f20; background: linear-gradient(180deg, #4b3713, #1f180a); color: #ffc33d; animation: cs-robot-glow 2.5s infinite; }
+.coresync-root .machine.conveyor .micon:after { content: ""; position: absolute; left: 4px; right: 4px; bottom: 8px; height: 5px; background: repeating-linear-gradient(90deg, #4b6578 0 8px, #1aa7ff 8px 11px); animation: cs-belt 1.2s linear infinite; }
+.coresync-root .machine.agv .micon { color: #b28aff; border-color: #6447a1; animation: cs-agv-float 2s ease-in-out infinite; }
+.coresync-root .machine.inspect .micon { color: #66e6ff; }
+.coresync-root .machine.reject .micon { border-color: #783b3b; color: #ff6666; }
+.coresync-root .machine .name { font-size: 9px; color: #bed0df; line-height: 1.05; margin-top: 6px; }
+.coresync-root .sensor { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); width: 16px; height: 16px; border-radius: 50%; background: #0b3827; border: 2px solid var(--green); box-shadow: 0 0 12px rgba(50, 229, 139, 0.5); font-size: 8px; display: grid; place-items: center; }
+.coresync-root .sensor.warn { background: #49350a; border-color: var(--yellow); box-shadow: 0 0 12px rgba(255, 191, 54, 0.45); }
+.coresync-root .sensor.crit { background: #451212; border-color: var(--red); box-shadow: 0 0 12px rgba(255, 82, 82, 0.45); }
+.coresync-root .sensor.maint { background: #0b2943; border-color: var(--cyan); box-shadow: 0 0 12px rgba(26, 167, 255, 0.45); }
+
+/* ---------- right column ---------- */
+.coresync-root .right-col { display: flex; flex-direction: column; gap: 10px; }
+.coresync-root .alerts { padding: 0 10px 8px; }
+.coresync-root .alert-row { display: grid; grid-template-columns: 24px 1fr auto; gap: 8px; align-items: center; padding: 8px 0; border-bottom: 1px solid #15283b; }
+.coresync-root .alert-row:last-child { border-bottom: 0; }
+.coresync-root .aicon { width: 24px; height: 24px; border-radius: 6px; display: grid; place-items: center; font-size: 12px; background: #3b1719; color: #ff5f65; }
+.coresync-root .aicon.warn { background: #3a2e0d; color: #ffcf55; }
+.coresync-root .aicon.info { background: #0c2c47; color: #6ccaff; }
+.coresync-root .alert-row b { font-size: 11px; }
+.coresync-root .alert-row small { display: block; color: #849bad; font-size: 9px; margin-top: 2px; }
+.coresync-root .alert-time { font-size: 9px; color: #627a8e; }
+.coresync-root .donut-wrap { display: flex; align-items: center; padding: 8px 12px 14px; gap: 14px; }
+.coresync-root .donut { width: 92px; height: 92px; border-radius: 50%; display: grid; place-items: center; flex-shrink: 0; }
+.coresync-root .donut-hole { width: 64px; height: 64px; border-radius: 50%; background: #0a1724; display: grid; place-items: center; font-weight: 800; font-size: 14px; line-height: 1.1; text-align: center; }
+.coresync-root .donut-hole small { display: block; font-size: 9px; font-weight: 500; color: #8ba3b8; }
+.coresync-root .health-leg { font-size: 10px; line-height: 1.8; }
+.coresync-root .health-leg i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px; }
+
+/* ---------- charts ---------- */
+.coresync-root .bottom-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-top: 10px; }
+.coresync-root .chart { padding: 10px 12px; min-height: 170px; }
+.coresync-root .chart-head { display: flex; justify-content: space-between; align-items: center; color: #a8bdcf; font-size: 10px; gap: 8px; }
+.coresync-root .chart-head b { font-size: 15px; color: #eaf6ff; white-space: nowrap; }
+.coresync-root .svgchart { width: 100%; height: 110px; margin-top: 8px; }
+.coresync-root .chart-line { fill: none; stroke-width: 2.2; stroke: var(--green); filter: drop-shadow(0 0 5px rgba(50, 229, 139, 0.4)); stroke-dasharray: 600; stroke-dashoffset: 600; animation: cs-draw 1.4s ease forwards; }
+.coresync-root .chart-line.red { stroke: var(--red); filter: drop-shadow(0 0 5px rgba(255, 82, 82, 0.35)); }
+.coresync-root .chart-line.blue { stroke: var(--cyan); filter: drop-shadow(0 0 5px rgba(26, 167, 255, 0.4)); }
+.coresync-root .gridline { stroke: #153049; stroke-width: 0.7; fill: none; }
+.coresync-root .targetline { stroke: #3e657e; stroke-dasharray: 5 5; stroke-width: 1; fill: none; }
+
+.coresync-root .ai-card { padding: 10px 12px; position: relative; }
+.coresync-root .ai-badge { position: absolute; top: 9px; right: 10px; font-size: 8px; padding: 2px 5px; border-radius: 6px; background: #19344e; color: #92cfff; }
+.coresync-root .ai-orb { width: 34px; height: 34px; border-radius: 50%; background: radial-gradient(circle, #8fe5ff 0 10%, #167fd1 36%, #07182b 65%); box-shadow: 0 0 20px #168ee0; float: left; margin: 4px 9px 6px 0; animation: cs-orb 2s ease-in-out infinite; }
+.coresync-root .ai-card p { font-size: 10px; color: #b8ccdc; line-height: 1.35; margin: 0; }
+.coresync-root .ai-card .rec { color: #67c6ff; font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 6px; }
+.coresync-root .primary { width: 100%; border: 1px solid #1377bd; background: linear-gradient(180deg, #0a4b7a, #073758); color: #e7f6ff; border-radius: 7px; padding: 8px; cursor: pointer; margin-top: 8px; }
+.coresync-root .primary:hover { filter: brightness(1.15); }
+.coresync-root .summary { padding: 10px 12px; }
+.coresync-root .sum-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #15283a; font-size: 10px; color: #9fb2c2; gap: 10px; }
+.coresync-root .sum-row:last-child { border-bottom: 0; }
+.coresync-root .sum-row b { color: #eaf5ff; white-space: nowrap; }
+
+/* ---------- digital twin ---------- */
+.coresync-root .crumbs { font-size: 10px; color: #66829a; margin: 2px 0 10px; }
+.coresync-root .dt-grid { display: grid; grid-template-columns: 1fr 370px; gap: 10px; }
+.coresync-root .dt-main { padding: 10px; }
+.coresync-root .dt-toolbar { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.coresync-root .seg { display: flex; }
+.coresync-root .seg button { background: #081828; color: #96aec0; border: 1px solid #17324b; padding: 7px 12px; cursor: pointer; font-size: 12px; }
+.coresync-root .seg button:first-child { border-radius: 7px 0 0 7px; }
+.coresync-root .seg button:last-child { border-radius: 0 7px 7px 0; }
+.coresync-root .seg button.active { color: #fff; background: #0b3f68; border-color: #167abf; }
+.coresync-root .toggle { margin-left: auto; }
+.coresync-root .dt-stage { height: 560px; background: radial-gradient(circle at 50% 40%, rgba(13, 82, 128, 0.23), rgba(6, 15, 25, 0.72) 52%, #050b13 100%); border: 1px solid #12344f; border-radius: 10px; overflow: hidden; position: relative; transition: filter 0.3s; }
+.coresync-root .scan { position: absolute; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, #31baff, transparent); box-shadow: 0 0 18px #31baff; animation: cs-scan 5s linear infinite; opacity: 0.65; }
+.coresync-root .dt-stage .prod-line { margin: 26px 40px 12px; height: 158px; }
+.coresync-root .dt-info { display: flex; flex-direction: column; gap: 10px; }
+.coresync-root .metric-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; padding: 10px; }
+.coresync-root .mini { padding: 9px; background: #0b1d2d; border: 1px solid #15334e; border-radius: 8px; }
+.coresync-root .mini label { font-size: 9px; color: #7e99ae; }
+.coresync-root .mini b { display: block; font-size: 16px; margin-top: 3px; }
+.coresync-root .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px; }
+.coresync-root .asset-list, .coresync-root .sensor-list { font-size: 10px; }
+.coresync-root .asset, .coresync-root .sens { display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; border-bottom: 1px solid #14283a; }
+.coresync-root .asset:last-child, .coresync-root .sens:last-child { border-bottom: 0; }
+.coresync-root .asset .num { display: inline-grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; background: #122a3c; margin-right: 5px; }
+.coresync-root .ok { color: var(--green); }
+.coresync-root .w { color: var(--yellow); }
+.coresync-root .off { color: var(--red); }
+.coresync-root .workorders { display: grid; grid-template-columns: 1fr; gap: 8px; }
+.coresync-root .wo { padding: 10px 12px; }
+.coresync-root .wo-row { padding: 7px 0; border-bottom: 1px solid #14283a; font-size: 10px; }
+.coresync-root .wo-row:last-child { border-bottom: 0; }
+.coresync-root .wo-row b { color: #53bfff; }
+.coresync-root .wo-row small { display: block; color: #7f95a7; margin-top: 2px; }
+.coresync-root .complete { float: right; color: var(--green); }
+.coresync-root .soon { float: right; color: var(--yellow); }
+
+/* ---------- AI view ---------- */
+.coresync-root .ai-view-grid { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 12px; }
+.coresync-root .big-ai { padding: 18px; min-height: 560px; position: relative; overflow: hidden; }
+.coresync-root .big-ai:before { content: ""; position: absolute; width: 420px; height: 420px; border-radius: 50%; left: 50%; top: 48%; transform: translate(-50%, -50%); background: radial-gradient(circle, rgba(17, 156, 255, 0.18), transparent 62%); }
+.coresync-root .ai-center { position: relative; display: grid; place-items: center; text-align: center; height: 310px; }
+.coresync-root .core-orb { width: 140px; height: 140px; border-radius: 50%; margin: 0 auto; background: radial-gradient(circle, #e4fbff 0 4%, #75dcff 8%, #1679c2 28%, #0a3358 50%, #081421 70%); box-shadow: 0 0 70px rgba(38, 173, 255, 0.55), inset 0 0 30px rgba(255, 255, 255, 0.18); animation: cs-orb 2.6s ease-in-out infinite; }
+.coresync-root .ai-center h2 { margin: 16px 0 5px; }
+.coresync-root .ai-center p { color: #8aa5ba; max-width: 600px; font-size: 12px; margin: 0 auto; }
+.coresync-root .promptbar { display: flex; gap: 8px; background: #071521; border: 1px solid #174060; border-radius: 10px; padding: 8px; max-width: 760px; margin: 0 auto; position: relative; }
+.coresync-root .promptbar input { flex: 1; background: transparent; border: 0; outline: 0; color: #eaf7ff; padding: 5px 8px; min-width: 0; }
+.coresync-root .promptbar button { border: 1px solid #167fc6; background: #0c4b79; color: #fff; border-radius: 7px; padding: 8px 12px; cursor: pointer; }
+.coresync-root .suggestions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; max-width: 760px; margin: 10px auto; }
+.coresync-root .suggestion { padding: 10px; border: 1px solid #183d5b; background: #081725; border-radius: 8px; color: #aac0d0; font-size: 10px; cursor: pointer; text-align: left; }
+.coresync-root .suggestion:hover { border-color: #279fe9; color: #e9f7ff; }
+.coresync-root .ai-answer { max-width: 760px; margin: 12px auto 0; color: #afc7d8; font-size: 12px; line-height: 1.6; position: relative; }
+.coresync-root .insight-list { padding: 10px; }
+.coresync-root .insight { padding: 11px; border-bottom: 1px solid #142b40; }
+.coresync-root .insight:last-child { border-bottom: 0; }
+.coresync-root .insight b { font-size: 11px; }
+.coresync-root .insight small { display: block; color: #8099ad; margin-top: 4px; line-height: 1.4; }
+
+/* ---------- generic module placeholder ---------- */
+.coresync-root .generic { min-height: 620px; padding: 22px; }
+.coresync-root .generic h2 { margin-top: 0; }
+.coresync-root .generic p { color: #8ca5b9; max-width: 760px; }
+.coresync-root .generic-kpis { margin-top: 30px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+
+/* ---------- modal + toast ---------- */
+.coresync-root .modal { position: fixed; inset: 0; background: rgba(0, 4, 8, 0.72); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 20; animation: cs-fade 0.2s; }
+.coresync-root .modal-card { width: 520px; max-width: calc(100vw - 32px); background: linear-gradient(180deg, #0d1c2c, #07121e); border: 1px solid #22547a; border-radius: 14px; box-shadow: 0 20px 80px rgba(0, 0, 0, 0.6), 0 0 40px rgba(26, 167, 255, 0.14); padding: 16px; }
+.coresync-root .modal-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.coresync-root .modal-head h2 { margin: 3px 0 0; font-size: 19px; }
+.coresync-root .x { background: #102337; border: 1px solid #21405b; color: #cfe8fa; border-radius: 7px; padding: 5px 8px; cursor: pointer; }
+.coresync-root .mstats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 14px 0; }
+.coresync-root .mstats .mini { background: #0a1b2b; }
+.coresync-root .bar { height: 7px; border-radius: 99px; background: #112b3f; overflow: hidden; margin-top: 5px; }
+.coresync-root .bar i { display: block; height: 100%; background: linear-gradient(90deg, #157dc6, #48d0ff); border-radius: inherit; }
+.coresync-root .timeline { font-size: 10px; color: #94aabd; line-height: 1.7; }
+.coresync-root .actions { display: flex; gap: 8px; margin-top: 12px; }
+.coresync-root .actions button { flex: 1; border: 1px solid #1b5f8e; background: #0b2c47; color: #dff3ff; border-radius: 8px; padding: 9px; cursor: pointer; font-size: 12px; }
+.coresync-root .actions .danger { border-color: #754141; background: #2a1619; color: #ffb5b5; }
+.coresync-root .toast { position: fixed; right: 18px; bottom: 18px; background: #0b1f30; border: 1px solid #1b6a9f; color: #eaf7ff; padding: 11px 14px; border-radius: 9px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4); z-index: 30; animation: cs-toast-in 0.25s ease; font-size: 13px; }
+
+@keyframes cs-pulse { 0%, 100% { opacity: 0.5; transform: scale(0.85); } 50% { opacity: 1; transform: scale(1.15); } }
+@keyframes cs-belt { to { background-position: 11px 0; } }
+@keyframes cs-robot-glow { 50% { box-shadow: 0 0 20px rgba(255, 191, 54, 0.25), inset 0 0 0 2px rgba(255, 255, 255, 0.02); } }
+@keyframes cs-agv-float { 50% { transform: translateY(-4px); } }
+@keyframes cs-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes cs-draw { to { stroke-dashoffset: 0; } }
+@keyframes cs-orb { 50% { transform: scale(1.05); filter: brightness(1.15); } }
+@keyframes cs-scan { 0% { top: 0; } 100% { top: 100%; } }
+@keyframes cs-toast-in { from { transform: translateY(20px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+@media (max-width: 1350px) {
+  .coresync-root .grid-kpi { grid-template-columns: repeat(3, 1fr); }
+  .coresync-root .overview-grid { grid-template-columns: 230px 1fr; }
+  .coresync-root .right-col { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; }
+  .coresync-root .bottom-grid { grid-template-columns: repeat(3, 1fr); }
+  .coresync-root .dt-grid { grid-template-columns: 1fr; }
+  .coresync-root .dt-info { display: grid; grid-template-columns: 1fr 1fr; }
+  .coresync-root .dt-stage { height: 520px; }
+}
+
+/* The scene is decorative motion; honour a request for less of it. */
+@media (prefers-reduced-motion: reduce) {
+  .coresync-root .dot,
+  .coresync-root .machine.robot .micon,
+  .coresync-root .machine.conveyor .micon:after,
+  .coresync-root .machine.agv .micon,
+  .coresync-root .scan,
+  .coresync-root .ai-orb,
+  .coresync-root .core-orb { animation: none; }
+  .coresync-root .chart-line { animation: none; stroke-dashoffset: 0; }
+  .coresync-root .view, .coresync-root .modal, .coresync-root .toast { animation: none; }
+}

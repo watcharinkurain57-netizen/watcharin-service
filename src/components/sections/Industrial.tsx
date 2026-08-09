@@ -136,9 +136,18 @@ export function Industrial() {
           </div>
           </details>
 
-          <div className="text-center mt-14 scroll-fade">
+          <div className="text-center mt-14 scroll-fade flex flex-wrap items-center justify-center gap-4">
             <a href="#contact" className="gradient-btn text-white font-semibold px-7 py-3.5 rounded-full text-base inline-flex items-center gap-2">ปรึกษา solution โรงงานของคุณ (ฟรี) →</a>
+            <a
+              href="/coresync"
+              className="bg-surface-raised border border-line text-ink font-semibold px-7 py-3.5 rounded-full text-base inline-flex items-center gap-2 transition hover:border-brand-400/50 hover:text-brand-300"
+            >
+              ▣ ดูตัวอย่าง dashboard จริง
+            </a>
           </div>
+          <p className="text-center text-sm text-ink-faint mt-4 scroll-fade">
+            เปิดตัวอย่างระบบ CoreSync Factory OS — ข้อมูลสมมติ ออกแบบสำหรับจอควบคุมขนาดใหญ่
+          </p>
         </div>
       </section>
   );
