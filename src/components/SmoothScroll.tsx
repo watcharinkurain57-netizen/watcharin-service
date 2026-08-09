@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import type Lenis from "lenis";
+import { registerSmoothScroll } from "@/lib/smoothScrollControl";
 
 /** Matches the `scroll-margin-top` given to anchor targets in globals.css. */
 const NAV_OFFSET = 80;
@@ -39,7 +40,11 @@ export function SmoothScroll() {
 
       const startY = window.scrollY;
       const wanted = target.getBoundingClientRect().top + startY - NAV_OFFSET;
-      lenis.scrollTo(target, { offset: -NAV_OFFSET });
+      // force: overlays (mobile nav, project modal) pause lenis while open, and
+      // their links close the overlay in the same click. React commits that state
+      // change *after* this handler runs, so without force the scroll would be
+      // issued against a still-stopped instance and quietly do nothing.
+      lenis.scrollTo(target, { offset: -NAV_OFFSET, force: true });
 
       // Safety net. A nav click that changes the URL but leaves the page where
       // it was is a worse bug than having no momentum scrolling at all, so if
@@ -81,6 +86,7 @@ export function SmoothScroll() {
           // we would emulate, and overriding it breaks pull-to-refresh.
           syncTouch: false,
         });
+        registerSmoothScroll(lenis);
         // CSS smooth scrolling and lenis fight each other for the same scroll.
         document.documentElement.classList.remove("scroll-smooth");
 
@@ -98,6 +104,7 @@ export function SmoothScroll() {
       cancelled = true;
       document.removeEventListener("click", onClick);
       if (raf) cancelAnimationFrame(raf);
+      registerSmoothScroll(null);
       lenis?.destroy();
       document.documentElement.classList.add("scroll-smooth");
     };
