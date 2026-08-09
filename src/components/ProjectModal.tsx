@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import type { Project } from "@/lib/projects";
+import { pauseSmoothScroll, resumeSmoothScroll } from "@/lib/smoothScrollControl";
 
 type Props = {
   project: Project | null;
@@ -18,13 +19,14 @@ export function ProjectModal({ project, onClose }: Props) {
   }, [onClose]);
 
   useEffect(() => {
-    if (project) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
+    if (!project) return;
+    // body overflow alone does not stop lenis, which drives window.scrollTo
+    // itself and would keep the page moving behind the modal.
+    pauseSmoothScroll();
+    document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = "";
+      resumeSmoothScroll();
     };
   }, [project]);
 
