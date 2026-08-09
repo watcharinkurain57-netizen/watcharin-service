@@ -5,6 +5,7 @@ import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import type { RefObject } from "react";
 import type { ScrollState } from "@/lib/useScrollProgress";
+import type { PointerState } from "@/lib/usePointer";
 import type { DeviceTier } from "@/lib/useDeviceTier";
 import {
   CHAPTER_COUNT,
@@ -91,9 +92,11 @@ const LINE_FRAGMENT = /* glsl */ `
 export function Lattice({
   tier,
   scroll,
+  pointer,
 }: {
   tier: DeviceTier;
   scroll: RefObject<ScrollState>;
+  pointer: RefObject<PointerState>;
 }) {
   const built = useMemo(() => {
     const count = nodeCountFor(tier);
@@ -216,9 +219,13 @@ export function Lattice({
 
     // The camera *is* damped: scroll events arrive in bursts and a raw mapping
     // makes the motion stutter. Frame-rate independent.
+    // Cursor parallax rides on top of the scroll choreography. Small on purpose:
+    // enough that the scene feels alive under the mouse, not enough to fight the
+    // camera move the scroll is driving. Zero on touch, where usePointer no-ops.
+    const p = pointer.current ?? { x: 0, y: 0 };
     const k = 3.5;
-    camera.position.x = THREE.MathUtils.damp(camera.position.x, target.x, k, delta);
-    camera.position.y = THREE.MathUtils.damp(camera.position.y, target.y, k, delta);
+    camera.position.x = THREE.MathUtils.damp(camera.position.x, target.x + p.x * 0.9, k, delta);
+    camera.position.y = THREE.MathUtils.damp(camera.position.y, target.y - p.y * 0.55, k, delta);
     camera.position.z = THREE.MathUtils.damp(camera.position.z, target.z, k, delta);
     camera.lookAt(0, 0, 0);
     uniforms.uFade.value = THREE.MathUtils.damp(

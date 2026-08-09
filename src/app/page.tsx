@@ -1,6 +1,7 @@
 import { faq } from "@/lib/faq";
 import { Chapter } from "@/components/Chapter";
 import { SceneLayer } from "@/components/three/SceneLayer";
+import { SmoothScroll } from "@/components/SmoothScroll";
 import { Nav } from "@/components/sections/Nav";
 import { Hero } from "@/components/sections/Hero";
 import { TrustBar } from "@/components/sections/TrustBar";
@@ -99,7 +100,7 @@ export default function Home() {
       <SceneLayer />
 
       {/* Everything readable sits above the canvas. */}
-      <div className="relative z-10">
+      <div id="main-content" className="relative z-10">
       <Nav />
 
       {/* Six chapters. Order is the sales funnel: what I build → how I work
@@ -139,6 +140,7 @@ export default function Home() {
       </div>
 
       <ScrollFader />
+      <SmoothScroll />
     </>
   );
 }

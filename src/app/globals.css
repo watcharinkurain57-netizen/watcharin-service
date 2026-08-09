@@ -160,6 +160,20 @@ body {
   color: #ffffff;
 }
 
+/* The nav is sticky, so a bare anchor jump parks the heading underneath it.
+   Works for native scrolling; SmoothScroll passes a matching offset to lenis. */
+:where(section, footer)[id] {
+  scroll-margin-top: 5rem;
+}
+
+/* Tailwind adds no focus ring to plain anchors, and this page is mostly plain
+   anchors. Keyboard users need to be able to see where they are. */
+:where(a, button, summary, input, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-brand-400);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .scroll-fade {
     opacity: 1;

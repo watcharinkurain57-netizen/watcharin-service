@@ -81,6 +81,12 @@ export default function RootLayout({
       className={`${inter.variable} ${ibmPlexThai.variable} h-full antialiased scroll-smooth`}
     >
       <body className="min-h-full flex flex-col bg-surface text-ink">
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[200] focus:rounded-full focus:bg-surface-raised focus:px-5 focus:py-2.5 focus:text-sm focus:font-semibold focus:text-ink focus:ring-2 focus:ring-brand-400"
+        >
+          ข้ามไปที่เนื้อหา
+        </a>
         {children}
         <Analytics />
         <SpeedInsights />
