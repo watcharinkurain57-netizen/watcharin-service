@@ -4,9 +4,6 @@ import { useEffect } from "react";
 import type Lenis from "lenis";
 import { registerSmoothScroll } from "@/lib/smoothScrollControl";
 
-/** Matches the `scroll-margin-top` given to anchor targets in globals.css. */
-const NAV_OFFSET = 80;
-
 /**
  * Momentum scrolling, which is what makes the scroll-driven scene feel like one
  * continuous motion rather than a series of jumps.
@@ -39,12 +36,22 @@ export function SmoothScroll() {
       }
 
       const startY = window.scrollY;
-      const wanted = target.getBoundingClientRect().top + startY - NAV_OFFSET;
+
+      // No `offset` here on purpose. lenis already subtracts the target's
+      // scroll-margin-top itself — its scrollTo computes
+      //   rect.top + animatedScroll - scrollMargin - scrollPadding
+      // and only then adds options.offset. Passing our own offset on top applied
+      // the gap twice and parked headings ~160px down instead of 80. The CSS owns
+      // the offset; this reads it back rather than duplicating the number.
+      //
       // force: overlays (mobile nav, project modal) pause lenis while open, and
       // their links close the overlay in the same click. React commits that state
       // change *after* this handler runs, so without force the scroll would be
       // issued against a still-stopped instance and quietly do nothing.
-      lenis.scrollTo(target, { offset: -NAV_OFFSET, force: true });
+      const scrollMargin =
+        Number.parseFloat(getComputedStyle(target).scrollMarginTop) || 0;
+      const wanted = target.getBoundingClientRect().top + startY - scrollMargin;
+      lenis.scrollTo(target, { force: true });
 
       // Safety net. A nav click that changes the URL but leaves the page where
       // it was is a worse bug than having no momentum scrolling at all, so if
