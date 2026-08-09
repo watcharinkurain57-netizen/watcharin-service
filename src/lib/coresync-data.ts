@@ -65,15 +65,6 @@ export type Kpi = {
   trendBad?: boolean;
 };
 
-export const kpis: readonly Kpi[] = [
-  { icon: "◎", label: "OEE", value: "82.6%", trend: "↑ 4.2% vs yesterday" },
-  { icon: "▥", label: "Output / hr", value: "12,540", trend: "↑ 8.7% vs yesterday" },
-  { icon: "◷", label: "Downtime", value: "45", unit: "min", trend: "↓ 12.1% vs yesterday" },
-  { icon: "ϟ", label: "Energy Use", value: "1,250", unit: "kWh", trend: "↓ 6.3% vs yesterday" },
-  { icon: "⬡", label: "Quality Rate", value: "98.2%", trend: "↑ 1.6% vs yesterday" },
-  { icon: "◔", label: "Utilization", value: "88.1%", trend: "↑ 3.3% vs yesterday" },
-];
-
 export type ProductionLine = {
   id: number;
   status: LineStatus;
@@ -113,6 +104,42 @@ export const productionLines: readonly ProductionLine[] = [
     secondaryLabel: "Scheduled",
     secondaryValue: "Until 14:00",
   },
+];
+
+/**
+ * Plant headline figures.
+ *
+ * Output and OEE are derived from `productionLines` rather than typed, because
+ * the first thing anyone with a manufacturing background does with a dashboard
+ * is add the lines up and check they make the plant total. Per ISO 22400,
+ * planned downtime is excluded from OEE, so Line 3's maintenance window drops
+ * out of the plant figure rather than dragging it toward zero.
+ */
+const lineRate = (line: ProductionLine) => Number(line.throughput.replace(/[^0-9.]/g, ""));
+const oeeLines = productionLines.filter((line) => line.status !== "maintenance");
+
+export const plantOutputPerHour = productionLines.reduce((sum, l) => sum + lineRate(l), 0);
+export const plantOee =
+  oeeLines.reduce((sum, l) => sum + l.oee * lineRate(l), 0) /
+  oeeLines.reduce((sum, l) => sum + lineRate(l), 0);
+
+export const kpis: readonly Kpi[] = [
+  {
+    icon: "◎",
+    label: "OEE",
+    value: `${plantOee.toFixed(1)}%`,
+    trend: "↑ 4.2% · Lines 1–2, Line 3 planned",
+  },
+  {
+    icon: "▥",
+    label: "Output / hr",
+    value: plantOutputPerHour.toLocaleString("en-US"),
+    trend: "↑ 8.7% vs yesterday",
+  },
+  { icon: "◷", label: "Downtime", value: "45", unit: "min", trend: "↓ 12.1% vs yesterday" },
+  { icon: "ϟ", label: "Energy Use", value: "1,250", unit: "kWh", trend: "↓ 6.3% vs yesterday" },
+  { icon: "⬡", label: "Quality Rate", value: "98.2%", trend: "↑ 1.6% vs yesterday" },
+  { icon: "◔", label: "Utilization", value: "88.1%", trend: "↑ 3.3% vs yesterday" },
 ];
 
 export type Machine = {
@@ -199,7 +226,7 @@ export type Chart = {
 export const plantCharts: readonly Chart[] = [
   {
     title: "OUTPUT TREND (Today)",
-    value: "12,540/hr",
+    value: `${plantOutputPerHour.toLocaleString("en-US")}/hr`,
     tone: "green",
     series: [8, 22, 26, 40, 34, 52, 58, 51, 64, 71, 88, 60, 66, 54, 61, 56],
   },
@@ -274,7 +301,13 @@ export const maintenanceUpcoming: readonly WorkOrder[] = [
   { id: "WO-24948", asset: "AGV-02", task: "Battery Service", state: "In 9 days", done: false },
 ];
 
+/**
+ * The plant profile row matters more than it looks. Without it a reader has no
+ * way to judge whether 1,250 kWh or 7,570 units an hour is a sensible number,
+ * and every figure in the demo reads as arbitrary.
+ */
 export const productionSummary: readonly { label: string; value: string }[] = [
+  { label: "Plant profile", value: "Light assembly · 3 lines · 2 shifts" },
   { label: "Total Output", value: "126,540 units" },
   { label: "Good Output", value: "124,228 units" },
   { label: "Rejects", value: "2,312 units" },
@@ -478,19 +511,27 @@ export const firstPassYield = ((inspectedTotal - defectTotal) / inspectedTotal) 
 
 /**
  * Statistical process control for the shaft diameter on Line 2, Station 3.
- * Values are subgroup means in millimetres; the view rescales them onto the
- * chart axis and flags anything outside the control limits.
+ *
+ * This is an individuals chart (I-MR): one part measured every 20 minutes, so
+ * the control limits are the process centre ±3σ. That distinction matters — on
+ * an X-bar chart of subgroup means the limits would be ±3σ/√n and these same
+ * readings would sit well outside them.
+ *
+ * The limits come from the last capability study, not from today's readings.
+ * Recomputing limits from the data you are judging defeats the point of a
+ * control chart: a drifting process would simply widen its own limits and never
+ * signal. Capability indices below *are* computed from today's readings.
  */
 export const spc = {
   characteristic: "Shaft Ø · Line 2 · Station 3",
+  chartType: "Individuals & moving range (I-MR)",
   unit: "mm",
   target: 12.0,
   lsl: 11.9,
   usl: 12.1,
-  lcl: 11.94,
-  ucl: 12.06,
-  cp: 1.61,
-  cpk: 1.24,
+  /** Short-term sigma measured during the last capability study. */
+  studySigma: 0.02,
+  studyDate: "14 Jul",
   cpkTarget: 1.33,
   sampleEvery: "20 min",
   values: [
@@ -500,7 +541,76 @@ export const spc = {
   ],
 } as const;
 
-export const spcViolations = spc.values.filter((v) => v > spc.ucl || v < spc.lcl).length;
+export const spcUcl = spc.target + 3 * spc.studySigma;
+export const spcLcl = spc.target - 3 * spc.studySigma;
+
+/**
+ * Capability from the plotted readings, per the AIAG SPC manual.
+ *
+ * Cp/Cpk use within-process sigma estimated from the mean moving range
+ * (MR̄/d₂, d₂ = 1.128 for n = 2). Pp/Ppk use the overall sample standard
+ * deviation. Quoting only one pair hides the story: when a process drifts, the
+ * short-term pair stays healthy while the overall pair falls, and that gap is
+ * the difference between a machine that cannot hold tolerance and one that is
+ * merely off centre.
+ */
+function capability(values: readonly number[]) {
+  const n = values.length;
+  const mean = values.reduce((sum, v) => sum + v, 0) / n;
+  const overallSigma = Math.sqrt(
+    values.reduce((sum, v) => sum + (v - mean) ** 2, 0) / (n - 1),
+  );
+  const ranges = values.slice(1).map((v, i) => Math.abs(v - values[i]));
+  const withinSigma = ranges.reduce((sum, r) => sum + r, 0) / ranges.length / 1.128;
+
+  const spread = spc.usl - spc.lsl;
+  const toNearestLimit = Math.min(spc.usl - mean, mean - spc.lsl);
+
+  // Longest run on one side of the centre line — Nelson rule 2 fires at nine.
+  let longestRun = 0;
+  let run = 0;
+  let side = 0;
+  for (const v of values) {
+    const s = Math.sign(v - spc.target);
+    run = s !== 0 && s === side ? run + 1 : 1;
+    side = s;
+    longestRun = Math.max(longestRun, run);
+  }
+
+  return {
+    mean,
+    withinSigma,
+    overallSigma,
+    cp: spread / (6 * withinSigma),
+    cpk: toNearestLimit / (3 * withinSigma),
+    pp: spread / (6 * overallSigma),
+    ppk: toNearestLimit / (3 * overallSigma),
+    beyondLimits: values.filter((v) => v > spcUcl || v < spcLcl).length,
+    longestRun,
+  };
+}
+
+export const spcStats = capability(spc.values);
+
+/** Western Electric / Nelson rules the current readings actually trip. */
+export const spcSignals: readonly { rule: string; detail: string }[] = [
+  ...(spcStats.beyondLimits > 0
+    ? [
+        {
+          rule: "Rule 1",
+          detail: `${spcStats.beyondLimits} points beyond the ±3σ control limits`,
+        },
+      ]
+    : []),
+  ...(spcStats.longestRun >= 9
+    ? [
+        {
+          rule: "Rule 2",
+          detail: `${spcStats.longestRun} consecutive points on one side of the centre line`,
+        },
+      ]
+    : []),
+];
 
 export type QualityHold = {
   lot: string;
@@ -528,11 +638,22 @@ export const qualityHolds: readonly QualityHold[] = [
  */
 
 export const tariff = {
-  name: "TOU · Medium voltage",
+  name: "TOU · 22–33 kV",
   peakRate: 4.18,
   offPeakRate: 2.6,
-  /** Baht per kW of monthly peak demand. */
+  /** Baht per kW of peak-period maximum demand, charged monthly. */
   demandRate: 132.93,
+  /** Fuel adjustment charge, baht per kWh. Revised quarterly. */
+  ft: 0.3972,
+  /** Fixed monthly service charge for this voltage class. */
+  serviceCharge: 312.24,
+  vat: 0.07,
+  /**
+   * Power factor is only charged when reactive demand exceeds 61.97% of kW,
+   * which is a lagging power factor below about 0.85.
+   */
+  pfFloor: 0.85,
+  pfPenaltyRate: 56.07,
   /** On-peak window, as hours of the day. */
   peakFrom: 9,
   peakTo: 22,
@@ -556,6 +677,41 @@ export const onPeakKwh = loadToday
 export const offPeakKwh = energyToday - onPeakKwh;
 export const energyCostToday = onPeakKwh * tariff.peakRate + offPeakKwh * tariff.offPeakRate;
 export const demandChargeMonth = peakDemand * tariff.demandRate;
+
+/**
+ * Projected monthly bill, in the order it appears on a real MEA/PEA invoice.
+ *
+ * The energy and demand charges are only two of five lines. Ft moves quarterly
+ * and lands on every kWh, the service charge is fixed by voltage class, and VAT
+ * applies to the whole lot. A factory owner reads this bill every month, so an
+ * energy module that stops at the energy charge is one they will not believe.
+ */
+const BILLING_DAYS = 30;
+
+export const monthlyBill = (() => {
+  const kwh = energyToday * BILLING_DAYS;
+  const energy = energyCostToday * BILLING_DAYS;
+  const ft = kwh * tariff.ft;
+  const beforeVat = energy + demandChargeMonth + ft + tariff.serviceCharge;
+  const vat = beforeVat * tariff.vat;
+  return {
+    days: BILLING_DAYS,
+    kwh,
+    lines: [
+      { label: "Energy charge", note: `${thousands(kwh)} kWh at TOU rates`, value: energy },
+      { label: "Demand charge", note: `${peakDemand} kW peak-period max`, value: demandChargeMonth },
+      { label: "Ft", note: `${tariff.ft.toFixed(4)} ฿/kWh, revised quarterly`, value: ft },
+      { label: "Service charge", note: "fixed, by voltage class", value: tariff.serviceCharge },
+      { label: `VAT ${(tariff.vat * 100).toFixed(0)}%`, note: "", value: vat },
+    ],
+    beforeVat,
+    vat,
+    total: beforeVat + vat,
+  };
+})();
+
+/** Baht per unit produced — the number that survives a change in output. */
+export const energyCostPerUnit = energyCostToday / inspectedTotal;
 
 export type LoadProfile = {
   key: string;
@@ -750,14 +906,8 @@ export const assetHealth: readonly AssetHealth[] = [
 
 export type MaintenanceKpi = { label: string; value: string; note: string; bad?: boolean };
 
-export const maintenanceKpis: readonly MaintenanceKpi[] = [
-  { label: "MTBF", value: "182 h", note: "↑ 14 h vs last month" },
-  { label: "MTTR", value: "38 min", note: "↓ 6 min vs last month" },
-  { label: "PM compliance", value: "92%", note: "23 of 25 on time" },
-  { label: "Planned work", value: "78%", note: "target 80%", bad: true },
-  { label: "Predicted saves", value: "4", note: "failures avoided this quarter" },
-  { label: "Backlog", value: "3.2 d", note: "↓ 0.6 d vs last week" },
-];
+/* `maintenanceKpis` is defined at the end of the work-order section, because
+   the backlog figure is the crew's view of that board and has to move with it. */
 
 /** Downtime minutes by cause today; adds up to the 45 min on the overview. */
 export const downtimeCauses: readonly { label: string; minutes: number; line: string }[] = [
@@ -788,21 +938,38 @@ export const pmSchedule: readonly { day: string; jobs: number; overdue?: number 
   { day: "+13", jobs: 2 },
 ];
 
+/**
+ * Two different problems live in this table and conflating them is how a
+ * planner loses trust in a system: a part below its reorder point still lets
+ * today's job go ahead, while a part at zero stops it. `required` is what the
+ * booked job consumes, so the distinction is derived rather than asserted.
+ */
 export type SparePart = {
   part: string;
   code: string;
   onHand: number;
+  required: number;
   reorderAt: number;
-  leadTime: string;
+  leadTimeDays: number;
   neededBy?: string;
 };
 
 export const sparePartsAtRisk: readonly SparePart[] = [
-  { part: "Deep groove bearing", code: "6205-2RS", onHand: 1, reorderAt: 4, leadTime: "12 d", neededBy: "WO-24921" },
-  { part: "AGV battery pack", code: "BP-48V-30", onHand: 0, reorderAt: 1, leadTime: "21 d", neededBy: "WO-24948" },
-  { part: "Sealing jaw kit", code: "PK-88", onHand: 3, reorderAt: 5, leadTime: "7 d", neededBy: "WO-24935" },
-  { part: "Machine vision lens", code: "M12-16MM", onHand: 6, reorderAt: 4, leadTime: "5 d" },
+  { part: "Deep groove bearing", code: "6205-2RS", onHand: 1, required: 1, reorderAt: 4, leadTimeDays: 12, neededBy: "WO-24921" },
+  { part: "AGV battery pack", code: "BP-48V-30", onHand: 0, required: 1, reorderAt: 1, leadTimeDays: 21, neededBy: "WO-24948" },
+  { part: "Sealing jaw kit", code: "PK-88", onHand: 3, required: 2, reorderAt: 5, leadTimeDays: 7, neededBy: "WO-24935" },
+  { part: "Machine vision lens", code: "M12-16MM", onHand: 6, required: 1, reorderAt: 4, leadTimeDays: 5 },
 ];
+
+export function partStatus(part: SparePart): { label: string; tone: "blocking" | "risk" | "ok" } {
+  if (part.onHand < part.required) return { label: "Blocking", tone: "blocking" };
+  if (part.onHand <= part.reorderAt) return { label: "Below reorder", tone: "risk" };
+  return { label: "OK", tone: "ok" };
+}
+
+export const blockingParts = sparePartsAtRisk.filter(
+  (part) => partStatus(part).tone === "blocking",
+).length;
 
 /* ================= WORK ORDERS ================= */
 
@@ -826,6 +993,10 @@ export type WoCard = {
   assignee: string;
   due: string;
   column: WoColumn;
+  /** Planner's estimate in hours. Drives the crew backlog figure. */
+  estHours: number;
+  /** ISO 14224-style failure category. Corrective work only. */
+  failureCode?: string;
   overdue?: boolean;
   /** Raised live from the console during this session. */
   fresh?: boolean;
@@ -837,28 +1008,55 @@ export type WoCard = {
  * visibly the same piece of work.
  */
 export const woBoard: readonly WoCard[] = [
-  { id: "WO-24966", asset: "Inspection Camera 02", task: "Vision system offline — restore", location: "Line 1", priority: "critical", kind: "corrective", assignee: "S. Chai", due: "Today 14:00", column: "requested", overdue: true },
-  { id: "WO-24964", asset: "Reject Bin", task: "Investigate high reject rate", location: "Line 2", priority: "high", kind: "corrective", assignee: "Unassigned", due: "Today 18:00", column: "requested" },
-  { id: "WO-24961", asset: "Hopper filter", task: "Replace past service interval", location: "Line 3", priority: "normal", kind: "preventive", assignee: "Unassigned", due: "Tomorrow", column: "requested" },
+  { id: "WO-24966", estHours: 4, failureCode: "INST-VIS", asset: "Inspection Camera 02", task: "Vision system offline — restore", location: "Line 1", priority: "critical", kind: "corrective", assignee: "S. Chai", due: "Today 14:00", column: "requested", overdue: true },
+  { id: "WO-24964", estHours: 3, failureCode: "QUAL-REJ", asset: "Reject Bin", task: "Investigate high reject rate", location: "Line 2", priority: "high", kind: "corrective", assignee: "Unassigned", due: "Today 18:00", column: "requested" },
+  { id: "WO-24961", estHours: 1.5, asset: "Hopper filter", task: "Replace past service interval", location: "Line 3", priority: "normal", kind: "preventive", assignee: "Unassigned", due: "Tomorrow", column: "requested" },
 
-  { id: "WO-24921", asset: "Robot Arm", task: "Joint 2 bearing replacement", location: "Line 2", priority: "high", kind: "preventive", assignee: "P. Nawin", due: "In 3 days", column: "scheduled" },
-  { id: "WO-24935", asset: "Packaging Machine", task: "500 h PM + jaw calibration", location: "Line 1", priority: "normal", kind: "preventive", assignee: "P. Nawin", due: "In 6 days", column: "scheduled" },
-  { id: "WO-24952", asset: "Chiller 01", task: "Quarterly condenser clean", location: "Utilities", priority: "normal", kind: "preventive", assignee: "T. Rung", due: "In 11 days", column: "scheduled" },
+  { id: "WO-24921", estHours: 6, asset: "Robot Arm", task: "Joint 2 bearing replacement", location: "Line 2", priority: "high", kind: "preventive", assignee: "P. Nawin", due: "In 3 days", column: "scheduled" },
+  { id: "WO-24935", estHours: 8, asset: "Packaging Machine", task: "500 h PM + jaw calibration", location: "Line 1", priority: "normal", kind: "preventive", assignee: "P. Nawin", due: "In 6 days", column: "scheduled" },
+  { id: "WO-24952", estHours: 5, asset: "Chiller 01", task: "Quarterly condenser clean", location: "Utilities", priority: "normal", kind: "preventive", assignee: "T. Rung", due: "In 11 days", column: "scheduled" },
 
-  { id: "WO-24958", asset: "Processing Station", task: "Index tool — dimension drift", location: "Line 2", priority: "critical", kind: "corrective", assignee: "S. Chai", due: "Today 13:30", column: "progress" },
-  { id: "WO-24955", asset: "Line 3 (all assets)", task: "Scheduled maintenance window", location: "Line 3", priority: "normal", kind: "preventive", assignee: "T. Rung", due: "Today 14:00", column: "progress" },
-  { id: "WO-24949", asset: "Conveyor infeed guide", task: "Re-shim transfer guide", location: "Line 2", priority: "high", kind: "corrective", assignee: "A. Suda", due: "Today 16:00", column: "progress" },
+  { id: "WO-24958", estHours: 1, failureCode: "PROC-TOOL", asset: "Processing Station", task: "Index tool — dimension drift", location: "Line 2", priority: "critical", kind: "corrective", assignee: "S. Chai", due: "Today 13:30", column: "progress" },
+  { id: "WO-24955", estHours: 16, asset: "Line 3 (all assets)", task: "Scheduled maintenance window", location: "Line 3", priority: "normal", kind: "preventive", assignee: "T. Rung", due: "Today 14:00", column: "progress" },
+  { id: "WO-24949", estHours: 2.5, failureCode: "MECH-ALN", asset: "Conveyor infeed guide", task: "Re-shim transfer guide", location: "Line 2", priority: "high", kind: "corrective", assignee: "A. Suda", due: "Today 16:00", column: "progress" },
 
-  { id: "WO-24948", asset: "AGV-02", task: "Battery pack service", location: "Logistics", priority: "high", kind: "preventive", assignee: "A. Suda", due: "In 9 days", column: "parts", overdue: false },
-  { id: "WO-24943", asset: "Shielding gas line", task: "Fit buffer regulator", location: "Line 1", priority: "normal", kind: "corrective", assignee: "T. Rung", due: "Overdue 2 d", column: "parts", overdue: true },
+  { id: "WO-24948", estHours: 3, asset: "AGV-02", task: "Battery pack service", location: "Logistics", priority: "high", kind: "preventive", assignee: "A. Suda", due: "In 9 days", column: "parts", overdue: false },
+  { id: "WO-24943", estHours: 4, failureCode: "UTIL-GAS", asset: "Shielding gas line", task: "Fit buffer regulator", location: "Line 1", priority: "normal", kind: "corrective", assignee: "T. Rung", due: "Overdue 2 d", column: "parts", overdue: true },
 
-  { id: "WO-24871", asset: "Robot Arm", task: "Inspect bearing", location: "Line 2", priority: "normal", kind: "preventive", assignee: "P. Nawin", due: "Closed", column: "done" },
-  { id: "WO-24802", asset: "Inspection Camera", task: "Calibration", location: "Line 1", priority: "normal", kind: "preventive", assignee: "S. Chai", due: "Closed", column: "done" },
-  { id: "WO-24711", asset: "Conveyor Belt", task: "Belt tension", location: "Line 3", priority: "normal", kind: "preventive", assignee: "A. Suda", due: "Closed", column: "done" },
+  { id: "WO-24871", estHours: 1.5, asset: "Robot Arm", task: "Inspect bearing", location: "Line 2", priority: "normal", kind: "preventive", assignee: "P. Nawin", due: "Closed", column: "done" },
+  { id: "WO-24802", estHours: 1, asset: "Inspection Camera", task: "Calibration", location: "Line 1", priority: "normal", kind: "preventive", assignee: "S. Chai", due: "Closed", column: "done" },
+  { id: "WO-24711", estHours: 2, asset: "Conveyor Belt", task: "Belt tension", location: "Line 3", priority: "normal", kind: "preventive", assignee: "A. Suda", due: "Closed", column: "done" },
 ];
 
 /** Numbering for work orders the visitor raises while clicking around. */
 export const nextWorkOrderId = 24972;
+
+/** Maintenance crew available to burn the backlog down. */
+export const crew = { technicians: 3, hoursPerDay: 8 } as const;
+
+export const openWorkHours = woBoard
+  .filter((card) => card.column !== "done")
+  .reduce((sum, card) => sum + card.estHours, 0);
+
+/**
+ * Backlog in crew-days rather than a typed number: the standard planning
+ * question is "how long would the crew take to clear what is booked", and it
+ * has to move when the board does.
+ */
+export const backlogDays = openWorkHours / (crew.technicians * crew.hoursPerDay);
+
+export const maintenanceKpis: readonly MaintenanceKpi[] = [
+  { label: "MTBF", value: "182 h", note: "30-day rolling · ↑ 14 h" },
+  { label: "MTTR", value: "38 min", note: "30-day rolling · ↓ 6 min" },
+  { label: "PM compliance", value: "92%", note: "23 of 25 on time" },
+  { label: "Planned work", value: "78%", note: "target 80%", bad: true },
+  { label: "Predicted saves", value: "4", note: "failures avoided this quarter" },
+  {
+    label: "Backlog",
+    value: `${backlogDays.toFixed(1)} d`,
+    note: `${openWorkHours} h open · ${crew.technicians} technicians`,
+  },
+];
 
 export const woFilters: readonly { key: string; label: string }[] = [
   { key: "all", label: "All" },

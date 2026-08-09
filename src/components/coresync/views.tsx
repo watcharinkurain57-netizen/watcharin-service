@@ -17,15 +17,19 @@ import {
   assetHealth,
   baht,
   bandBetween,
+  blockingParts,
   builtModules,
   completedWork,
+  crew,
   copqToday,
   currentHour,
   defectPareto,
   defectTotal,
+  demandChargeMonth,
   downtimeCauses,
   downtimeTotal,
   energyByArea,
+  energyCostPerUnit,
   energyCostToday,
   energyToday,
   equipmentHealth,
@@ -46,9 +50,11 @@ import {
   maintenanceHistory,
   maintenanceKpis,
   maintenanceUpcoming,
+  monthlyBill,
   offPeakKwh,
   onPeakKwh,
   paretoVitalFew,
+  partStatus,
   peakDemand,
   plantAlerts,
   plantCharts,
@@ -67,7 +73,10 @@ import {
   spanBetween,
   sparePartsAtRisk,
   spc,
-  spcViolations,
+  spcLcl,
+  spcSignals,
+  spcStats,
+  spcUcl,
   standbyCostPerMonth,
   standbyFinding,
   standbyKwhPerDay,
@@ -798,7 +807,7 @@ export function QualityView({
   // frame itself reads as the spec limits and only the control limits are drawn.
   const onAxis = (mm: number) => scaleValue(mm, spc.lsl, spc.usl);
   const scaled = scaleSeries([...spc.values], spc.lsl, spc.usl);
-  const controlBand = bandBetween(onAxis(spc.lcl), onAxis(spc.ucl), WIDE);
+  const controlBand = bandBetween(onAxis(spcLcl), onAxis(spcUcl), WIDE);
 
   return (
     <section className="view">
@@ -806,10 +815,20 @@ export function QualityView({
         stats={[
           { label: "First pass yield", value: `${firstPassYield.toFixed(2)}%`, note: "target 99.00%", bad: true },
           { label: "Defect rate", value: `${(100 - firstPassYield).toFixed(2)}%`, note: `${thousands(defectTotal)} of ${thousands(inspectedTotal)}` },
-          { label: "Cpk", value: spc.cpk.toFixed(2), note: `target ${spc.cpkTarget.toFixed(2)}`, bad: true },
+          {
+            label: "Ppk",
+            value: spcStats.ppk.toFixed(2),
+            note: `target ${spc.cpkTarget.toFixed(2)} · Cpk ${spcStats.cpk.toFixed(2)}`,
+            bad: spcStats.ppk < spc.cpkTarget,
+          },
           { label: "Cost of poor quality", value: baht(copqToday), note: "today" },
           { label: "Units on hold", value: thousands(unitsOnHold), note: "awaiting disposition" },
-          { label: "Out of control", value: `${spcViolations} pts`, note: "beyond control limits", bad: true },
+          {
+            label: "SPC signals",
+            value: String(spcSignals.length),
+            note: "Nelson rules tripped",
+            bad: spcSignals.length > 0,
+          },
         ]}
       />
 
@@ -885,27 +904,42 @@ export function QualityView({
         <div className="card span-2">
           <div className="section-title">
             CONTROL CHART · {spc.characteristic}
-            <span className="hint">subgroup mean every {spc.sampleEvery}</span>
+            <span className="hint">
+              {spc.chartType} · one part every {spc.sampleEvery}
+            </span>
           </div>
           <div className="panel-note">
-            Cp {spc.cp.toFixed(2)} · Cpk {spc.cpk.toFixed(2)} against a {spc.cpkTarget.toFixed(2)}{" "}
-            target. The process is capable but no longer centred: it has drifted toward the upper
-            limit all shift and crossed it {spcViolations} times. That drift is tool wear, and it is
-            the same story the dimension defect above is telling.
+            Short-term variation is tight — Cp {spcStats.cp.toFixed(2)}, Cpk{" "}
+            {spcStats.cpk.toFixed(2)} from the moving range. Overall performance is not:{" "}
+            <b>Ppk {spcStats.ppk.toFixed(2)}</b> against a {spc.cpkTarget.toFixed(2)} target,
+            because the mean has walked from {spc.target.toFixed(2)} to{" "}
+            {spcStats.mean.toFixed(3)} mm across the shift.{" "}
+            <b>The machine can hold the tolerance; it is off centre.</b> Re-centring recovers Ppk
+            without touching the machine — and the drift is tool wear, the same story the dimension
+            defect above is telling.
           </div>
+          {spcSignals.length > 0 ? (
+            <div className="signals">
+              {spcSignals.map((signal) => (
+                <span className="signal" key={signal.rule}>
+                  <b>{signal.rule}</b> {signal.detail}
+                </span>
+              ))}
+            </div>
+          ) : null}
           <svg
             className="wchart"
             viewBox={`0 0 ${WIDE.width} ${WIDE.height}`}
             role="img"
-            aria-label={`Control chart for ${spc.characteristic}. ${spcViolations} points outside control limits.`}
+            aria-label={`Control chart for ${spc.characteristic}. ${spcStats.beyondLimits} points outside control limits.`}
           >
             <rect className="ctrl-band" {...controlBand} rx="2" />
-            <path className="limit" d={`${ruleAt(onAxis(spc.ucl), WIDE)} ${ruleAt(onAxis(spc.lcl), WIDE)}`} />
+            <path className="limit" d={`${ruleAt(onAxis(spcUcl), WIDE)} ${ruleAt(onAxis(spcLcl), WIDE)}`} />
             <path className="targetline" d={ruleAt(onAxis(spc.target), WIDE)} />
             <path className="wline blue" d={seriesToPath(scaled, WIDE)} />
             {seriesToPoints(scaled, WIDE).map((point, i) => {
               const value = spc.values[i];
-              const out = value > spc.ucl || value < spc.lcl;
+              const out = value > spcUcl || value < spcLcl;
               return (
                 <circle
                   key={spc.values[i] + "-" + i}
@@ -919,9 +953,9 @@ export function QualityView({
             <ValueAxis
               labels={[
                 { at: 100, text: `USL ${spc.usl.toFixed(2)}` },
-                { at: onAxis(spc.ucl), text: `UCL ${spc.ucl.toFixed(2)}` },
+                { at: onAxis(spcUcl), text: `UCL ${spcUcl.toFixed(2)}` },
                 { at: onAxis(spc.target), text: `⌀ ${spc.target.toFixed(2)}` },
-                { at: onAxis(spc.lcl), text: `LCL ${spc.lcl.toFixed(2)}` },
+                { at: onAxis(spcLcl), text: `LCL ${spcLcl.toFixed(2)}` },
                 { at: 0, text: `LSL ${spc.lsl.toFixed(2)}` },
               ]}
             />
@@ -934,7 +968,10 @@ export function QualityView({
               ]}
             />
           </svg>
-          <SampleNote />
+          <SampleNote>
+            Control limits carried from the {spc.studyDate} capability study (σ ={" "}
+            {spc.studySigma.toFixed(3)} mm), not recomputed from these readings · sample data
+          </SampleNote>
         </div>
 
         <div className="card">
@@ -1017,8 +1054,12 @@ export function EnergyView({
           { label: "Energy today", value: `${thousands(energyToday)} kWh`, note: "↓ 6.3% vs yesterday" },
           { label: "Cost today", value: baht(energyCostToday), note: tariff.name },
           { label: "Per unit", value: `${whPerUnit.toFixed(1)} Wh`, note: "per unit produced" },
-          { label: "Billed demand", value: `${peakDemand} kW`, note: `${baht(peakDemand * tariff.demandRate)} / month` },
-          { label: "Power factor", value: "0.94", note: "above the penalty band" },
+          { label: "Billed demand", value: `${peakDemand} kW`, note: `${baht(demandChargeMonth)} / month` },
+          {
+            label: "Power factor",
+            value: "0.94",
+            note: `no charge above ${tariff.pfFloor.toFixed(2)}`,
+          },
         ]}
       />
 
@@ -1106,11 +1147,14 @@ export function EnergyView({
         </div>
 
         <div className="card">
-          <div className="section-title">WHERE THE BILL COMES FROM</div>
+          <div className="section-title">
+            WHERE THE BILL COMES FROM
+            <span className="hint">{tariff.name}</span>
+          </div>
           <div className="split">
             <div className="split-row">
               <span>
-                On-peak
+                On-peak today
                 <small>{tariff.window}</small>
               </span>
               <b>{thousands(onPeakKwh)} kWh</b>
@@ -1118,8 +1162,8 @@ export function EnergyView({
             </div>
             <div className="split-row">
               <span>
-                Off-peak
-                <small>nights and weekends</small>
+                Off-peak today
+                <small>nights, weekends and holidays</small>
               </span>
               <b>{thousands(offPeakKwh)} kWh</b>
               <b className="cost">{baht(offPeakCost)}</b>
@@ -1129,19 +1173,39 @@ export function EnergyView({
               <b>{thousands(energyToday)} kWh</b>
               <b className="cost">{baht(energyCostToday)}</b>
             </div>
-            <div className="split-row">
-              <span>
-                Demand charge
-                <small>{peakDemand} kW × {tariff.demandRate.toFixed(2)} ฿</small>
-              </span>
-              <b>monthly</b>
-              <b className="cost">{baht(peakDemand * tariff.demandRate)}</b>
+          </div>
+          <div className="panel-note">
+            <b>{peakCostShare.toFixed(0)}%</b> of today&apos;s energy cost falls inside the{" "}
+            {peakHours}-hour on-peak window. Anything you can move outside it is charged{" "}
+            {((1 - tariff.offPeakRate / tariff.peakRate) * 100).toFixed(0)}% less.
+          </div>
+
+          <div className="section-title sub">
+            PROJECTED MONTHLY INVOICE
+            <span className="hint">at today&apos;s mix × {monthlyBill.days} days</span>
+          </div>
+          <div className="split">
+            {monthlyBill.lines.map((line) => (
+              <div className="split-row" key={line.label}>
+                <span>
+                  {line.label}
+                  {line.note ? <small>{line.note}</small> : null}
+                </span>
+                <b />
+                <b className="cost">{baht(line.value)}</b>
+              </div>
+            ))}
+            <div className="split-row total">
+              <span>Total payable</span>
+              <b />
+              <b className="cost">{baht(monthlyBill.total)}</b>
             </div>
           </div>
-          <div className="panel-note big">
-            <b>{peakCostShare.toFixed(0)}%</b> of today&apos;s energy cost falls inside the{" "}
-            {peakHours}-hour on-peak window. Anything you can move outside it is charged at{" "}
-            {((1 - tariff.offPeakRate / tariff.peakRate) * 100).toFixed(0)}% less.
+          <div className="panel-note">
+            Energy is {((monthlyBill.lines[0].value / monthlyBill.total) * 100).toFixed(0)}% of the
+            invoice — the rest is demand, Ft and VAT, and only the demand charge responds to how you
+            run the plant. Cost per unit produced today: <b>{baht(energyCostPerUnit * 1000)}</b> per
+            1,000 units.
           </div>
         </div>
 
@@ -1359,24 +1423,36 @@ export function MaintenanceView({
 
         <div className="card span-2">
           <div className="section-title">
-            SPARE PARTS AT RISK
-            <span className="hint">parts a booked job cannot start without</span>
+            SPARE PARTS
+            <span className="hint">
+              {blockingParts} blocking a booked job · the rest are reorder warnings
+            </span>
+          </div>
+          <div className="panel-note">
+            Below the reorder point is not the same as out of stock. Only a part the booked job
+            cannot be done without actually stops work — the others are purchasing decisions with a
+            lead time attached.
           </div>
           <div className="table-wrap">
-            <DataTable head={["Part", "Code", "On hand", "Reorder at", "Lead time", "Blocks", "Status"]}>
+            <DataTable
+              head={["Part", "Code", "On hand", "Job needs", "Reorder at", "Lead time", "Blocks", "Status"]}
+            >
               {sparePartsAtRisk.map((part) => {
-                const short = part.onHand < part.reorderAt;
+                const status = partStatus(part);
                 return (
                   <tr key={part.code}>
                     <td>{part.part}</td>
                     <td className="mono">{part.code}</td>
                     <td>{part.onHand}</td>
+                    <td>{part.required}</td>
                     <td>{part.reorderAt}</td>
-                    <td>{part.leadTime}</td>
+                    <td>{part.leadTimeDays} d</td>
                     <td className="mono">{part.neededBy ?? "—"}</td>
                     <td>
-                      <span className={`pill ${short ? (part.onHand === 0 ? "scrapped" : "hold") : "released"}`}>
-                        {short ? (part.onHand === 0 ? "Out of stock" : "Below reorder") : "OK"}
+                      <span
+                        className={`pill ${status.tone === "blocking" ? "scrapped" : status.tone === "risk" ? "hold" : "released"}`}
+                      >
+                        {status.label}
                       </span>
                     </td>
                   </tr>
@@ -1414,6 +1490,8 @@ export function WorkOrdersView({
 
   const open = all.filter((card) => card.column !== "done");
   const overdue = all.filter((card) => card.overdue);
+  const openHours = open.reduce((sum, card) => sum + card.estHours, 0);
+  const backlog = openHours / (crew.technicians * crew.hoursPerDay);
 
   return (
     <section className="view">
@@ -1426,9 +1504,13 @@ export function WorkOrdersView({
             note: "3 technicians on shift",
           },
           { label: "Overdue", value: String(overdue.length), note: "past committed date", bad: overdue.length > 0 },
+          {
+            label: "Backlog",
+            value: `${backlog.toFixed(1)} d`,
+            note: `${openHours} h open · ${crew.technicians} technicians`,
+          },
           { label: "Closed this week", value: String(woStats.completedThisWeek), note: "↑ 4 vs last week" },
-          { label: "Avg. time to close", value: woStats.avgCloseHours, note: "↓ 0.8 h vs last week" },
-          { label: "First-time fix", value: woStats.firstTimeFix, note: "no repeat visit needed" },
+          { label: "First-time fix", value: woStats.firstTimeFix, note: `avg. close ${woStats.avgCloseHours}` },
         ]}
       />
 
@@ -1479,9 +1561,14 @@ export function WorkOrdersView({
                       <span className={`prio ${card.priority}`}>{card.priority}</span>
                     </div>
                     <div className="wo-task">{card.task}</div>
-                    <div className="wo-asset">{card.asset}</div>
+                    <div className="wo-asset">
+                      {card.asset}
+                      {card.failureCode ? <em className="fcode">{card.failureCode}</em> : null}
+                    </div>
                     <div className="wo-foot">
-                      <span>{card.assignee}</span>
+                      <span>
+                        {card.assignee} · {card.estHours} h
+                      </span>
                       <span className={card.overdue ? "w" : undefined}>{card.due}</span>
                     </div>
                   </article>

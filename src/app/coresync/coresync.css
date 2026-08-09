@@ -283,6 +283,12 @@
 .coresync-root .panel-note b { color: #cfe9ff; }
 .coresync-root .panel-note.big { font-size: 11px; padding-top: 10px; border-top: 1px solid #14283a; margin: 4px 12px 0; padding-left: 0; padding-right: 0; }
 .coresync-root .sample-note { padding: 8px 12px 10px; font-size: 9px; color: #5d7488; }
+.coresync-root .section-title.sub { border-top: 1px solid #14283a; margin-top: 4px; padding-top: 12px; }
+
+/* SPC rule violations — named so a quality engineer can check them */
+.coresync-root .signals { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 12px 10px; }
+.coresync-root .signal { font-size: 9px; padding: 5px 9px; border-radius: 6px; border: 1px solid #6b3030; background: rgba(255, 82, 82, 0.08); color: #e9b6b6; }
+.coresync-root .signal b { color: #ff8b8b; margin-right: 5px; }
 
 /* horizontal bar list — defect pareto, energy areas, downtime causes */
 .coresync-root .bars { padding: 0 12px 6px; }
@@ -426,6 +432,7 @@
 .coresync-root .prio.high { background: rgba(255, 191, 54, 0.14); color: var(--yellow); }
 .coresync-root .wo-task { font-size: 11px; line-height: 1.35; margin-top: 6px; color: #dceaf6; }
 .coresync-root .wo-asset { font-size: 9px; color: #7d97ac; margin-top: 4px; }
+.coresync-root .fcode { display: inline-block; margin-left: 6px; font-style: normal; font-size: 8px; letter-spacing: 0.3px; padding: 1px 5px; border-radius: 4px; background: #14293c; color: #8fb4cc; }
 .coresync-root .wo-foot { display: flex; justify-content: space-between; gap: 8px; margin-top: 8px; padding-top: 7px; border-top: 1px solid #14283a; font-size: 9px; color: #7189a0; }
 .coresync-root .kempty { padding: 14px 4px; text-align: center; font-size: 9px; color: #4f677c; }
 

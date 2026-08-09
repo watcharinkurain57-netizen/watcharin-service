@@ -87,6 +87,7 @@ export function FactoryOS() {
         assignee: "Unassigned",
         due: "Today",
         column: "requested",
+        estHours: 2,
         fresh: true,
       },
     ]);
