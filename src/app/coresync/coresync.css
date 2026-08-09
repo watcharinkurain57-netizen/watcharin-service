@@ -85,7 +85,12 @@
 .coresync-root .home-link:hover { color: #cdefff; text-decoration: underline; }
 
 /* ---------- topbar ---------- */
-.coresync-root .main { display: flex; flex-direction: column; min-width: 0; }
+/* min-height:0 is load-bearing, not tidying. `.main` is a grid item, so its
+   automatic minimum size is its content — without this it stretches past the
+   950px row instead of being clamped to it, `.content` sizes to content rather
+   than to the space left over, and its `overflow:auto` ends up with nothing to
+   scroll. The console then silently clips everything below the fold. */
+.coresync-root .main { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 .coresync-root .topbar { height: 56px; display: flex; align-items: center; padding: 0 18px; border-bottom: 1px solid #172a3f; background: rgba(4, 11, 18, 0.88); backdrop-filter: blur(12px); z-index: 2; flex-shrink: 0; }
 .coresync-root .title { font-weight: 750; font-size: 18px; }
 .coresync-root .live { margin-left: 10px; font-size: 12px; color: #9eb3c5; display: flex; align-items: center; gap: 6px; }
@@ -99,8 +104,25 @@
 .coresync-root .profile small { display: block; color: #7f96aa; font-size: 9px; }
 
 /* ---------- content ---------- */
-.coresync-root .content { padding: 12px 14px 14px; overflow: auto; flex: 1; scrollbar-width: none; }
-.coresync-root .content::-webkit-scrollbar { display: none; }
+/* min-height:0 for the same reason as `.main` above — a flex item's automatic
+   minimum size is its content, which would defeat the overflow.
+   The scrollbar is deliberately visible here. It was hidden to match the
+   mockup, but this pane is the only thing on the route that scrolls, and with
+   no scrollbar and no page scroll there is nothing to tell you the view
+   continues below the fold. */
+.coresync-root .content {
+  padding: 12px 14px 14px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1;
+  min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: #1b3c5a transparent;
+}
+.coresync-root .content::-webkit-scrollbar { width: 10px; }
+.coresync-root .content::-webkit-scrollbar-track { background: transparent; }
+.coresync-root .content::-webkit-scrollbar-thumb { background: #1b3c5a; border-radius: 99px; border: 3px solid transparent; background-clip: content-box; }
+.coresync-root .content::-webkit-scrollbar-thumb:hover { background: #27567d; background-clip: content-box; }
 .coresync-root .view { animation: cs-fade 0.25s ease; }
 .coresync-root .grid-kpi { display: grid; grid-template-columns: repeat(6, minmax(130px, 1fr)); gap: 9px; margin-bottom: 10px; }
 .coresync-root .card { background: linear-gradient(180deg, rgba(12, 27, 44, 0.96), rgba(7, 18, 30, 0.96)); border: 1px solid #142c43; border-radius: 10px; box-shadow: var(--shadow); }
@@ -340,7 +362,9 @@
 .coresync-root .d-block p { margin: 0; font-size: 11px; line-height: 1.5; color: #b3c8d8; }
 
 /* full-width analysis charts */
-.coresync-root .wchart { display: block; width: 100%; height: auto; aspect-ratio: 640 / 190; margin-top: 2px; }
+/* Matches the WIDE viewBox so the drawing fills the card with no letterboxing.
+   The cap stops an ultra-wide monitor turning one chart into the whole screen. */
+.coresync-root .wchart { display: block; width: 100%; height: auto; aspect-ratio: 1100 / 200; max-height: 420px; margin-top: 2px; }
 .coresync-root .wline { fill: none; stroke: var(--green); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; stroke-dasharray: 1600; stroke-dashoffset: 1600; animation: cs-draw-wide 1.6s ease forwards; }
 .coresync-root .wline.blue { stroke: var(--cyan2); filter: drop-shadow(0 0 4px rgba(41, 212, 255, 0.35)); }
 .coresync-root .warea { fill: rgba(26, 167, 255, 0.12); stroke: none; }
@@ -350,7 +374,14 @@
 .coresync-root .nowline { stroke: #5fd0ff; stroke-width: 1; stroke-dasharray: 3 3; opacity: 0.75; }
 .coresync-root .spc-pt { fill: #0a1c2c; stroke: var(--cyan2); stroke-width: 1.4; }
 .coresync-root .spc-pt.bad { fill: #3a1113; stroke: var(--red); stroke-width: 2; }
-.coresync-root text.axis { font-size: 9px; fill: #6d8ba3; font-family: inherit; }
+/* Sizes are viewBox units, so what lands on screen is this times the scale the
+   card happens to be drawn at — which runs from about 0.87 at the 1180px floor
+   to 1.6 on a wide control-room screen. Fewer units on the big end keeps the
+   rendered label inside roughly 9-14px either way. */
+.coresync-root text.axis { font-size: 11px; fill: #6d8ba3; font-family: inherit; }
+@media (min-width: 1500px) {
+  .coresync-root text.axis { font-size: 8.5px; }
+}
 
 /* quality: first pass yield by line */
 .coresync-root .qlines { padding: 2px 12px 4px; }
