@@ -130,17 +130,24 @@
 .coresync-root .line-metrics small { color: #859bb0; display: block; font-size: 10px; }
 .coresync-root .line-metrics b { font-size: 13px; }
 
-.coresync-root .factory-card { padding: 10px; position: relative; overflow: hidden; min-height: 500px; }
+.coresync-root .factory-card { padding: 10px; position: relative; overflow: hidden; min-height: 570px; }
 .coresync-root .factory-toolbar { display: flex; align-items: center; gap: 10px; padding: 2px 2px 10px; }
 .coresync-root .legend { display: flex; gap: 12px; margin-left: auto; color: #86a0b7; font-size: 10px; }
 .coresync-root .legend span { display: flex; gap: 5px; align-items: center; }
 .coresync-root .ld { width: 7px; height: 7px; border-radius: 50%; }
-.coresync-root .factory-floor { position: relative; perspective: 900px; min-height: 440px; padding-top: 10px; }
+.coresync-root .factory-floor { position: relative; perspective: 900px; min-height: 510px; padding-top: 10px; }
 .coresync-root .floor-glow { position: absolute; inset: 5px 10px 10px; background: radial-gradient(ellipse at center, rgba(7, 94, 151, 0.17), transparent 65%); pointer-events: none; }
 
-.coresync-root .prod-line { height: 125px; margin: 4px 14px 9px; border: 1px solid #0e68a8; border-radius: 14px; background: linear-gradient(180deg, rgba(13, 44, 68, 0.78), rgba(4, 18, 30, 0.9)); box-shadow: 0 0 24px rgba(8, 117, 190, 0.12), inset 0 0 24px rgba(23, 116, 177, 0.05); display: grid; grid-template-columns: repeat(9, 1fr); align-items: center; padding: 16px 12px 8px; position: relative; transform: rotateX(3deg); transition: 0.25s; }
+/* padding-top carries the line label. The first machine's sensor dot sits at the
+   very top of column one, so there is no horizontal room for a label beside it —
+   the machine row is pushed down instead, giving the label a band of its own. */
+.coresync-root .prod-line { height: 148px; margin: 4px 14px 9px; border: 1px solid #0e68a8; border-radius: 14px; background: linear-gradient(180deg, rgba(13, 44, 68, 0.78), rgba(4, 18, 30, 0.9)); box-shadow: 0 0 24px rgba(8, 117, 190, 0.12), inset 0 0 24px rgba(23, 116, 177, 0.05); display: grid; grid-template-columns: repeat(9, 1fr); align-items: center; padding: 42px 12px 8px; position: relative; transform: rotateX(3deg); transition: 0.25s; }
 .coresync-root .prod-line.selected { border-color: #28afff; box-shadow: 0 0 30px rgba(40, 175, 255, 0.2), inset 0 0 30px rgba(34, 140, 220, 0.1); }
-.coresync-root .prod-line .line-label { position: absolute; left: -6px; top: 9px; transform: translateX(-100%); font-style: italic; font-size: 11px; color: #54c1ff; border: 1px solid #145991; background: #061424; padding: 5px 8px; border-radius: 6px; white-space: nowrap; }
+/* The label sits INSIDE the line box. The original mockup placed it outside
+   (left:-6px + translateX(-100%)), where the enclosing card's overflow:hidden
+   clipped it to "E 1" / "E 2" / "E 3". Inside at top-left it clears the first
+   machine's sensor dot, which sits at that column's centre. */
+.coresync-root .prod-line .line-label { position: absolute; left: 12px; top: 8px; font-style: italic; font-size: 11px; color: #54c1ff; border: 1px solid #145991; background: #061424; padding: 4px 8px; border-radius: 6px; white-space: nowrap; z-index: 2; }
 .coresync-root .machine { position: relative; text-align: center; cursor: pointer; transition: 0.2s; min-width: 0; background: transparent; border: 0; padding: 0; color: inherit; }
 .coresync-root .machine:hover { transform: translateY(-6px) scale(1.03); }
 .coresync-root .machine .micon { width: 48px; height: 46px; margin: auto; border-radius: 7px; background: linear-gradient(180deg, #19334b, #0b1722); border: 1px solid #31546d; box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.02), 0 6px 16px rgba(0, 0, 0, 0.28); position: relative; display: grid; place-items: center; font-size: 23px; }
@@ -210,8 +217,7 @@
 .coresync-root .toggle { margin-left: auto; }
 .coresync-root .dt-stage { height: 560px; background: radial-gradient(circle at 50% 40%, rgba(13, 82, 128, 0.23), rgba(6, 15, 25, 0.72) 52%, #050b13 100%); border: 1px solid #12344f; border-radius: 10px; overflow: hidden; position: relative; transition: filter 0.3s; }
 .coresync-root .scan { position: absolute; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, #31baff, transparent); box-shadow: 0 0 18px #31baff; animation: cs-scan 5s linear infinite; opacity: 0.65; }
-.coresync-root .dt-stage .prod-line { margin: 33px 40px 10px; height: 135px; }
-.coresync-root .dt-stage .line-label { left: 8px; transform: none; top: 10px; }
+.coresync-root .dt-stage .prod-line { margin: 26px 40px 12px; height: 158px; }
 .coresync-root .dt-info { display: flex; flex-direction: column; gap: 10px; }
 .coresync-root .metric-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; padding: 10px; }
 .coresync-root .mini { padding: 9px; background: #0b1d2d; border: 1px solid #15334e; border-radius: 8px; }
