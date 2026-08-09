@@ -155,6 +155,39 @@ body {
   font-family: var(--font-sans);
 }
 
+/**
+ * Reserve the scrollbar gutter permanently.
+ *
+ * This is not cosmetic. Overlays lock the page with `body { overflow: hidden }`,
+ * which propagates to the viewport and takes the scrollbar away with it. That
+ * widens the <html> border box by the scrollbar width — measured at 1425 → 1440
+ * on this page — and <html> is exactly the element lenis hands to its
+ * `contentResizeObserver`. The observer is debounced by 250ms (lenis.mjs:157),
+ * so when a link inside an overlay closes it and scrolls in the same click, the
+ * resize lands a quarter of a second *into* the scroll and `resize()` runs
+ * `animatedScroll = targetScroll = actualScroll` (lenis.mjs:645) — which freezes
+ * the animation wherever it happens to be, roughly 100px short of the heading.
+ *
+ * Holding the gutter open keeps that box at 1425 in both states, so the observer
+ * never fires and there is nothing to interrupt. It also removes the 15px sideways
+ * jump the page currently makes behind every modal.
+ *
+ * The alternatives all cost more than they fix: delaying the panel close leaves it
+ * visibly hanging, and holding the scroll lock through the animation reads as a
+ * frozen page.
+ */
+html {
+  scrollbar-gutter: stable;
+}
+
+/* /coresync is a 100dvh console with no page scrollbar, so a reserved gutter
+   there is just a 15px dead strip down the right-hand side. It has no overlays
+   that lock the document either — its modal lives inside the console — so it
+   has nothing to gain from the rule. */
+html:has(.coresync-root) {
+  scrollbar-gutter: auto;
+}
+
 ::selection {
   background: rgba(16, 185, 129, 0.28);
   color: #ffffff;
