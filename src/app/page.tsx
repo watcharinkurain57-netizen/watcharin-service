@@ -1,5 +1,6 @@
 import { faq } from "@/lib/faq";
 import { Chapter } from "@/components/Chapter";
+import { SceneLayer } from "@/components/three/SceneLayer";
 import { Nav } from "@/components/sections/Nav";
 import { Hero } from "@/components/sections/Hero";
 import { TrustBar } from "@/components/sections/TrustBar";
@@ -92,6 +93,13 @@ export default function Home() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+
+      {/* Fixed WebGL layer at z-0. Mounts itself only after hydration settles,
+          and not at all for reduced-motion / save-data / no-WebGL visitors. */}
+      <SceneLayer />
+
+      {/* Everything readable sits above the canvas. */}
+      <div className="relative z-10">
       <Nav />
 
       {/* Six chapters. Order is the sales funnel: what I build → how I work
@@ -128,6 +136,8 @@ export default function Home() {
       </Chapter>
 
       <SiteFooter />
+      </div>
+
       <ScrollFader />
     </>
   );
