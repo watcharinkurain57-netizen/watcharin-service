@@ -775,7 +775,7 @@ function TimeAxis({
           className="axis"
           key={tick.label}
           x={indexToX(tick.at, count, box)}
-          y={box.bottom + 14}
+          y={box.bottom + 22}
           textAnchor="middle"
         >
           {tick.label}

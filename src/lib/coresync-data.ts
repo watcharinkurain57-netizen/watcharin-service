@@ -1119,13 +1119,24 @@ export const CHART: ChartBox = {
   bottom: 92,
 };
 
-/** Full-width analysis charts. The wider left gutter carries axis labels. */
+/**
+ * Full-width analysis charts. The wider left gutter carries axis labels.
+ *
+ * The box is deliberately long and low. These cards span the whole grid, so on
+ * a 1990px control-room screen the drawing is scaled by however many times its
+ * own width fits — at 640 units wide that was 3x, which made the chart 527px
+ * tall and blew the 9-unit axis labels up to 27px. Sizing the box near the
+ * width it is actually rendered at keeps the scale close to 1, so the chart
+ * stays a readable band and the labels stay label-sized.
+ */
 export const WIDE: ChartBox = {
-  width: 640,
-  height: 190,
-  left: 52,
-  right: 628,
+  width: 1100,
+  height: 200,
+  /** Wide enough for the longest value label ("UCL 12.06") not to spill out. */
+  left: 72,
+  right: 1088,
   top: 16,
+  /** Leaves a band below the plot for the time axis to sit in on its own. */
   bottom: 158,
 };
 
