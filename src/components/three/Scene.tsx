@@ -5,10 +5,12 @@ import { Canvas } from "@react-three/fiber";
 import { Lattice } from "./Lattice";
 import { DataFlow } from "./DataFlow";
 import { useScrollProgress } from "@/lib/useScrollProgress";
+import { usePointer } from "@/lib/usePointer";
 import type { DeviceTier } from "@/lib/useDeviceTier";
 
 export function Scene({ tier }: { tier: DeviceTier }) {
   const scroll = useScrollProgress();
+  const pointer = usePointer();
   // Seed from the current visibility rather than assuming true: the tab can
   // already be backgrounded when this mounts, and no visibilitychange event
   // will arrive to correct an optimistic guess.
@@ -48,7 +50,7 @@ export function Scene({ tier }: { tier: DeviceTier }) {
         }
       }}
     >
-      <Lattice tier={tier} scroll={scroll} />
+      <Lattice tier={tier} scroll={scroll} pointer={pointer} />
       {/* Flow particles are the one thing phones don't get — an extra draw call
           of 520 additive sprites is exactly the sort of thing that shows up as
           battery drain rather than as dropped frames. */}
