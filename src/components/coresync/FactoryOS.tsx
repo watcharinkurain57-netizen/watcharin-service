@@ -88,6 +88,8 @@ export function FactoryOS() {
           {BRAND.name} {BRAND.suffix}
           <br />
           {BRAND.product} {BRAND.version}
+          {/* Hand the visitor from "this looks good" to "does it pay back". */}
+          <Link className="home-link" href="/#roi">▤ คำนวณว่าคุ้มไหมกับโรงงานคุณ</Link>
           <Link className="home-link" href="/">‹ กลับไป watcharin-service.com</Link>
         </div>
       </aside>
@@ -269,7 +271,8 @@ export function DesktopNotice() {
           หน้าจอนี้ออกแบบสำหรับจอควบคุมขนาดใหญ่ (กว้างอย่างน้อย 1180px)
           เปิดบนคอมพิวเตอร์เพื่อกดเล่นได้เต็มรูปแบบครับ
         </p>
-        <Link className="dn-cta" href="/#industrial">ดู solution โรงงานบนเว็บหลัก →</Link>
+        <Link className="dn-cta" href="/#roi">คำนวณว่าคุ้มไหมกับโรงงานคุณ →</Link>
+        <Link className="dn-secondary" href="/#industrial">ดู solution โรงงานบนเว็บหลัก</Link>
         <p className="dn-disclaimer">
           ข้อมูลทั้งหมดในหน้านี้เป็นข้อมูลสมมติสำหรับสาธิต ไม่ใช่โรงงานจริง
         </p>

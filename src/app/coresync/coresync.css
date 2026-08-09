@@ -63,6 +63,8 @@
 .coresync-root .dn-note { color: #7792aa; font-size: 13px; line-height: 1.6; margin: 0 0 20px; }
 .coresync-root .dn-cta { display: block; text-align: center; border: 1px solid #1377bd; background: linear-gradient(180deg, #0a4b7a, #073758); color: #e7f6ff; border-radius: 8px; padding: 11px 14px; text-decoration: none; font-weight: 600; font-size: 14px; }
 .coresync-root .dn-cta:hover { filter: brightness(1.15); }
+.coresync-root .dn-secondary { display: block; text-align: center; margin-top: 10px; color: #7fc6f5; text-decoration: none; font-size: 13px; }
+.coresync-root .dn-secondary:hover { color: #cdefff; text-decoration: underline; }
 .coresync-root .dn-disclaimer { color: #5d7488; font-size: 11px; margin: 14px 0 0; }
 
 /* ---------- sidebar ---------- */

@@ -1,3 +1,5 @@
+import { RoiCalculator } from "./RoiCalculator";
+
 /* INDUSTRIAL / SMART FACTORY */
 export function Industrial() {
   return (
@@ -72,6 +74,11 @@ export function Industrial() {
               </ul>
             </div>
           </div>
+
+          {/* The money question, placed right after the ROI and risk story and
+              before the plan detail: an owner wants to know whether it pays back
+              before they care which package it is. */}
+          <RoiCalculator />
 
           {/* Phased plans — deeper-funnel detail, collapsed by default to keep
               this (already long) section scannable. Native <details> keeps every
