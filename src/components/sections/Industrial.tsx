@@ -1,3 +1,4 @@
+import { formatBaht, industrialPlans } from "@/lib/industrial-plans";
 import { RoiCalculator } from "./RoiCalculator";
 
 /* INDUSTRIAL / SMART FACTORY */
@@ -95,39 +96,22 @@ export function Industrial() {
             <p className="text-ink-muted">เริ่มจาก Plan A เพื่อพิสูจน์ ROI ก่อน แล้วต่อยอดสู่ B และ C เมื่อพร้อม</p>
           </div>
           <div className="grid md:grid-cols-3 gap-6">
-            {[
-              {
-                phase: "PLAN A",
-                title: "Monitoring & Dashboard",
-                grad: "from-amber-500 to-orange-600",
-                blurb: "อ่านข้อมูลจาก PLC/sensor ขึ้น dashboard realtime + แจ้งเตือน",
-                points: ["ต่อ PLC/sensor ที่มีอยู่", "Realtime dashboard + alert", "เริ่มต้นเร็ว ลงทุนต่ำ"],
-                fit: "เหมาะกับ: อยากเห็นข้อมูลก่อน พิสูจน์ ROI",
-              },
-              {
-                phase: "PLAN B",
-                title: "MES — Production Execution",
-                grad: "from-brand-500 to-brand-600",
-                blurb: "ยกระดับเป็นระบบควบคุมการผลิตเต็มรูปแบบ",
-                points: ["OEE + downtime tracking", "QC + traceability ราย lot", "Work order / การผลิตราย line"],
-                fit: "เหมาะกับ: อยากคุมคุณภาพและประสิทธิภาพการผลิต",
-                featured: true,
-              },
-              {
-                phase: "PLAN C",
-                title: "MES ↔ ERP Integration",
-                grad: "from-cyan-500 to-cyan-600",
-                blurb: "เชื่อมยอดผลิตจริงเข้า ERP เป็นระบบเดียวทั้งโรงงาน",
-                points: ["เชื่อม ERP (วางแผน/คลัง/จัดซื้อ)", "ตัดสต็อก/ต้นทุนอัตโนมัติ", "ข้อมูลไหลครบ end-to-end"],
-                fit: "เหมาะกับ: อยากได้ระบบครบวงจรทั้งโรงงาน",
-              },
-            ].map((p) => (
+            {industrialPlans.map((p) => (
               <div key={p.phase} className={`bg-surface-raised rounded-2xl p-7 card-hover flex flex-col border ${p.featured ? "border-brand-400/50 ring-1 ring-brand-500/30" : "border-line"}`}>
                 <div className="flex items-center justify-between mb-4">
                   <span className={`text-xs font-bold tracking-widest bg-gradient-to-r ${p.grad} bg-clip-text text-transparent`}>{p.phase}</span>
                   {p.featured && <span className="text-xs font-semibold text-brand-300 bg-brand-500/10 px-2 py-0.5 rounded-full border border-brand-500/30">นิยมเริ่ม</span>}
                 </div>
                 <h4 className="text-lg font-bold mb-2">{p.title}</h4>
+                {/* "เริ่มต้น" on purpose: the FAQ says pricing is per-project and a
+                    fixed-scope quote is agreed before work starts. A bare number
+                    would contradict both. */}
+                <div className="mb-4 pb-4 border-b border-line">
+                  <span className="text-xs text-ink-faint">เริ่มต้น</span>
+                  <div className="text-2xl font-extrabold tabular-nums">
+                    ฿{formatBaht(p.priceFrom)}
+                  </div>
+                </div>
                 <p className="text-sm text-ink-muted mb-4 leading-relaxed">{p.blurb}</p>
                 <ul className="space-y-2 mb-5 flex-1">
                   {p.points.map((pt) => (

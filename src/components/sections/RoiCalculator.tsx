@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { formatBaht, industrialPlans } from "@/lib/industrial-plans";
 
 /**
  * Turns a factory owner's own numbers into a payback period.
@@ -199,8 +200,39 @@ export function RoiCalculator() {
             </div>
 
             <div>
-              <label htmlFor="roi-investment" className="flex items-baseline justify-between gap-3 mb-1.5">
-                <span className="text-sm font-medium text-ink">เงินลงทุนที่ประเมินไว้</span>
+              <span className="block text-sm font-medium text-ink mb-2">เลือกแพ็กเกจ</span>
+              {/* No extra state: the active package is derived from the amount, so
+                  typing a custom figure simply deselects all three. */}
+              <div className="grid grid-cols-3 gap-2">
+                {industrialPlans.map((plan) => {
+                  const active = v.investment === plan.priceFrom;
+                  return (
+                    <button
+                      key={plan.id}
+                      type="button"
+                      onClick={() =>
+                        setV((prev) => ({ ...prev, investment: plan.priceFrom }))
+                      }
+                      aria-pressed={active}
+                      className={`rounded-xl border px-2 py-2.5 text-left transition ${
+                        active
+                          ? "border-brand-400/60 bg-brand-500/10"
+                          : "border-line bg-surface hover:border-brand-400/40"
+                      }`}
+                    >
+                      <span className="block text-[10px] font-bold tracking-widest text-ink-faint">
+                        {plan.phase}
+                      </span>
+                      <span className="block text-sm font-bold tabular-nums text-ink">
+                        ฿{formatBaht(plan.priceFrom)}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <label htmlFor="roi-investment" className="flex items-baseline justify-between gap-3 mb-1.5 mt-4">
+                <span className="text-sm font-medium text-ink">เงินลงทุนที่ใช้คำนวณ</span>
                 <span className="text-xs text-ink-faint">บาท</span>
               </label>
               <input
@@ -212,7 +244,8 @@ export function RoiCalculator() {
                 className="w-full bg-surface border border-line rounded-xl px-4 py-3 text-ink font-semibold tabular-nums focus:border-brand-400/50 focus:outline-none transition"
               />
               <p className="text-xs text-ink-faint mt-1.5">
-                ใส่งบที่คิดไว้ได้เลย เราจะสรุปขอบเขตงานกับราคาจริงให้ก่อนเริ่มเสมอ
+                ราคาข้างบนเป็น<strong className="text-ink-muted">จุดเริ่มต้น</strong> แก้เป็นงบที่คุณคิดไว้ได้เลย
+                — เราสรุปขอบเขตงานพร้อมราคาจริงให้ก่อนเริ่มเสมอ
               </p>
             </div>
           </div>
