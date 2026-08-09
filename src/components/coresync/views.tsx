@@ -1,31 +1,83 @@
 "use client";
 
+import type { ReactNode } from "react";
 import {
   type Alert,
   type Chart,
+  type ChartBox,
   type LineStatus,
   type ProductionLine,
   type SensorState,
+  type WoCard,
+  CHART,
+  SPARK,
+  WIDE,
   aiAnswer,
   aiSuggestions,
+  assetHealth,
+  baht,
+  bandBetween,
+  builtModules,
+  completedWork,
+  copqToday,
+  currentHour,
+  defectPareto,
+  defectTotal,
+  downtimeCauses,
+  downtimeTotal,
+  energyByArea,
+  energyCostToday,
+  energyToday,
   equipmentHealth,
   equipmentTotal,
+  firstPassYield,
+  indexToX,
+  inspectedTotal,
   kpis,
   line2Metrics,
   lineAlerts,
   lineCharts,
+  lineQuality,
   lineSensorStates,
   liveInsights,
+  loadProfiles,
+  loadToday,
   machines,
   maintenanceHistory,
+  maintenanceKpis,
   maintenanceUpcoming,
+  offPeakKwh,
+  onPeakKwh,
+  paretoVitalFew,
+  peakDemand,
   plantAlerts,
   plantCharts,
+  pmSchedule,
   productionLines,
   productionSummary,
+  qualityHolds,
   robotArmSensors,
+  ruleAt,
+  scaleSeries,
+  scaleValue,
   sensorGlyph,
+  seriesToArea,
   seriesToPath,
+  seriesToPoints,
+  spanBetween,
+  sparePartsAtRisk,
+  spc,
+  spcViolations,
+  standbyCostPerMonth,
+  standbyFinding,
+  standbyKwhPerDay,
+  tariff,
+  thousands,
+  valueToY,
+  woBoard,
+  woColumns,
+  woFilters,
+  woStats,
 } from "@/lib/coresync-data";
 
 const statusClass: Record<LineStatus, string> = {
@@ -115,9 +167,14 @@ function ChartCard({ chart }: { chart: Chart }) {
         <span>{chart.title}</span>
         <b>{chart.value}</b>
       </div>
-      <svg className="svgchart" viewBox="0 0 220 105" role="img" aria-label={`${chart.title}: ${chart.value}`}>
-        <path className="gridline" d="M8 20H212M8 52H212M8 84H212" />
-        <path className="targetline" d="M8 52H212" />
+      <svg
+        className="svgchart"
+        viewBox={`0 0 ${CHART.width} ${CHART.height}`}
+        role="img"
+        aria-label={`${chart.title}: ${chart.value}`}
+      >
+        <path className="gridline" d={[90, 50, 10].map((v) => ruleAt(v)).join(" ")} />
+        <path className="targetline" d={ruleAt(50)} />
         <path
           className={`chart-line${chart.tone === "green" ? "" : ` ${chart.tone}`}`}
           d={seriesToPath(chart.series)}
@@ -543,7 +600,932 @@ export function AiView({
   );
 }
 
+/* ---------------- plant module pieces ----------------
+ *
+ * Quality, Energy, Maintenance and Work Orders are all built from the same
+ * four parts: a strip of headline numbers, a two-column grid of panels, a
+ * horizontal bar list, and a table. Writing them once keeps the four modules
+ * looking like one product rather than four screens by four people.
+ */
+
+type Stat = { label: string; value: string; note?: string; bad?: boolean };
+
+function StatStrip({ stats }: { stats: readonly Stat[] }) {
+  return (
+    <div className="statstrip">
+      {stats.map((stat) => (
+        <div className="card stat" key={stat.label}>
+          <label>{stat.label}</label>
+          <b>{stat.value}</b>
+          {stat.note ? <small className={stat.bad ? "bad" : undefined}>{stat.note}</small> : null}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Repeated on every module that quotes a baht figure. The topbar badge already
+ * says this is a demo, but a screenshot of one panel travels without the topbar.
+ */
+function SampleNote({ children }: { children?: ReactNode }) {
+  return <div className="sample-note">{children ?? "Sample data · not a live plant"}</div>;
+}
+
+type BarRow = {
+  key: string;
+  label: string;
+  sub?: string;
+  /** Bar width as a percentage of the largest row in the list. */
+  bar: number;
+  value: string;
+  extra?: string;
+  tone?: "cyan" | "yellow" | "red" | "green";
+};
+
+function relative(value: number, max: number): number {
+  return max > 0 ? (value / max) * 100 : 0;
+}
+
+function BarBody({ row }: { row: BarRow }) {
+  return (
+    <>
+      <span className="b-label">
+        {row.label}
+        {row.sub ? <small>{row.sub}</small> : null}
+      </span>
+      <span className="b-track">
+        <i className={row.tone ? `t-${row.tone}` : undefined} style={{ width: `${row.bar}%` }} />
+      </span>
+      <b className="b-value">{row.value}</b>
+      {row.extra !== undefined ? <span className="b-extra">{row.extra}</span> : null}
+    </>
+  );
+}
+
+function BarList({
+  rows,
+  selected,
+  onSelect,
+}: {
+  rows: readonly BarRow[];
+  selected?: string;
+  onSelect?: (key: string) => void;
+}) {
+  const hasExtra = rows.some((row) => row.extra !== undefined);
+  return (
+    <div className={`bars${hasExtra ? " has-extra" : ""}`}>
+      {rows.map((row) =>
+        onSelect ? (
+          <button
+            key={row.key}
+            type="button"
+            className={`bar-row${selected === row.key ? " sel" : ""}`}
+            onClick={() => onSelect(row.key)}
+            aria-pressed={selected === row.key}
+          >
+            <BarBody row={row} />
+          </button>
+        ) : (
+          <div className="bar-row" key={row.key}>
+            <BarBody row={row} />
+          </div>
+        ),
+      )}
+    </div>
+  );
+}
+
+function Sparkline({
+  series,
+  tone,
+}: {
+  series: readonly number[];
+  tone?: "green" | "red" | "cyan";
+}) {
+  return (
+    <svg className="spark" viewBox={`0 0 ${SPARK.width} ${SPARK.height}`} aria-hidden>
+      <path className={`spark-line${tone ? ` ${tone}` : ""}`} d={seriesToPath(series, SPARK)} />
+    </svg>
+  );
+}
+
+function DataTable({ head, children }: { head: readonly string[]; children: ReactNode }) {
+  return (
+    <table className="dtable">
+      <thead>
+        <tr>
+          {head.map((cell) => (
+            <th key={cell}>{cell}</th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>{children}</tbody>
+    </table>
+  );
+}
+
+/** Left-hand value axis for the wide charts: min, midpoint, max. */
+function ValueAxis({
+  labels,
+  box = WIDE,
+}: {
+  labels: readonly { at: number; text: string }[];
+  box?: ChartBox;
+}) {
+  return (
+    <>
+      {labels.map((label) => (
+        <text
+          className="axis"
+          key={label.text}
+          x={box.left - 7}
+          y={valueToY(label.at, box) + 3}
+          textAnchor="end"
+        >
+          {label.text}
+        </text>
+      ))}
+    </>
+  );
+}
+
+function TimeAxis({
+  ticks,
+  count,
+  box = WIDE,
+}: {
+  ticks: readonly { at: number; label: string }[];
+  count: number;
+  box?: ChartBox;
+}) {
+  return (
+    <>
+      {ticks.map((tick) => (
+        <text
+          className="axis"
+          key={tick.label}
+          x={indexToX(tick.at, count, box)}
+          y={box.bottom + 14}
+          textAnchor="middle"
+        >
+          {tick.label}
+        </text>
+      ))}
+    </>
+  );
+}
+
+/* ---------------- quality ---------------- */
+
+export function QualityView({
+  selectedDefect,
+  onSelectDefect,
+  onRaiseWorkOrder,
+}: {
+  selectedDefect: string;
+  onSelectDefect: (key: string) => void;
+  onRaiseWorkOrder: (asset: string, task: string, location: string) => void;
+}) {
+  const defect = defectPareto.find((d) => d.key === selectedDefect) ?? defectPareto[0];
+  const biggest = defectPareto[0].count;
+  const vitalShare = defectPareto[paretoVitalFew - 1].cumulative;
+  const unitsOnHold = qualityHolds
+    .filter((hold) => hold.disposition === "Hold")
+    .reduce((sum, hold) => sum + hold.units, 0);
+
+  // The control chart is plotted across the full specification width, so the
+  // frame itself reads as the spec limits and only the control limits are drawn.
+  const onAxis = (mm: number) => scaleValue(mm, spc.lsl, spc.usl);
+  const scaled = scaleSeries([...spc.values], spc.lsl, spc.usl);
+  const controlBand = bandBetween(onAxis(spc.lcl), onAxis(spc.ucl), WIDE);
+
+  return (
+    <section className="view">
+      <StatStrip
+        stats={[
+          { label: "First pass yield", value: `${firstPassYield.toFixed(2)}%`, note: "target 99.00%", bad: true },
+          { label: "Defect rate", value: `${(100 - firstPassYield).toFixed(2)}%`, note: `${thousands(defectTotal)} of ${thousands(inspectedTotal)}` },
+          { label: "Cpk", value: spc.cpk.toFixed(2), note: `target ${spc.cpkTarget.toFixed(2)}`, bad: true },
+          { label: "Cost of poor quality", value: baht(copqToday), note: "today" },
+          { label: "Units on hold", value: thousands(unitsOnHold), note: "awaiting disposition" },
+          { label: "Out of control", value: `${spcViolations} pts`, note: "beyond control limits", bad: true },
+        ]}
+      />
+
+      <div className="mod-grid">
+        <div className="card">
+          <div className="section-title">
+            DEFECT PARETO (Today)
+            <span className="hint">click a defect type</span>
+          </div>
+          <div className="panel-note">
+            The top <b>{paretoVitalFew}</b> of {defectPareto.length} defect types account for{" "}
+            <b>{vitalShare.toFixed(0)}%</b> of all {thousands(defectTotal)} rejects. Fix those four
+            and the rest barely matters.
+          </div>
+          <BarList
+            selected={defect.key}
+            onSelect={onSelectDefect}
+            rows={defectPareto.map((row) => ({
+              key: row.key,
+              label: row.label,
+              sub: `${row.line} · ${row.station}`,
+              bar: relative(row.count, biggest),
+              value: thousands(row.count),
+              extra: `${row.cumulative.toFixed(0)}%`,
+              tone: row.cumulative <= vitalShare ? "red" : "cyan",
+            }))}
+          />
+          <SampleNote>Cumulative share in the right-hand column · sample data</SampleNote>
+        </div>
+
+        <div className="card detail">
+          <div className="section-title">DEFECT DETAIL</div>
+          <div className="d-body">
+            <h3>{defect.label}</h3>
+            <div className="d-stats">
+              <div className="mini">
+                <label>Units</label>
+                <b>{thousands(defect.count)}</b>
+              </div>
+              <div className="mini">
+                <label>Share</label>
+                <b>{defect.share.toFixed(1)}%</b>
+              </div>
+              <div className="mini">
+                <label>Cost today</label>
+                <b>{baht(defect.count * defect.costPerUnit)}</b>
+              </div>
+            </div>
+            <div className="d-block">
+              <label>Where</label>
+              <p>
+                {defect.line} · {defect.station}
+              </p>
+            </div>
+            <div className="d-block">
+              <label>Root cause · AI</label>
+              <p>{defect.cause}</p>
+            </div>
+            <div className="d-block">
+              <label>Recommended action</label>
+              <p>{defect.action}</p>
+            </div>
+            <button
+              type="button"
+              className="primary"
+              onClick={() => onRaiseWorkOrder(defect.station, defect.woTask, defect.line)}
+            >
+              Create Work Order
+            </button>
+          </div>
+        </div>
+
+        <div className="card span-2">
+          <div className="section-title">
+            CONTROL CHART · {spc.characteristic}
+            <span className="hint">subgroup mean every {spc.sampleEvery}</span>
+          </div>
+          <div className="panel-note">
+            Cp {spc.cp.toFixed(2)} · Cpk {spc.cpk.toFixed(2)} against a {spc.cpkTarget.toFixed(2)}{" "}
+            target. The process is capable but no longer centred: it has drifted toward the upper
+            limit all shift and crossed it {spcViolations} times. That drift is tool wear, and it is
+            the same story the dimension defect above is telling.
+          </div>
+          <svg
+            className="wchart"
+            viewBox={`0 0 ${WIDE.width} ${WIDE.height}`}
+            role="img"
+            aria-label={`Control chart for ${spc.characteristic}. ${spcViolations} points outside control limits.`}
+          >
+            <rect className="ctrl-band" {...controlBand} rx="2" />
+            <path className="limit" d={`${ruleAt(onAxis(spc.ucl), WIDE)} ${ruleAt(onAxis(spc.lcl), WIDE)}`} />
+            <path className="targetline" d={ruleAt(onAxis(spc.target), WIDE)} />
+            <path className="wline blue" d={seriesToPath(scaled, WIDE)} />
+            {seriesToPoints(scaled, WIDE).map((point, i) => {
+              const value = spc.values[i];
+              const out = value > spc.ucl || value < spc.lcl;
+              return (
+                <circle
+                  key={spc.values[i] + "-" + i}
+                  className={`spc-pt${out ? " bad" : ""}`}
+                  cx={point.x}
+                  cy={point.y}
+                  r={out ? 4 : 2.4}
+                />
+              );
+            })}
+            <ValueAxis
+              labels={[
+                { at: 100, text: `USL ${spc.usl.toFixed(2)}` },
+                { at: onAxis(spc.ucl), text: `UCL ${spc.ucl.toFixed(2)}` },
+                { at: onAxis(spc.target), text: `⌀ ${spc.target.toFixed(2)}` },
+                { at: onAxis(spc.lcl), text: `LCL ${spc.lcl.toFixed(2)}` },
+                { at: 0, text: `LSL ${spc.lsl.toFixed(2)}` },
+              ]}
+            />
+            <TimeAxis
+              count={spc.values.length}
+              ticks={[
+                { at: 0, label: "-8h" },
+                { at: 11, label: "-4h" },
+                { at: 23, label: "now" },
+              ]}
+            />
+          </svg>
+          <SampleNote />
+        </div>
+
+        <div className="card">
+          <div className="section-title">QUALITY HOLDS &amp; DISPOSITIONS</div>
+          <div className="table-wrap">
+            <DataTable head={["Lot", "Line", "Defect", "Units", "Disposition", "Raised"]}>
+              {qualityHolds.map((hold) => (
+                <tr key={hold.lot}>
+                  <td className="mono">{hold.lot}</td>
+                  <td>Line {hold.line}</td>
+                  <td>{hold.defect}</td>
+                  <td>{thousands(hold.units)}</td>
+                  <td>
+                    <span className={`pill ${hold.disposition.toLowerCase()}`}>{hold.disposition}</span>
+                  </td>
+                  <td className="dim">{hold.time}</td>
+                </tr>
+              ))}
+            </DataTable>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="section-title">FIRST PASS YIELD BY LINE</div>
+          <div className="qlines">
+            {lineQuality.map((line) => {
+              const fpy = ((line.inspected - line.defects) / line.inspected) * 100;
+              const weak = fpy < 98;
+              return (
+                <div className="qline" key={line.line}>
+                  <div className="q-name">
+                    Line {line.line}
+                    <small>{thousands(line.inspected)} inspected</small>
+                  </div>
+                  <div className="q-fpy">
+                    <b className={weak ? "w" : "ok"}>{fpy.toFixed(2)}%</b>
+                    <small>{thousands(line.defects)} defects</small>
+                  </div>
+                  <Sparkline series={line.trend} tone={weak ? "red" : "green"} />
+                </div>
+              );
+            })}
+          </div>
+          <SampleNote>Sparkline is first pass yield across the shift · sample data</SampleNote>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------------- energy ---------------- */
+
+export function EnergyView({
+  period,
+  onPeriod,
+  onRaiseWorkOrder,
+}: {
+  period: string;
+  onPeriod: (key: string) => void;
+  onRaiseWorkOrder: (asset: string, task: string, location: string) => void;
+}) {
+  const profile = loadProfiles.find((p) => p.key === period) ?? loadProfiles[0];
+  const series = profile.series;
+  const axisMax = Math.ceil((Math.max(...series) * 1.1) / 10) * 10;
+  const scaled = scaleSeries(series, 0, axisMax);
+  const isToday = profile.key === "today";
+
+  const onPeakCost = onPeakKwh * tariff.peakRate;
+  const offPeakCost = offPeakKwh * tariff.offPeakRate;
+  const peakCostShare = (onPeakCost / energyCostToday) * 100;
+  const peakHours = tariff.peakTo - tariff.peakFrom;
+  const whPerUnit = (energyToday * 1000) / inspectedTotal;
+  const areaMax = Math.max(...energyByArea.map((area) => area.kwh));
+
+  return (
+    <section className="view">
+      <StatStrip
+        stats={[
+          { label: "Load now", value: `${loadToday[currentHour]} kW`, note: `peak today ${peakDemand} kW` },
+          { label: "Energy today", value: `${thousands(energyToday)} kWh`, note: "↓ 6.3% vs yesterday" },
+          { label: "Cost today", value: baht(energyCostToday), note: tariff.name },
+          { label: "Per unit", value: `${whPerUnit.toFixed(1)} Wh`, note: "per unit produced" },
+          { label: "Billed demand", value: `${peakDemand} kW`, note: `${baht(peakDemand * tariff.demandRate)} / month` },
+          { label: "Power factor", value: "0.94", note: "above the penalty band" },
+        ]}
+      />
+
+      <div className="mod-grid">
+        <div className="card span-2">
+          <div className="section-title">
+            LOAD PROFILE
+            <span className="hint">{profile.caption}</span>
+            <div className="seg pushed">
+              {loadProfiles.map((option) => (
+                <button
+                  key={option.key}
+                  type="button"
+                  className={option.key === period ? "active" : ""}
+                  onClick={() => onPeriod(option.key)}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <svg
+            className="wchart"
+            viewBox={`0 0 ${WIDE.width} ${WIDE.height}`}
+            role="img"
+            aria-label={`Load profile, ${profile.label}. Peak ${Math.max(...series)} ${profile.unit}.`}
+          >
+            {isToday ? (
+              <rect
+                className="peak-band"
+                {...spanBetween(tariff.peakFrom, tariff.peakTo, series.length, WIDE)}
+              />
+            ) : null}
+            <path className="gridline" d={[75, 50, 25].map((v) => ruleAt(v, WIDE)).join(" ")} />
+            <path className="warea" d={seriesToArea(scaled, WIDE)} />
+            <path className="wline blue" d={seriesToPath(scaled, WIDE)} />
+            {isToday ? (
+              <path
+                className="nowline"
+                d={`M${indexToX(currentHour, series.length, WIDE)} ${WIDE.top}V${WIDE.bottom}`}
+              />
+            ) : null}
+            <ValueAxis
+              labels={[
+                { at: 100, text: thousands(axisMax) },
+                { at: 50, text: thousands(axisMax / 2) },
+                { at: 0, text: "0" },
+              ]}
+            />
+            <TimeAxis ticks={profile.ticks} count={series.length} />
+          </svg>
+          <div className="load-legend">
+            <span>
+              <i className="swatch peak" />
+              On-peak {tariff.window} · {peakHours} ชั่วโมง
+            </span>
+            <span>
+              <i className="swatch line" />
+              {profile.unit}
+            </span>
+            <span className="dim">
+              {tariff.peakRate.toFixed(2)} ฿/kWh on-peak · {tariff.offPeakRate.toFixed(2)} ฿/kWh
+              off-peak
+            </span>
+          </div>
+          <SampleNote>Representative TOU rates · sample data, not a quotation</SampleNote>
+        </div>
+
+        <div className="card">
+          <div className="section-title">CONSUMPTION BY AREA (Today)</div>
+          <BarList
+            rows={energyByArea.map((area) => ({
+              key: area.label,
+              label: area.label,
+              bar: relative(area.kwh, areaMax),
+              value: `${thousands(area.kwh)} kWh`,
+              extra: area.delta,
+              tone: area.bad ? "yellow" : "cyan",
+            }))}
+          />
+          <div className="panel-note">
+            Compressed air is the only area up on yesterday while production is down — which is what
+            the finding below is about.
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="section-title">WHERE THE BILL COMES FROM</div>
+          <div className="split">
+            <div className="split-row">
+              <span>
+                On-peak
+                <small>{tariff.window}</small>
+              </span>
+              <b>{thousands(onPeakKwh)} kWh</b>
+              <b className="cost">{baht(onPeakCost)}</b>
+            </div>
+            <div className="split-row">
+              <span>
+                Off-peak
+                <small>nights and weekends</small>
+              </span>
+              <b>{thousands(offPeakKwh)} kWh</b>
+              <b className="cost">{baht(offPeakCost)}</b>
+            </div>
+            <div className="split-row total">
+              <span>Energy charge today</span>
+              <b>{thousands(energyToday)} kWh</b>
+              <b className="cost">{baht(energyCostToday)}</b>
+            </div>
+            <div className="split-row">
+              <span>
+                Demand charge
+                <small>{peakDemand} kW × {tariff.demandRate.toFixed(2)} ฿</small>
+              </span>
+              <b>monthly</b>
+              <b className="cost">{baht(peakDemand * tariff.demandRate)}</b>
+            </div>
+          </div>
+          <div className="panel-note big">
+            <b>{peakCostShare.toFixed(0)}%</b> of today&apos;s energy cost falls inside the{" "}
+            {peakHours}-hour on-peak window. Anything you can move outside it is charged at{" "}
+            {((1 - tariff.offPeakRate / tariff.peakRate) * 100).toFixed(0)}% less.
+          </div>
+        </div>
+
+        <div className="card span-2 finding">
+          <div className="section-title">
+            <span className="find-icon" aria-hidden>
+              ϟ
+            </span>
+            ANOMALY · {standbyFinding.title}
+          </div>
+          <p className="find-text">{standbyFinding.detail}</p>
+          <div className="find-math">
+            <div>
+              <label>Off-shift draw</label>
+              <b>{standbyFinding.kw} kW</b>
+            </div>
+            <div className="op" aria-hidden>
+              ×
+            </div>
+            <div>
+              <label>Hours / day</label>
+              <b>{standbyFinding.hours} h</b>
+            </div>
+            <div className="op" aria-hidden>
+              =
+            </div>
+            <div>
+              <label>Wasted</label>
+              <b>{standbyKwhPerDay.toFixed(1)} kWh / day</b>
+            </div>
+            <div className="op" aria-hidden>
+              →
+            </div>
+            <div className="result">
+              <label>Cost of doing nothing</label>
+              <b>
+                {baht(standbyCostPerMonth)} / เดือน · {baht(standbyCostPerMonth * 12)} / ปี
+              </b>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="primary find-cta"
+            onClick={() =>
+              onRaiseWorkOrder("Compressed air ring main", "Leak survey during off-shift", "Utilities")
+            }
+          >
+            Create Work Order — leak survey
+          </button>
+          <SampleNote />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------------- maintenance ---------------- */
+
+const riskTone: Record<string, "red" | "yellow" | "green"> = {
+  high: "red",
+  medium: "yellow",
+  low: "green",
+};
+
+export function MaintenanceView({
+  selectedAsset,
+  onSelectAsset,
+  onRaiseWorkOrder,
+}: {
+  selectedAsset: string;
+  onSelectAsset: (key: string) => void;
+  onRaiseWorkOrder: (asset: string, task: string, location: string) => void;
+}) {
+  const asset = assetHealth.find((item) => item.key === selectedAsset) ?? assetHealth[0];
+  const atRisk = assetHealth.filter((item) => item.risk === "high").length;
+  const causeMax = Math.max(...downtimeCauses.map((cause) => cause.minutes));
+  const overduePm = pmSchedule.reduce((sum, day) => sum + (day.overdue ?? 0), 0);
+
+  return (
+    <section className="view">
+      <StatStrip
+        stats={maintenanceKpis.map((kpi) => ({
+          label: kpi.label,
+          value: kpi.value,
+          note: kpi.note,
+          bad: kpi.bad,
+        }))}
+      />
+
+      <div className="mod-grid">
+        <div className="card">
+          <div className="section-title">
+            ASSET HEALTH
+            <span className="hint">ranked by predicted risk · click an asset</span>
+          </div>
+          <div className="panel-note">
+            {atRisk} of {assetHealth.length} monitored assets are flagged. Remaining useful life is
+            a prediction from vibration, temperature and duty-cycle history — not a countdown from
+            the service interval.
+          </div>
+          <div className="asset-rank">
+            {assetHealth.map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                className={`asset-row${item.key === asset.key ? " sel" : ""}`}
+                onClick={() => onSelectAsset(item.key)}
+                aria-pressed={item.key === asset.key}
+              >
+                <span className="a-name">
+                  {item.name}
+                  <small>{item.location}</small>
+                </span>
+                <span className="a-health">
+                  <span className="hbar">
+                    <i className={`t-${riskTone[item.risk]}`} style={{ width: `${item.health}%` }} />
+                  </span>
+                  <small>{item.health}% health</small>
+                </span>
+                <span className="a-rul">
+                  <b className={item.rul === 0 ? "off" : undefined}>
+                    {item.rul === 0 ? "failed" : `${item.rul} d`}
+                  </b>
+                  <small>RUL</small>
+                </span>
+                <span className={`risk ${item.risk}`}>{item.risk}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="card detail">
+          <div className="section-title">ASSET DETAIL</div>
+          <div className="d-body">
+            <h3>{asset.name}</h3>
+            <p className="d-sub">{asset.location}</p>
+            <div className="d-stats four">
+              <div className="mini">
+                <label>Health</label>
+                <b>{asset.health}%</b>
+              </div>
+              <div className="mini">
+                <label>RUL</label>
+                <b>{asset.rul === 0 ? "0 d" : `${asset.rul} d`}</b>
+              </div>
+              <div className="mini">
+                <label>MTBF</label>
+                <b>{asset.mtbf}</b>
+              </div>
+              <div className="mini">
+                <label>Serviced</label>
+                <b>{asset.lastService}</b>
+              </div>
+            </div>
+            <div className="d-block">
+              <label>Health, last 8 weeks</label>
+              <Sparkline series={asset.trend} tone={asset.risk === "low" ? "green" : "red"} />
+            </div>
+            <div className="d-block">
+              <label>What the model sees</label>
+              <p>{asset.signal}</p>
+            </div>
+            <div className="d-block">
+              <label>Recommended action</label>
+              <p>{asset.action}</p>
+            </div>
+            <button
+              type="button"
+              className="primary"
+              onClick={() => onRaiseWorkOrder(asset.name, asset.woTask, asset.location)}
+            >
+              Create Work Order
+            </button>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="section-title">UNPLANNED DOWNTIME BY CAUSE (Today)</div>
+          <div className="panel-note">
+            {downtimeTotal} minutes lost today. The vision fault alone is{" "}
+            {((downtimeCauses[0].minutes / downtimeTotal) * 100).toFixed(0)}% of it.
+          </div>
+          <BarList
+            rows={downtimeCauses.map((cause) => ({
+              key: cause.label,
+              label: cause.label,
+              sub: cause.line,
+              bar: relative(cause.minutes, causeMax),
+              value: `${cause.minutes} min`,
+              extra: `${((cause.minutes / downtimeTotal) * 100).toFixed(0)}%`,
+              tone: "red",
+            }))}
+          />
+        </div>
+
+        <div className="card">
+          <div className="section-title">PM SCHEDULE · NEXT 14 DAYS</div>
+          <div className="pm-strip">
+            {pmSchedule.map((day) => (
+              <div
+                key={day.day}
+                className={`pm-day${day.jobs === 0 ? " empty" : ""}${day.overdue ? " over" : ""}`}
+              >
+                <b>{day.jobs || "·"}</b>
+                <small>{day.day}</small>
+              </div>
+            ))}
+          </div>
+          <div className="panel-note">
+            {overduePm} job overdue · 92% PM compliance this month. Scheduled work is{" "}
+            {maintenanceKpis[3].value} of all hours; the target is 80%, and every point below it is
+            work that turned into a breakdown.
+          </div>
+        </div>
+
+        <div className="card span-2">
+          <div className="section-title">
+            SPARE PARTS AT RISK
+            <span className="hint">parts a booked job cannot start without</span>
+          </div>
+          <div className="table-wrap">
+            <DataTable head={["Part", "Code", "On hand", "Reorder at", "Lead time", "Blocks", "Status"]}>
+              {sparePartsAtRisk.map((part) => {
+                const short = part.onHand < part.reorderAt;
+                return (
+                  <tr key={part.code}>
+                    <td>{part.part}</td>
+                    <td className="mono">{part.code}</td>
+                    <td>{part.onHand}</td>
+                    <td>{part.reorderAt}</td>
+                    <td>{part.leadTime}</td>
+                    <td className="mono">{part.neededBy ?? "—"}</td>
+                    <td>
+                      <span className={`pill ${short ? (part.onHand === 0 ? "scrapped" : "hold") : "released"}`}>
+                        {short ? (part.onHand === 0 ? "Out of stock" : "Below reorder") : "OK"}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </DataTable>
+          </div>
+          <SampleNote />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------------- work orders ---------------- */
+
+export function WorkOrdersView({
+  filter,
+  onFilter,
+  raised,
+  onRaiseWorkOrder,
+}: {
+  filter: string;
+  onFilter: (key: string) => void;
+  raised: readonly WoCard[];
+  onRaiseWorkOrder: (asset: string, task: string, location: string) => void;
+}) {
+  const all = [...raised, ...woBoard];
+  const visible = all.filter((card) => {
+    if (filter === "critical") return card.priority === "critical";
+    if (filter === "overdue") return Boolean(card.overdue);
+    if (filter === "preventive") return card.kind === "preventive";
+    return true;
+  });
+
+  const open = all.filter((card) => card.column !== "done");
+  const overdue = all.filter((card) => card.overdue);
+
+  return (
+    <section className="view">
+      <StatStrip
+        stats={[
+          { label: "Open", value: String(open.length), note: "across all lines" },
+          {
+            label: "In progress",
+            value: String(all.filter((card) => card.column === "progress").length),
+            note: "3 technicians on shift",
+          },
+          { label: "Overdue", value: String(overdue.length), note: "past committed date", bad: overdue.length > 0 },
+          { label: "Closed this week", value: String(woStats.completedThisWeek), note: "↑ 4 vs last week" },
+          { label: "Avg. time to close", value: woStats.avgCloseHours, note: "↓ 0.8 h vs last week" },
+          { label: "First-time fix", value: woStats.firstTimeFix, note: "no repeat visit needed" },
+        ]}
+      />
+
+      <div className="wo-bar">
+        <div className="seg">
+          {woFilters.map((option) => (
+            <button
+              key={option.key}
+              type="button"
+              className={filter === option.key ? "active" : ""}
+              onClick={() => onFilter(option.key)}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+        <span className="wo-count">
+          showing {visible.length} of {all.length}
+        </span>
+        <button
+          type="button"
+          className="primary wo-new"
+          onClick={() =>
+            onRaiseWorkOrder("Line 2 · Robot Arm", "Raised from the work order board", "Line 2")
+          }
+        >
+          + New Work Order
+        </button>
+      </div>
+
+      <div className="kanban">
+        {woColumns.map((column) => {
+          const items = visible.filter((card) => card.column === column.key);
+          return (
+            <div className="kcol" key={column.key}>
+              <div className="kcol-head">
+                {column.label}
+                <span className="kcount">{items.length}</span>
+              </div>
+              <div className="kcol-body">
+                {items.map((card) => (
+                  <article
+                    className={`wo-card pr-${card.priority}${card.fresh ? " fresh" : ""}`}
+                    key={card.id}
+                  >
+                    <div className="wo-top">
+                      <b className="mono">{card.id}</b>
+                      <span className={`prio ${card.priority}`}>{card.priority}</span>
+                    </div>
+                    <div className="wo-task">{card.task}</div>
+                    <div className="wo-asset">{card.asset}</div>
+                    <div className="wo-foot">
+                      <span>{card.assignee}</span>
+                      <span className={card.overdue ? "w" : undefined}>{card.due}</span>
+                    </div>
+                  </article>
+                ))}
+                {items.length === 0 ? <div className="kempty">nothing here</div> : null}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="card wide-card">
+        <div className="section-title">
+          RECENTLY COMPLETED
+          <span className="hint">labour and parts, closed jobs</span>
+        </div>
+        <div className="table-wrap">
+          <DataTable head={["Work order", "Asset", "Task", "Duration", "Cost", "Technician"]}>
+            {completedWork.map((job) => (
+              <tr key={job.id}>
+                <td className="mono">{job.id}</td>
+                <td>{job.asset}</td>
+                <td>{job.task}</td>
+                <td>{job.duration}</td>
+                <td>{baht(job.cost)}</td>
+                <td className="dim">{job.tech}</td>
+              </tr>
+            ))}
+          </DataTable>
+        </div>
+        <SampleNote />
+      </div>
+    </section>
+  );
+}
+
 /* ---------------- placeholder modules ---------------- */
+
+/** "A, B and C" — keeps the placeholder's sentence true as modules get built. */
+function listModules(names: readonly string[]): string {
+  if (names.length === 0) return "none yet";
+  if (names.length === 1) return names[0];
+  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+}
 
 export function GenericView({ title }: { title: string }) {
   return (
@@ -552,7 +1534,7 @@ export function GenericView({ title }: { title: string }) {
         <h2>{title}</h2>
         <p>
           This module is included in the mockup navigation to show the modular product architecture. The
-          fully built interactive flows in this demo are Overview, Digital Twin and AI Insights.
+          fully built interactive flows in this demo are {listModules(builtModules)}.
         </p>
         <div className="generic-kpis">
           {[
