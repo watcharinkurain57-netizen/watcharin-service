@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AccountButton } from "@/components/auth/AccountButton";
+import { ArchiveNavCta } from "@/components/archive/ArchiveNavCta";
 import { MyProjectsLink } from "@/components/archive/MyProjectsLink";
 
 /**
@@ -31,12 +32,7 @@ export default function ArchiveLayout({ children }: { children: React.ReactNode 
 
           <div className="ml-auto flex items-center gap-2.5">
             <AccountButton />
-            <Link
-              href="/#talk"
-              className="hidden rounded-full bg-brand-600 px-4 py-2 text-sm font-bold text-white transition-transform duration-300 hover:-translate-y-0.5 motion-reduce:transform-none sm:block"
-            >
-              เล่าโปรเจกต์ให้ฟัง
-            </Link>
+            <ArchiveNavCta />
           </div>
         </div>
       </header>

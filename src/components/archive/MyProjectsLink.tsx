@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
@@ -13,6 +14,10 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
  */
 export function MyProjectsLink() {
   const [count, setCount] = useState(0);
+  // แถบบนอยู่ใน layout ซึ่งไม่ถูก mount ใหม่ตอนเปลี่ยนหน้าแบบ client-side
+  // ถ้านับครั้งเดียวตอน mount ตัวเลขจะค้างจนกว่าจะกดรีเฟรชเอง
+  // ผูกกับ pathname เพื่อให้นับใหม่ทุกครั้งที่เปลี่ยนหน้า เช่นหลังสร้างโปรเจกต์เสร็จ
+  const pathname = usePathname();
 
   useEffect(() => {
     let alive = true;
@@ -35,7 +40,7 @@ export function MyProjectsLink() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [pathname]);
 
   if (count === 0) return null;
 

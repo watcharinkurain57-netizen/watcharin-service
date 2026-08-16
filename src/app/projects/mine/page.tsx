@@ -31,8 +31,12 @@ type Row = {
   };
 };
 
-const ROLE_LABEL: Record<Row["role"], string> = {
-  owner: "เจ้าของ",
+/**
+ * ไม่ติดป้าย "เจ้าของ" เพราะทุกโปรเจกต์ในเว็บนี้เจ้าของเว็บเป็นเจ้าของอยู่แล้ว
+ * ป้ายที่ขึ้นทุกใบเหมือนกันหมดไม่ได้บอกอะไร มีแต่ทำให้รก
+ * ติดเฉพาะตอนที่ไม่ใช่เจ้าของ ซึ่งจะเริ่มมีความหมายเมื่อลูกค้าเข้ามาอยู่ในโปรเจกต์
+ */
+const ROLE_LABEL: Partial<Record<Row["role"], string>> = {
   client: "คนในโปรเจกต์",
 };
 
@@ -101,9 +105,11 @@ export default async function MyProjectsPage() {
                   done: [],
                 }}
               />
-              <p className="mt-1.5 px-0.5 text-[0.78rem] font-semibold text-brand-400">
-                {ROLE_LABEL[role]}
-              </p>
+              {ROLE_LABEL[role] && (
+                <p className="mt-1.5 px-0.5 text-[0.78rem] font-semibold text-brand-400">
+                  {ROLE_LABEL[role]}
+                </p>
+              )}
             </div>
           ))}
         </div>

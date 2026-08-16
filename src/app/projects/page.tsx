@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AdminActions } from "@/components/archive/AdminActions";
 import { ProjectCard } from "@/components/archive/ProjectCard";
 import { ProjectRail } from "@/components/archive/ProjectRail";
 import { ProjectCover } from "@/components/archive/ProjectCover";
@@ -83,7 +82,6 @@ export default async function ProjectArchivePage() {
             >
               อยากได้แบบนี้บ้าง
             </Link>
-            <AdminActions />
           </div>
         </div>
       </section>
