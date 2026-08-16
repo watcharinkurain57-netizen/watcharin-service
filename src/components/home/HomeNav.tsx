@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AccountButton } from "@/components/auth/AccountButton";
 
 export function HomeNav() {
   return (
@@ -23,12 +24,15 @@ export function HomeNav() {
           </Link>
         </nav>
 
-        <Link
-          href="#talk"
-          className="ml-auto flex-none rounded-full bg-brand-600 px-5 py-2.5 text-[0.9rem] font-bold text-white shadow-sm shadow-brand-600/25 transition-transform duration-300 hover:-translate-y-0.5 motion-reduce:transform-none"
-        >
-          เล่าโปรเจกต์ให้ฟัง
-        </Link>
+        <div className="ml-auto flex flex-none items-center gap-2.5">
+          <AccountButton />
+          <Link
+            href="#talk"
+            className="rounded-full bg-brand-600 px-5 py-2.5 text-[0.9rem] font-bold text-white shadow-sm shadow-brand-600/25 transition-transform duration-300 hover:-translate-y-0.5 motion-reduce:transform-none"
+          >
+            เล่าโปรเจกต์ให้ฟัง
+          </Link>
+        </div>
       </div>
     </header>
   );

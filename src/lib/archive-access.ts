@@ -68,15 +68,12 @@ export function can(viewer: Viewer, capability: Capability): boolean {
 }
 
 /**
- * ยังไม่มีระบบล็อกอิน ทุกคนจึงเป็น "คนทั่วไป"
+ * ผู้ชมที่ยังไม่รู้ว่าเป็นใคร
  *
- * พอทำล็อกอินแล้ว ที่ต้องแก้คือฟังก์ชันนี้ฟังก์ชันเดียว:
- * อ่าน session แล้วเทียบกับตาราง project_members(project_id, user_id, role)
- * — หน้าจอทุกหน้าที่เรียก can() ไม่ต้องแก้อะไรเลย
+ * ใช้กับหน้าที่เรนเดอร์ล่วงหน้า (static) ซึ่งตอนสร้างหน้ายังไม่มี request
+ * จึงไม่มีทางรู้ว่าใครจะเปิด — หน้าพวกนี้จึงแสดงได้แค่ข้อมูลสาธารณะ
  *
- * ต้องรับ projectId ด้วยตอนนั้น เพราะคนคนเดียวกันเป็น client ในโปรเจกต์หนึ่ง
- * แต่เป็น public ในอีกโปรเจกต์หนึ่งได้
+ * ถ้าต้องรู้ว่าใครเปิดจริง ๆ ให้ใช้ getViewer() ใน archive-access.server.ts
+ * แต่ต้องยอมแลกกับการที่หน้านั้นกลายเป็น dynamic
  */
-export function getViewer(): Viewer {
-  return { role: "public" };
-}
+export const PUBLIC_VIEWER: Viewer = { role: "public" };

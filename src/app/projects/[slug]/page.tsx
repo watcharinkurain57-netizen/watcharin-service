@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ProjectCover } from "@/components/archive/ProjectCover";
-import { can, getViewer } from "@/lib/archive-access";
+import { can, PUBLIC_VIEWER } from "@/lib/archive-access";
 import { STATUS_LABEL, type ArchiveProject } from "@/lib/project-archive";
 import { fetchProject, fetchProjects } from "@/lib/project-archive-repo";
 
@@ -52,8 +52,11 @@ export default async function ProjectDetailPage({ params }: Params) {
   const project = await fetchProject(slug);
   if (!project) notFound();
 
-  const viewer = getViewer();
-  const showProgress = typeof project.progress === "number" && can(viewer, "project.progress.view");
+  // หน้านี้เรนเดอร์ล่วงหน้า ตอนสร้างยังไม่รู้ว่าใครจะเปิด จึงแสดงได้แค่ข้อมูลสาธารณะ
+  // ตอนเพิ่มแผงของเจ้าของ ให้เปลี่ยนมาใช้ getViewer(project.id) จาก archive-access.server
+  // แล้วยอมให้หน้านี้เป็น dynamic
+  const showProgress =
+    typeof project.progress === "number" && can(PUBLIC_VIEWER, "project.progress.view");
 
   return (
     <>
