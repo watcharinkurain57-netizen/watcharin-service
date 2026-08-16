@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EditProjectLink } from "@/components/archive/EditProjectLink";
-import { OwnerPanels } from "@/components/archive/OwnerPanels";
+import { ProjectTabs } from "@/components/archive/ProjectTabs";
 import { ProjectCover } from "@/components/archive/ProjectCover";
 import { can, PUBLIC_VIEWER } from "@/lib/archive-access";
 import { STATUS_LABEL, type ArchiveProject } from "@/lib/project-archive";
@@ -112,6 +112,10 @@ export default async function ProjectDetailPage({ params }: Params) {
 
       {/* ---------- เนื้อหา ---------- */}
       <div className="mx-auto max-w-5xl px-4 py-10 sm:px-8">
+        <ProjectTabs
+          projectId={project.id}
+          overview={
+            <>
         <div className="grid gap-4 md:grid-cols-[1.4fr_1fr] md:items-start">
           <div>
             <Panel title="โปรเจกต์นี้แก้ปัญหาอะไร">
@@ -219,12 +223,6 @@ export default async function ProjectDetailPage({ params }: Params) {
           </div>
         </div>
 
-        {/*
-          แผงของคนในโปรเจกต์ — โหลดฝั่งเบราว์เซอร์ เพื่อให้หน้านี้ยังเรนเดอร์
-          ล่วงหน้าเป็น static ได้ คนนอกจะไม่เห็นอะไรเลยเพราะ RLS ไม่คืนแถวให้
-        */}
-        <OwnerPanels projectId={project.id} />
-
         {/* ---------- แกลเลอรี ---------- */}
         {project.gallery && project.gallery.length > 0 && (
           <section className="mt-6">
@@ -245,6 +243,9 @@ export default async function ProjectDetailPage({ params }: Params) {
             </div>
           </section>
         )}
+            </>
+          }
+        />
       </div>
     </>
   );
