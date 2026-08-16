@@ -21,8 +21,29 @@ export type Task = {
   due_label: string | null;
   due_on: string | null;
   started_on: string | null;
+  /** null = ยังไม่มอบหมายให้ใคร */
+  assignee_id: string | null;
   sort: number;
 };
+
+/** คนในโปรเจกต์ที่มอบหมายงานให้ได้ */
+export type Person = {
+  id: string;
+  display_name: string | null;
+  email: string | null;
+  avatar_url: string | null;
+};
+
+/** ชื่อที่เอาไปแสดง — ถ้าไม่มีชื่อใช้ชื่อหน้า @ ถ้าไม่มีอีเมลอีกก็ยอมแพ้ */
+export function personName(p: Person | undefined): string {
+  if (!p) return "ไม่ระบุ";
+  return p.display_name || p.email?.split("@")[0] || "ไม่ระบุ";
+}
+
+/** ตัวย่อสำหรับวงกลมรูปโปรไฟล์ตอนไม่มีรูป */
+export function initials(p: Person | undefined): string {
+  return personName(p).trim().charAt(0).toUpperCase() || "?";
+}
 
 export const COLUMN_COLORS: { id: ColumnColor; label: string; dot: string; chip: string }[] = [
   { id: "slate", label: "เทา", dot: "bg-ink-faint", chip: "bg-white/10 text-ink" },
@@ -39,8 +60,9 @@ export function colorOf(c: ColumnColor) {
 
 /** คอลัมน์ที่ดึงจากตาราง — รวมไว้ที่เดียวกันลืมเวลาเพิ่มฟิลด์ */
 export const TASK_SELECT =
-  "id, project_id, column_id, title, due_label, due_on, started_on, sort";
+  "id, project_id, column_id, title, due_label, due_on, started_on, assignee_id, sort";
 export const COLUMN_SELECT = "id, project_id, name, color, is_done, sort";
+export const PROFILE_SELECT = "id, display_name, email, avatar_url";
 
 const THAI_MONTH = [
   "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",

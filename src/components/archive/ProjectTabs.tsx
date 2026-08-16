@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Avatar } from "@/components/archive/tasks/Avatar";
 import { TasksTab } from "@/components/archive/tasks/TasksTab";
+import { personName } from "@/lib/project-tasks";
 import { can, type Capability, type Viewer, type ViewerRole } from "@/lib/archive-access";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
@@ -31,9 +33,33 @@ type FileRow = {
   delivered_on: string | null;
 };
 
-type Member = { user_id: string; role: ViewerRole; created_at: string };
+type Member = {
+  user_id: string;
+  role: ViewerRole;
+  created_at: string;
+  profiles: ProfileShape | null;
+};
 
 const baht = new Intl.NumberFormat("th-TH", { maximumFractionDigits: 0 });
+
+type ProfileShape = { display_name: string | null; email: string | null; avatar_url: string | null };
+
+const EMPTY_PROFILE: ProfileShape = { display_name: null, email: null, avatar_url: null };
+
+/** รับได้ทั้งกรณีที่ profiles มาเป็น object เดี่ยวและกรณีที่มาเป็น array */
+function normalizeMembers(rows: unknown): Member[] {
+  if (!Array.isArray(rows)) return [];
+  return rows.map((r) => {
+    const row = r as { user_id: string; role: ViewerRole; created_at: string; profiles: unknown };
+    const p = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
+    return {
+      user_id: row.user_id,
+      role: row.role,
+      created_at: row.created_at,
+      profiles: (p as ProfileShape) ?? null,
+    };
+  });
+}
 
 type TabDef = { id: string; label: string; need?: Capability };
 
@@ -81,13 +107,18 @@ export function ProjectTabs({
       const [pay, file, mem] = await Promise.all([
         supabase.from("project_payments").select("id,label,amount,status,due_label").eq("project_id", projectId).order("sort"),
         supabase.from("project_files").select("id,name,status,delivered_on").eq("project_id", projectId).order("sort"),
-        supabase.from("project_members").select("user_id,role,created_at").eq("project_id", projectId),
+        supabase
+          .from("project_members")
+          .select("user_id,role,created_at,profiles(display_name,email,avatar_url)")
+          .eq("project_id", projectId),
       ]);
 
       if (!alive) return;
       setPayments((pay.data as Payment[]) ?? []);
       setFiles((file.data as FileRow[]) ?? []);
-      setMembers((mem.data as Member[]) ?? []);
+      // PostgREST คืนความสัมพันธ์แบบ many-to-one มาเป็น object เดี่ยว
+      // แต่ตัวอนุมานชนิดของ supabase-js มองเป็น array จึงต้องปรับให้ตรงกันเอง
+      setMembers(normalizeMembers(mem.data));
     })();
 
     return () => {
@@ -212,15 +243,19 @@ export function ProjectTabs({
             <ul className="grid gap-2">
               {members.map((m) => (
                 <li key={m.user_id} className="flex items-center gap-3 rounded-xl bg-surface-overlay px-3 py-2.5 text-sm">
-                  <span
-                    className={`size-2 flex-none rounded-full ${m.role === "owner" ? "bg-brand-500" : "bg-sky-400"}`}
-                    aria-hidden="true"
-                  />
-                  <span className="text-ink-muted">
-                    {m.role === "owner" ? "เจ้าของโปรเจกต์" : "ลูกค้า / คนในโปรเจกต์"}
+                  <Avatar person={{ id: m.user_id, ...(m.profiles ?? EMPTY_PROFILE) }} size={28} />
+                  <span className="min-w-0">
+                    <span className="block truncate font-semibold text-ink">
+                      {personName({ id: m.user_id, ...(m.profiles ?? EMPTY_PROFILE) })}
+                    </span>
+                    <span className="block truncate text-[0.78rem] text-ink-faint">{m.profiles?.email ?? "—"}</span>
                   </span>
-                  <span className="ml-auto flex-none font-mono text-[0.72rem] text-ink-faint">
-                    {m.user_id.slice(0, 8)}
+                  <span
+                    className={`ml-auto flex-none rounded-full px-2.5 py-1 text-[0.74rem] font-bold ${
+                      m.role === "owner" ? "bg-brand-500/15 text-brand-300" : "bg-sky-400/15 text-sky-200"
+                    }`}
+                  >
+                    {m.role === "owner" ? "เจ้าของโปรเจกต์" : "คนในโปรเจกต์"}
                   </span>
                 </li>
               ))}

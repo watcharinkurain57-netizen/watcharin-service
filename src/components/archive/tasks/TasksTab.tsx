@@ -5,11 +5,14 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
   COLUMN_COLORS,
   COLUMN_SELECT,
+  PROFILE_SELECT,
   TASK_SELECT,
   colorOf,
   isDone,
+  personName,
   todayIso,
   type ColumnColor,
+  type Person,
   type Task,
   type TaskColumn,
 } from "@/lib/project-tasks";
@@ -51,40 +54,50 @@ export function TasksTab({ projectId, canEdit }: { projectId: string; canEdit: b
   const [month, setMonth] = useState(() => new Date());
   const [editing, setEditing] = useState<Task | null>(null);
   const [managing, setManaging] = useState(false);
+  const [people, setPeople] = useState<Person[]>([]);
+  const [me, setMe] = useState<string | null>(null);
+  /** "all" | "none" | user_id */
+  const [who, setWho] = useState("all");
 
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
 
   const fetchAll = useCallback(async () => {
-    const [t, c] = await Promise.all([
+    const [t, c, m] = await Promise.all([
       supabase.from("project_tasks").select(TASK_SELECT).eq("project_id", projectId).order("sort"),
       supabase.from("project_task_columns").select(COLUMN_SELECT).eq("project_id", projectId).order("sort"),
+      // ดึงโปรไฟล์ผ่านความสัมพันธ์ของ project_members จะได้เฉพาะคนในโปรเจกต์นี้
+      supabase.from("project_members").select(`profiles!inner(${PROFILE_SELECT})`).eq("project_id", projectId),
     ]);
     return {
       tasks: (t.data ?? []) as Task[],
       columns: (c.data ?? []) as TaskColumn[],
-      error: t.error ?? c.error,
+      people: ((m.data ?? []) as unknown as { profiles: Person }[]).map((r) => r.profiles),
+      error: t.error ?? c.error ?? m.error,
     };
   }, [supabase, projectId]);
 
   useEffect(() => {
     let alive = true;
     (async () => {
-      const r = await fetchAll();
+      const [r, auth] = await Promise.all([fetchAll(), supabase.auth.getUser()]);
       if (!alive) return;
       if (r.error) setError(r.error.message);
       setTasks(r.tasks);
       setColumns(r.columns);
+      setPeople(r.people);
+      setMe(auth.data.user?.id ?? null);
       setLoading(false);
     })();
     return () => {
       alive = false;
     };
-  }, [fetchAll]);
+  }, [fetchAll, supabase]);
 
   async function reload() {
     const r = await fetchAll();
     setTasks(r.tasks);
     setColumns(r.columns);
+    setPeople(r.people);
   }
 
   /* ---------- งาน ---------- */
@@ -189,9 +202,15 @@ export function TasksTab({ projectId, canEdit }: { projectId: string; canEdit: b
     reload();
   }
 
+  /** กรองก่อนส่งเข้ามุมมอง ทุกมุมมองจึงเห็นชุดเดียวกันเสมอ ไม่ต้องรู้เรื่องตัวกรอง */
+  const shown = tasks.filter((t) =>
+    who === "all" ? true : who === "none" ? !t.assignee_id : t.assignee_id === who
+  );
+
   const viewProps: ViewProps = {
-    tasks,
+    tasks: shown,
     columns,
+    people,
     canEdit,
     onToggle: toggle,
     onMove: (t, columnId) => patch(t, { column_id: columnId }),
@@ -229,6 +248,34 @@ export function TasksTab({ projectId, canEdit }: { projectId: string; canEdit: b
             </button>
           ))}
         </div>
+
+        {/* กรองตามผู้รับผิดชอบ — ทุกคนใช้ได้ ไม่ใช่แค่เจ้าของ
+            เพราะน้อง ๆ ในโปรเจกต์ต้องดูงานตัวเองได้ */}
+        {people.length > 0 && (
+          <select
+            value={who}
+            onChange={(e) => setWho(e.target.value)}
+            aria-label="กรองตามผู้รับผิดชอบ"
+            className="rounded-xl border border-line bg-surface-overlay px-3 py-2 text-[0.85rem] font-semibold text-ink-muted"
+          >
+            <option value="all">ทุกคน ({tasks.length})</option>
+            {me && (
+              <option value={me}>
+                งานของฉัน ({tasks.filter((t) => t.assignee_id === me).length})
+              </option>
+            )}
+            {people
+              .filter((p) => p.id !== me)
+              .map((p) => (
+                <option key={p.id} value={p.id}>
+                  {personName(p)} ({tasks.filter((t) => t.assignee_id === p.id).length})
+                </option>
+              ))}
+            <option value="none">
+              ยังไม่มอบหมาย ({tasks.filter((t) => !t.assignee_id).length})
+            </option>
+          </select>
+        )}
 
         {canEdit && (
           <button
@@ -378,9 +425,9 @@ export function TasksTab({ projectId, canEdit }: { projectId: string; canEdit: b
         </form>
       )}
 
-      {tasks.length === 0 ? (
+      {shown.length === 0 ? (
         <p className="rounded-xl border border-dashed border-line px-4 py-10 text-center text-sm text-ink-faint">
-          ยังไม่มีงานในโปรเจกต์นี้
+          {tasks.length === 0 ? "ยังไม่มีงานในโปรเจกต์นี้" : "ไม่มีงานที่ตรงกับตัวกรองนี้"}
         </p>
       ) : view === "list" ? (
         <ListView {...viewProps} />
@@ -413,6 +460,7 @@ export function TasksTab({ projectId, canEdit }: { projectId: string; canEdit: b
               await patch(editing, {
                 title: String(f.get("title") ?? "").trim() || editing.title,
                 column_id: String(f.get("column_id")),
+                assignee_id: String(f.get("assignee_id") ?? "") || null,
                 due_on: String(f.get("due_on") ?? "") || null,
                 started_on: String(f.get("started_on") ?? "") || null,
                 due_label: String(f.get("due_label") ?? "").trim() || null,
@@ -425,13 +473,30 @@ export function TasksTab({ projectId, canEdit }: { projectId: string; canEdit: b
             <div className="grid gap-3">
               <input name="title" defaultValue={editing.title} className={field} aria-label="ชื่องาน" />
 
-              <select name="column_id" defaultValue={editing.column_id} className={field} aria-label="คอลัมน์">
-                {columns.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="grid gap-1 text-[0.8rem] text-ink-muted">
+                  คอลัมน์
+                  <select name="column_id" defaultValue={editing.column_id} className={field}>
+                    {columns.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="grid gap-1 text-[0.8rem] text-ink-muted">
+                  ผู้รับผิดชอบ
+                  <select name="assignee_id" defaultValue={editing.assignee_id ?? ""} className={field}>
+                    <option value="">ยังไม่มอบหมาย</option>
+                    {people.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {personName(p)}
+                        {p.id === me ? " (ฉัน)" : ""}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <label className="grid gap-1 text-[0.8rem] text-ink-muted">

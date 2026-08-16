@@ -1,13 +1,16 @@
 "use client";
 
+import { Avatar } from "./Avatar";
 import {
   colorOf,
   dueText,
   isDone,
   isOverdue,
   isoOf,
+  personName,
   thaiDate,
   todayIso,
+  type Person,
   type Task,
   type TaskColumn,
 } from "@/lib/project-tasks";
@@ -21,6 +24,8 @@ import {
 export type ViewProps = {
   tasks: Task[];
   columns: TaskColumn[];
+  /** คนในโปรเจกต์ ใช้แปลง assignee_id เป็นชื่อกับรูป */
+  people: Person[];
   canEdit: boolean;
   /** ติ๊กเสร็จ = ย้ายไปคอลัมน์ที่ is_done ตัวแรก หรือย้ายกลับคอลัมน์แรก */
   onToggle: (t: Task) => void;
@@ -73,6 +78,13 @@ function DueBadge({ t, columns }: { t: Task; columns: TaskColumn[] }) {
   );
 }
 
+/** รูปคนที่รับผิดชอบ — ไม่แสดงอะไรเลยถ้ายังไม่ได้มอบหมาย เพื่อไม่ให้รก */
+function Assignee({ t, people, size = 22 }: { t: Task; people: Person[]; size?: number }) {
+  if (!t.assignee_id) return null;
+  const p = people.find((x) => x.id === t.assignee_id);
+  return <Avatar person={p} size={size} />;
+}
+
 function Title({ t, columns }: { t: Task; columns: TaskColumn[] }) {
   return (
     <span className={isDone(t, columns) ? "text-ink-faint line-through" : "text-ink-muted"}>{t.title}</span>
@@ -80,7 +92,7 @@ function Title({ t, columns }: { t: Task; columns: TaskColumn[] }) {
 }
 
 /* ---------------- 1. รายการ ---------------- */
-export function ListView({ tasks, columns, canEdit, onToggle, onEdit, onDelete }: ViewProps) {
+export function ListView({ tasks, columns, people, canEdit, onToggle, onEdit, onDelete }: ViewProps) {
   return (
     <div className="grid gap-4">
       {columns.map((col) => {
@@ -100,6 +112,7 @@ export function ListView({ tasks, columns, canEdit, onToggle, onEdit, onDelete }
                   <Title t={t} columns={columns} />
                   <span className="ml-auto flex items-center gap-2">
                     <DueBadge t={t} columns={columns} />
+                    <Assignee t={t} people={people} />
                   </span>
                   <Actions t={t} canEdit={canEdit} onEdit={onEdit} onDelete={onDelete} />
                 </li>
@@ -113,7 +126,7 @@ export function ListView({ tasks, columns, canEdit, onToggle, onEdit, onDelete }
 }
 
 /* ---------------- 2. บอร์ด ---------------- */
-export function BoardView({ tasks, columns, canEdit, onToggle, onMove, onEdit, onDelete }: ViewProps) {
+export function BoardView({ tasks, columns, people, canEdit, onToggle, onMove, onEdit, onDelete }: ViewProps) {
   return (
     <div className="flex gap-3 overflow-x-auto pb-2">
       {columns.map((col) => {
@@ -155,6 +168,7 @@ export function BoardView({ tasks, columns, canEdit, onToggle, onMove, onEdit, o
                   </div>
                   <div className="mt-2 flex items-center gap-2">
                     <DueBadge t={t} columns={columns} />
+                    <Assignee t={t} people={people} size={20} />
                     <Actions t={t} canEdit={canEdit} onEdit={onEdit} onDelete={onDelete} />
                   </div>
                 </div>
@@ -174,7 +188,7 @@ export function BoardView({ tasks, columns, canEdit, onToggle, onMove, onEdit, o
 }
 
 /* ---------------- 3. ตาราง ---------------- */
-export function TableView({ tasks, columns, canEdit, onToggle, onEdit, onDelete }: ViewProps) {
+export function TableView({ tasks, columns, people, canEdit, onToggle, onEdit, onDelete }: ViewProps) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[34rem] text-sm">
@@ -183,6 +197,7 @@ export function TableView({ tasks, columns, canEdit, onToggle, onEdit, onDelete 
             <th className="w-8 pb-2" />
             <th className="pb-2 font-medium">งาน</th>
             <th className="pb-2 font-medium">คอลัมน์</th>
+            <th className="pb-2 font-medium">ผู้รับผิดชอบ</th>
             <th className="pb-2 font-medium">กำหนดส่ง</th>
             {canEdit && <th className="pb-2" />}
           </tr>
@@ -205,6 +220,16 @@ export function TableView({ tasks, columns, canEdit, onToggle, onEdit, onDelete 
                   </span>
                 </td>
                 <td className="py-2.5 pr-3">
+                  {t.assignee_id ? (
+                    <span className="inline-flex items-center gap-1.5 text-[0.82rem] text-ink-muted">
+                      <Assignee t={t} people={people} size={20} />
+                      {personName(people.find((p) => p.id === t.assignee_id))}
+                    </span>
+                  ) : (
+                    <span className="text-[0.82rem] text-ink-faint">—</span>
+                  )}
+                </td>
+                <td className="py-2.5 pr-3">
                   <DueBadge t={t} columns={columns} />
                 </td>
                 {canEdit && (
@@ -224,7 +249,7 @@ export function TableView({ tasks, columns, canEdit, onToggle, onEdit, onDelete 
 }
 
 /* ---------------- 4. ปฏิทิน ---------------- */
-export function CalendarView({ tasks, columns, canEdit, onEdit, month }: ViewProps & { month: Date }) {
+export function CalendarView({ tasks, columns, people, canEdit, onEdit, month }: ViewProps & { month: Date }) {
   const year = month.getFullYear();
   const m = month.getMonth();
   const daysInMonth = new Date(year, m + 1, 0).getDate();
@@ -276,7 +301,7 @@ export function CalendarView({ tasks, columns, canEdit, onEdit, month }: ViewPro
                       type="button"
                       disabled={!canEdit}
                       onClick={() => onEdit(t)}
-                      title={`${t.title} · ${col?.name ?? ""}`}
+                      title={`${t.title} · ${col?.name ?? ""}${t.assignee_id ? ` · ${personName(people.find((p) => p.id === t.assignee_id))}` : ""}`}
                       className={`truncate rounded px-1.5 py-0.5 text-left text-[0.7rem] leading-snug ${
                         isOverdue(t, columns)
                           ? "bg-red-500/15 text-red-300"
@@ -303,7 +328,7 @@ export function CalendarView({ tasks, columns, canEdit, onEdit, month }: ViewPro
 }
 
 /* ---------------- 5. ไทม์ไลน์ ---------------- */
-export function TimelineView({ tasks, columns, canEdit, onEdit }: ViewProps) {
+export function TimelineView({ tasks, columns, people, canEdit, onEdit }: ViewProps) {
   const dated = tasks.filter((t) => t.due_on);
   if (dated.length === 0) {
     return (
@@ -344,9 +369,10 @@ export function TimelineView({ tasks, columns, canEdit, onEdit }: ViewProps) {
                 disabled={!canEdit}
                 onClick={() => onEdit(t)}
                 title={`${t.title} · ${col?.name ?? ""}`}
-                className={`truncate text-left text-[0.8rem] ${isDone(t, columns) ? "text-ink-faint line-through" : "text-ink-muted"} ${canEdit ? "hover:text-brand-400" : ""}`}
+                className={`flex items-center gap-1.5 overflow-hidden text-left text-[0.8rem] ${isDone(t, columns) ? "text-ink-faint line-through" : "text-ink-muted"} ${canEdit ? "hover:text-brand-400" : ""}`}
               >
-                {t.title}
+                <Assignee t={t} people={people} size={18} />
+                <span className="truncate">{t.title}</span>
               </button>
               {/*
                 เส้นวันนี้วาดในแทร็กของแต่ละแถว ไม่ใช่วาดทับทั้งกล่อง
