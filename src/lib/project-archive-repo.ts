@@ -10,6 +10,7 @@ import type { ArchiveProject, ProjectImage } from "@/lib/project-archive";
 
 /** หน้าตาแถวที่ Postgres ส่งกลับมา (snake_case) */
 type ProjectRowDb = {
+  id: string;
   slug: string;
   name: string;
   tagline: string;
@@ -32,13 +33,14 @@ type ProjectRowDb = {
 };
 
 const COLUMNS = `
-  slug, name, tagline, problem, status, status_note, kind, tags, tech,
+  id, slug, name, tagline, problem, status, status_note, kind, tags, tech,
   started_label, ended_label, collaborators, progress, done, next_up,
   cover, gallery, featured, views
 `;
 
 function toProject(row: ProjectRowDb): ArchiveProject {
   return {
+    id: row.id,
     slug: row.slug,
     name: row.name,
     tagline: row.tagline,

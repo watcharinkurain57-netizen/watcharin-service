@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { OwnerPanels } from "@/components/archive/OwnerPanels";
 import { ProjectCover } from "@/components/archive/ProjectCover";
 import { can, PUBLIC_VIEWER } from "@/lib/archive-access";
 import { STATUS_LABEL, type ArchiveProject } from "@/lib/project-archive";
@@ -216,6 +217,12 @@ export default async function ProjectDetailPage({ params }: Params) {
             </div>
           </div>
         </div>
+
+        {/*
+          แผงของคนในโปรเจกต์ — โหลดฝั่งเบราว์เซอร์ เพื่อให้หน้านี้ยังเรนเดอร์
+          ล่วงหน้าเป็น static ได้ คนนอกจะไม่เห็นอะไรเลยเพราะ RLS ไม่คืนแถวให้
+        */}
+        <OwnerPanels projectId={project.id} />
 
         {/* ---------- แกลเลอรี ---------- */}
         {project.gallery && project.gallery.length > 0 && (
