@@ -15,7 +15,15 @@
  * เพิ่มบทบาทใหม่ = เพิ่มบรรทัดใน CAPABILITIES ที่เดียว
  */
 
-export type ViewerRole = "public" | "owner";
+/**
+ * public = ยังไม่ล็อกอิน หรือล็อกอินแล้วแต่ไม่ได้อยู่ในโปรเจกต์นี้
+ * client = ลูกค้าที่ล็อกอินแล้วและเป็นคนในโปรเจกต์นี้
+ * owner  = เจ้าของโปรเจกต์
+ *
+ * หมายเหตุ: client เห็นหน้าตาแบบเดียวกับ public ไม่ใช่ "มุมมองที่สาม"
+ * ต่างกันที่เห็นไฟล์ส่งมอบของตัวเองได้ และมีรายการ "โปรเจกต์ของฉัน"
+ */
+export type ViewerRole = "public" | "client" | "owner";
 
 export type Capability =
   | "project.view"
@@ -30,6 +38,10 @@ const PUBLIC_CAPS: Capability[] = ["project.view", "project.progress.view"];
 const CAPABILITIES: Record<ViewerRole, readonly Capability[]> = {
   // ความคืบหน้าเปิดให้ทุกคนเห็นตั้งใจ — มันคือหลักฐานว่างานเดินอยู่จริง
   public: PUBLIC_CAPS,
+
+  // ลูกค้าเห็นงานของตัวเองได้เกือบหมด ยกเว้นเรื่องเงินฝั่งเรา
+  client: [...PUBLIC_CAPS, "project.tasks.view", "project.files.view", "project.members.view"],
+
   owner: [
     ...PUBLIC_CAPS,
     "project.tasks.view",
@@ -51,6 +63,9 @@ export function can(viewer: Viewer, capability: Capability): boolean {
  * พอทำล็อกอินแล้ว ที่ต้องแก้คือฟังก์ชันนี้ฟังก์ชันเดียว:
  * อ่าน session แล้วเทียบกับตาราง project_members(project_id, user_id, role)
  * — หน้าจอทุกหน้าที่เรียก can() ไม่ต้องแก้อะไรเลย
+ *
+ * ต้องรับ projectId ด้วยตอนนั้น เพราะคนคนเดียวกันเป็น client ในโปรเจกต์หนึ่ง
+ * แต่เป็น public ในอีกโปรเจกต์หนึ่งได้
  */
 export function getViewer(): Viewer {
   return { role: "public" };
