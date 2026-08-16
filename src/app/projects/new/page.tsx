@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { NewProjectForm } from "@/components/archive/NewProjectForm";
+import { ProjectForm } from "@/components/archive/ProjectForm";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -46,7 +46,7 @@ export default async function NewProjectPage() {
       </p>
 
       <div className="mt-8">
-        <NewProjectForm />
+        <ProjectForm />
       </div>
     </div>
   );

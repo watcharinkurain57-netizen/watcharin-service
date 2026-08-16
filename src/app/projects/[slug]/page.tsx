@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { EditProjectLink } from "@/components/archive/EditProjectLink";
 import { OwnerPanels } from "@/components/archive/OwnerPanels";
 import { ProjectCover } from "@/components/archive/ProjectCover";
 import { can, PUBLIC_VIEWER } from "@/lib/archive-access";
@@ -74,12 +75,12 @@ export default async function ProjectDetailPage({ params }: Params) {
         </div>
 
         <div className="relative mx-auto max-w-5xl px-4 py-10 sm:px-8">
-          <Link
-            href="/projects"
-            className="mb-3 inline-block text-sm font-bold text-brand-400 hover:underline"
-          >
-            ← กลับไปที่คลัง
-          </Link>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <Link href="/projects" className="text-sm font-bold text-brand-400 hover:underline">
+              ← กลับไปที่คลัง
+            </Link>
+            <EditProjectLink projectId={project.id} slug={project.slug} />
+          </div>
 
           <div className="mb-3 flex flex-wrap gap-2">
             <span
