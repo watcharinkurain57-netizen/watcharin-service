@@ -72,7 +72,10 @@ export function TasksTab({ projectId, canEdit }: { projectId: string; canEdit: b
       tasks: (t.data ?? []) as Task[],
       columns: (c.data ?? []) as TaskColumn[],
       people: ((m.data ?? []) as unknown as { profiles: Person }[]).map((r) => r.profiles),
-      error: t.error ?? c.error ?? m.error,
+      // แยก error ของรายชื่อคนออกจากงาน เพราะระดับความร้ายแรงต่างกัน
+      // งานโหลดไม่ได้ = แท็บใช้ไม่ได้เลย · รายชื่อโหลดไม่ได้ = แค่ไม่มีรูปกับชื่อ
+      error: t.error ?? c.error,
+      peopleError: m.error,
     };
   }, [supabase, projectId]);
 
@@ -82,6 +85,8 @@ export function TasksTab({ projectId, canEdit }: { projectId: string; canEdit: b
       const [r, auth] = await Promise.all([fetchAll(), supabase.auth.getUser()]);
       if (!alive) return;
       if (r.error) setError(r.error.message);
+      else if (r.peopleError)
+        setError("โหลดรายชื่อคนในโปรเจกต์ไม่ได้ — ชื่อกับรูปผู้รับผิดชอบจะไม่ขึ้น แต่งานยังใช้ได้ตามปกติ");
       setTasks(r.tasks);
       setColumns(r.columns);
       setPeople(r.people);
