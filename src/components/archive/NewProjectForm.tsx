@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { revalidateArchive } from "@/app/projects/actions";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 /** ช่องกรอกแบบหลายบรรทัด — บรรทัดละรายการ ใช้กับ problem / done / next_up */
@@ -77,7 +78,10 @@ export function NewProjectForm() {
       return;
     }
 
-    // หน้าคลังเป็น static ที่ revalidate ทุก 5 นาที — refresh เพื่อให้เห็นของใหม่เลย
+    // หน้าคลังกับหน้าแรกเป็น static ที่ revalidate ทุก 5 นาที
+    // ต้องสั่งล้างแคชฝั่งเซิร์ฟเวอร์ ไม่งั้นของใหม่ไม่โผล่จนกว่าจะครบรอบ
+    await revalidateArchive();
+
     router.push(`/projects/${slug}`);
     router.refresh();
   }
