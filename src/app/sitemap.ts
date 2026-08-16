@@ -19,6 +19,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly",
       priority: 0.9,
     },
+    {
+      // หน้าแรกเดิม ย้ายมาเป็นหน้าเจาะลึกสำหรับกลุ่มบริษัทและงานโรงงาน
+      url: `${SITE_URL}/studio`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
     // แต่ละโปรเจกต์เป็นหน้าของตัวเอง — ให้คนเสิร์ชเจอรายตัวได้
     ...projects.map((p) => ({
       url: `${SITE_URL}/projects/${p.slug}`,
