@@ -1,8 +1,11 @@
 /**
  * คลังโปรเจกต์ — 1 กล่อง = 1 โปรเจกต์
  *
- * ไฟล์นี้เป็น "ข้อมูลที่ทุกคนเห็นได้" เท่านั้น
- * ของที่เห็นเฉพาะเจ้าของ (งานค้าง การเงิน ไฟล์ส่งมอบ) จะไม่มาอยู่ในนี้
+ * ไฟล์นี้มีแต่ชนิดข้อมูลกับฟังก์ชันบริสุทธิ์ ไม่มีข้อมูลจริง
+ * ตัวข้อมูลอยู่ในตาราง projects บน Supabase — ดึงผ่าน project-archive-repo.ts
+ *
+ * ทุกฟิลด์ในนี้เป็น "ข้อมูลที่ทุกคนเห็นได้"
+ * ของที่เห็นเฉพาะเจ้าของ (งานค้าง งวดจ่าย ไฟล์ส่งมอบ) อยู่คนละตาราง
  * เพราะทุกอย่างในนี้ถูกส่งไปที่เบราว์เซอร์ผู้ชม — ดู src/lib/archive-access.ts
  */
 
@@ -87,10 +90,11 @@ export const KIND_LABEL: Record<ProjectKind, string> = {
 };
 
 /* ------------------------------------------------------------------
-   ข้อมูลจริงเท่านั้น — อย่าใส่โปรเจกต์สมมติ เพราะหน้านี้คือผลงานที่คนอื่นเชื่อ
-   เพิ่มโปรเจกต์ใหม่ = เพิ่ม object ในอาร์เรย์นี้ แถวต่าง ๆ จัดกลุ่มให้เอง
+   ⚠️ ข้อมูลชุดนี้ย้ายไปอยู่ในตาราง projects บน Supabase แล้ว (migration 0001)
+   เก็บไว้เป็นชุดสำรองสำหรับเทสต์ล้วน ๆ — หน้าเว็บไม่ได้อ่านจากตรงนี้แล้ว
+   เพิ่ม/แก้โปรเจกต์จริง ให้ทำที่ฐานข้อมูล ไม่ใช่ที่ไฟล์นี้
    ------------------------------------------------------------------ */
-export const archiveProjects: ArchiveProject[] = [
+export const seedProjects: ArchiveProject[] = [
   {
     slug: "coresync",
     name: "CoreSync",
@@ -192,10 +196,6 @@ export const archiveProjects: ArchiveProject[] = [
 
 /* ---------- helper ---------- */
 
-export function getProject(slug: string): ArchiveProject | undefined {
-  return archiveProjects.find((p) => p.slug === slug);
-}
-
 export type ProjectRow = {
   id: string;
   title: string;
@@ -206,7 +206,7 @@ export type ProjectRow = {
 };
 
 /** แถวถูกคำนวณจากข้อมูล ไม่ได้เขียนตายไว้ — เพิ่มโปรเจกต์แล้วแถวขยายเอง */
-export function buildRows(all: ArchiveProject[] = archiveProjects): ProjectRow[] {
+export function buildRows(all: ArchiveProject[]): ProjectRow[] {
   const byViews = [...all].sort((a, b) => (b.views ?? 0) - (a.views ?? 0));
 
   const rows: ProjectRow[] = [
@@ -243,6 +243,6 @@ export function buildRows(all: ArchiveProject[] = archiveProjects): ProjectRow[]
   return rows.filter((r) => (r.ranked ? r.items.length >= 3 : r.items.length > 0));
 }
 
-export function featuredProject(all: ArchiveProject[] = archiveProjects): ArchiveProject {
+export function featuredProject(all: ArchiveProject[]): ArchiveProject | undefined {
   return all.find((p) => p.featured) ?? all[0];
 }

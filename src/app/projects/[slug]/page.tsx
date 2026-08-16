@@ -3,22 +3,21 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ProjectCover } from "@/components/archive/ProjectCover";
 import { can, getViewer } from "@/lib/archive-access";
-import {
-  archiveProjects,
-  getProject,
-  STATUS_LABEL,
-  type ArchiveProject,
-} from "@/lib/project-archive";
+import { STATUS_LABEL, type ArchiveProject } from "@/lib/project-archive";
+import { fetchProject, fetchProjects } from "@/lib/project-archive-repo";
 
 type Params = { params: Promise<{ slug: string }> };
 
-export function generateStaticParams() {
-  return archiveProjects.map((p) => ({ slug: p.slug }));
+export const revalidate = 300;
+
+export async function generateStaticParams() {
+  const all = await fetchProjects();
+  return all.map((p) => ({ slug: p.slug }));
 }
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { slug } = await params;
-  const project = getProject(slug);
+  const project = await fetchProject(slug);
   if (!project) return { title: "ไม่พบโปรเจกต์" };
 
   return {
@@ -50,7 +49,7 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
 
 export default async function ProjectDetailPage({ params }: Params) {
   const { slug } = await params;
-  const project = getProject(slug);
+  const project = await fetchProject(slug);
   if (!project) notFound();
 
   const viewer = getViewer();

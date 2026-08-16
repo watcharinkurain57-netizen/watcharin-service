@@ -3,12 +3,8 @@ import Link from "next/link";
 import { ProjectCard } from "@/components/archive/ProjectCard";
 import { ProjectRail } from "@/components/archive/ProjectRail";
 import { ProjectCover } from "@/components/archive/ProjectCover";
-import {
-  archiveProjects,
-  buildRows,
-  featuredProject,
-  STATUS_LABEL,
-} from "@/lib/project-archive";
+import { buildRows, featuredProject, STATUS_LABEL } from "@/lib/project-archive";
+import { fetchProjects } from "@/lib/project-archive-repo";
 
 export const metadata: Metadata = {
   title: "คลังโปรเจกต์",
@@ -17,9 +13,27 @@ export const metadata: Metadata = {
   alternates: { canonical: "/projects" },
 };
 
-export default function ProjectArchivePage() {
-  const rows = buildRows();
-  const hero = featuredProject();
+/**
+ * เรนเดอร์ล่วงหน้าแล้วรีเฟรชทุก 5 นาที
+ * แก้ข้อมูลใน Supabase แล้วเห็นผลเองโดยไม่ต้อง deploy ใหม่
+ */
+export const revalidate = 300;
+
+export default async function ProjectArchivePage() {
+  const all = await fetchProjects();
+  const rows = buildRows(all);
+  const hero = featuredProject(all);
+
+  if (!hero) {
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-24 text-center">
+        <h1 className="text-2xl font-bold">ยังไม่มีโปรเจกต์ในคลัง</h1>
+        <p className="mt-2 text-ink-muted">
+          เพิ่มแถวในตาราง <code>projects</code> แล้วรีเฟรชอีกครั้ง
+        </p>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -109,7 +123,7 @@ export default function ProjectArchivePage() {
         ))}
 
         <p className="border-t border-line pt-6 text-sm text-ink-faint">
-          ทั้งหมด {archiveProjects.length} โปรเจกต์ · อยากให้ช่วยทำอะไรสักอย่าง{" "}
+          ทั้งหมด {all.length} โปรเจกต์ · อยากให้ช่วยทำอะไรสักอย่าง{" "}
           <Link href="/#contact" className="font-semibold text-brand-400 hover:underline">
             เล่ามาได้เลย
           </Link>

@@ -1,10 +1,11 @@
 import type { MetadataRoute } from "next";
-import { archiveProjects } from "@/lib/project-archive";
+import { fetchProjects } from "@/lib/project-archive-repo";
 
 const SITE_URL = "https://watcharin-service.com";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
+  const projects = await fetchProjects();
   return [
     {
       url: SITE_URL,
@@ -19,7 +20,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.9,
     },
     // แต่ละโปรเจกต์เป็นหน้าของตัวเอง — ให้คนเสิร์ชเจอรายตัวได้
-    ...archiveProjects.map((p) => ({
+    ...projects.map((p) => ({
       url: `${SITE_URL}/projects/${p.slug}`,
       lastModified: now,
       changeFrequency: "monthly" as const,
