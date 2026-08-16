@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { AccountButton } from "@/components/auth/AccountButton";
+import { MyProjectsLink } from "@/components/archive/MyProjectsLink";
 
 /**
  * เปลือกของ "ตัวแอป" — คลังโปรเจกต์
@@ -17,20 +19,25 @@ export default function ArchiveLayout({ children }: { children: React.ReactNode 
           </Link>
 
           <nav aria-label="ส่วนต่าง ๆ ของเว็บ" className="hidden gap-6 text-sm font-semibold text-ink-muted sm:flex">
-            <Link href="/projects" aria-current="page" className="text-ink">
+            <Link href="/projects" className="transition-colors hover:text-ink">
               คลังโปรเจกต์
             </Link>
-            <Link href="/#contact" className="transition-colors hover:text-ink">
+            {/* โผล่เฉพาะคนที่ล็อกอินและอยู่ในโปรเจกต์อย่างน้อยหนึ่งอัน */}
+            <MyProjectsLink />
+            <Link href="/#talk" className="transition-colors hover:text-ink">
               ปรึกษา
             </Link>
           </nav>
 
-          <Link
-            href="/#contact"
-            className="ml-auto rounded-full bg-brand-600 px-4 py-2 text-sm font-bold text-white transition-transform duration-300 hover:-translate-y-0.5 motion-reduce:transform-none"
-          >
-            เล่าโปรเจกต์ให้ฟัง
-          </Link>
+          <div className="ml-auto flex items-center gap-2.5">
+            <AccountButton />
+            <Link
+              href="/#talk"
+              className="hidden rounded-full bg-brand-600 px-4 py-2 text-sm font-bold text-white transition-transform duration-300 hover:-translate-y-0.5 motion-reduce:transform-none sm:block"
+            >
+              เล่าโปรเจกต์ให้ฟัง
+            </Link>
+          </div>
         </div>
       </header>
 

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { AdminActions } from "@/components/archive/AdminActions";
 import { ProjectCard } from "@/components/archive/ProjectCard";
 import { ProjectRail } from "@/components/archive/ProjectRail";
 import { ProjectCover } from "@/components/archive/ProjectCover";
@@ -77,11 +78,12 @@ export default async function ProjectArchivePage() {
               เปิดดูโปรเจกต์
             </Link>
             <Link
-              href="/#contact"
+              href="/#talk"
               className="rounded-lg bg-white/10 px-6 py-3 font-bold text-ink transition-transform duration-300 hover:-translate-y-0.5 motion-reduce:transform-none"
             >
               อยากได้แบบนี้บ้าง
             </Link>
+            <AdminActions />
           </div>
         </div>
       </section>
