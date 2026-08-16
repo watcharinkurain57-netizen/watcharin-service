@@ -29,6 +29,9 @@ export type Capability =
   | "project.view"
   | "project.progress.view"
   | "project.tasks.view"
+  /** ตารางงวดจ่ายของโปรเจกต์นี้ — จ่ายแล้วเท่าไหร่ เหลือเท่าไหร่ ครบกำหนดเมื่อไหร่ */
+  | "project.invoice.view"
+  /** ตัวเลขฝั่งเรา — ต้นทุน กำไร เรทที่คิดจริง คนละเรื่องกับ invoice */
   | "project.finance.view"
   | "project.files.view"
   | "project.members.view";
@@ -39,12 +42,19 @@ const CAPABILITIES: Record<ViewerRole, readonly Capability[]> = {
   // ความคืบหน้าเปิดให้ทุกคนเห็นตั้งใจ — มันคือหลักฐานว่างานเดินอยู่จริง
   public: PUBLIC_CAPS,
 
-  // ลูกค้าเห็นงานของตัวเองได้เกือบหมด ยกเว้นเรื่องเงินฝั่งเรา
-  client: [...PUBLIC_CAPS, "project.tasks.view", "project.files.view", "project.members.view"],
+  // ลูกค้าเห็นงานและตารางงวดจ่ายของตัวเองได้ แต่ไม่เห็นต้นทุน/กำไรฝั่งเรา
+  client: [
+    ...PUBLIC_CAPS,
+    "project.tasks.view",
+    "project.invoice.view",
+    "project.files.view",
+    "project.members.view",
+  ],
 
   owner: [
     ...PUBLIC_CAPS,
     "project.tasks.view",
+    "project.invoice.view",
     "project.finance.view",
     "project.files.view",
     "project.members.view",
