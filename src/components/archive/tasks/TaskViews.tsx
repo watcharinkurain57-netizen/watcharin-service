@@ -5,6 +5,7 @@ import {
   TASK_STATUS_LABEL,
   dueText,
   isOverdue,
+  isoOf,
   thaiDate,
   todayIso,
   type Task,
@@ -323,22 +324,16 @@ export function TimelineView({ tasks, canEdit, onEdit }: ViewProps) {
   const pct = (iso: string) => ((new Date(`${iso}T00:00:00`).getTime() - min.getTime()) / 86400000 / span) * 100;
   const todayPct = pct(todayIso());
 
+  const showToday = todayPct >= 0 && todayPct <= 100;
+
   return (
     <div>
       <div className="mb-2 flex justify-between text-[0.72rem] text-ink-faint">
-        <span>{thaiDate(min.toISOString().slice(0, 10))}</span>
-        <span>{thaiDate(max.toISOString().slice(0, 10))}</span>
+        <span>{thaiDate(isoOf(min))}</span>
+        <span>{thaiDate(isoOf(max))}</span>
       </div>
 
-      <div className="relative grid gap-1.5 rounded-xl border border-line bg-surface-overlay/40 p-3">
-        {todayPct >= 0 && todayPct <= 100 && (
-          <span
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-y-2 w-px bg-brand-500/60"
-            style={{ left: `calc(0.75rem + ${todayPct}% * 0.94)` }}
-          />
-        )}
-
+      <div className="grid gap-1.5 rounded-xl border border-line bg-surface-overlay/40 p-3">
         {dated.map((t) => {
           const start = t.started_on ?? t.due_on!;
           const left = pct(start);
@@ -356,7 +351,20 @@ export function TimelineView({ tasks, canEdit, onEdit }: ViewProps) {
               >
                 {t.title}
               </button>
+              {/*
+                เส้นวันนี้วาดในแทร็กของแต่ละแถว ไม่ใช่วาดทับทั้งกล่อง
+                เพราะกล่องนอกรวมคอลัมน์ชื่องานไว้ด้วย ถ้าวาดทับทั้งกล่อง
+                เปอร์เซ็นต์จะคิดจากความกว้างที่รวมชื่องาน เส้นเลยไม่ตรงกับแท่ง
+                ยืดขึ้นลงเกินขอบเล็กน้อยเพื่อให้เส้นดูต่อกันข้ามแถว
+              */}
               <div className="relative h-5">
+                {showToday && (
+                  <span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute -inset-y-1 w-px bg-brand-500/60"
+                    style={{ left: `${todayPct}%` }}
+                  />
+                )}
                 <span
                   className={`absolute top-1/2 h-2.5 -translate-y-1/2 rounded-full ${
                     t.status === "done" ? "bg-brand-500" : isOverdue(t) ? "bg-red-500" : "bg-amber-400"

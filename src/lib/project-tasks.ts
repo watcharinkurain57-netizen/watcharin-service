@@ -43,12 +43,22 @@ export function thaiDate(iso: string | null): string {
   return `${d.getDate()} ${THAI_MONTH[d.getMonth()]} ${d.getFullYear()}`;
 }
 
-/** วันนี้ในรูปแบบ YYYY-MM-DD ตามเวลาเครื่องผู้ใช้ ไม่ใช่ UTC */
-export function todayIso(): string {
-  const d = new Date();
+/**
+ * แปลง Date เป็น YYYY-MM-DD ตามเวลาเครื่องผู้ใช้
+ *
+ * ⚠️ ห้ามใช้ toISOString() แทน เพราะมันแปลงเป็น UTC ก่อน
+ * ไทยอยู่ UTC+7 เที่ยงคืนของเราคือ 17:00 ของเมื่อวานในเวลา UTC
+ * ผลคือวันที่เพี้ยนไปหนึ่งวันแบบเงียบ ๆ
+ */
+export function isoOf(d: Date): string {
   const m = `${d.getMonth() + 1}`.padStart(2, "0");
   const day = `${d.getDate()}`.padStart(2, "0");
   return `${d.getFullYear()}-${m}-${day}`;
+}
+
+/** วันนี้ในรูปแบบ YYYY-MM-DD ตามเวลาเครื่องผู้ใช้ ไม่ใช่ UTC */
+export function todayIso(): string {
+  return isoOf(new Date());
 }
 
 /** งานเลยกำหนดแล้วหรือยัง — งานที่เสร็จแล้วไม่นับว่าเลย */

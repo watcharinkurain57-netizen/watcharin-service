@@ -171,16 +171,10 @@ export function TasksTab({ projectId, canEdit }: { projectId: string; canEdit: b
       </div>
 
       {/* ---------- เพิ่มงาน ---------- */}
+      {/* React 19 เคลียร์ฟอร์มให้เองหลัง action ทำงานเสร็จ
+          ถ้าไปสั่ง reset() เองใน onSubmit เสี่ยงล้างค่าก่อนที่ action จะอ่าน FormData */}
       {canEdit && (
-        <form
-          action={add}
-          className="mb-4 flex flex-wrap gap-2"
-          onSubmit={(e) => {
-            // เคลียร์ช่องหลังกดเพิ่ม จะได้พิมพ์งานถัดไปต่อได้เลย
-            const f = e.currentTarget;
-            setTimeout(() => f.reset(), 0);
-          }}
-        >
+        <form action={add} className="mb-4 flex flex-wrap gap-2">
           <input name="title" placeholder="เพิ่มงานใหม่…" className={`${field} min-w-[12rem] flex-1`} />
           <input name="due_on" type="date" className={field} aria-label="กำหนดส่ง" />
           <button
