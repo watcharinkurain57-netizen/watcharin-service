@@ -23,10 +23,13 @@ import {
 } from "@/lib/project-meetings";
 
 /**
- * ตารางประชุมของโปรเจกต์ — อยู่เหนือกล่องข้อความในแท็บคุยงาน
+ * ตารางประชุมของโปรเจกต์ — เป็นแท็บย่อย "ปฏิทิน" และ "รายการ" ของแท็บคุยงาน
  *
- * วางไว้บนเพราะเจ้าของบอกว่างานจริงคุยผ่าน Meet มากกว่าพิมพ์แชท
- * ของที่ใช้บ่อยกว่าควรอยู่ที่ที่เห็นก่อน
+ * `mode` มาจากพ่อ (ChatTab) ไม่ได้ถือเอง เพื่อให้ตัวสลับแท็บอยู่ที่เดียว
+ * และพอสลับ ปฏิทิน↔รายการ คอมโพเนนต์นี้ไม่ถูก unmount จึงไม่ต้องโหลดใหม่
+ *
+ * ฟอร์มนัด/แก้เป็น **modal** ไม่ใช่แทรกในหน้า เพราะการกรอกเวลากับลิงก์ห้อง
+ * เป็นงานที่ต้องโฟกัส ถ้าแทรกกลางปฏิทินจะดันของอื่นเลื่อนจนหาที่เดิมไม่เจอ
  *
  * ระบบไม่ได้สร้างลิงก์ Meet ให้เอง (ดูเหตุผลใน migration 0015)
  * แต่ทำให้การไปเอาลิงก์สั้นที่สุด: ปุ่มเปิดห้องใหม่ กับปุ่มเปิด Google Calendar
@@ -50,7 +53,15 @@ function defaultDraft(): Draft {
   return { title: "", when: isoToLocalInput(d.toISOString()), minutes: "60", meet_url: "", note: "" };
 }
 
-export function MeetingsPanel({ projectId, canPost }: { projectId: string; canPost: boolean }) {
+export function MeetingsPanel({
+  projectId,
+  canPost,
+  mode,
+}: {
+  projectId: string;
+  canPost: boolean;
+  mode: "calendar" | "list";
+}) {
   const [rows, setRows] = useState<ProjectMeeting[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -58,8 +69,6 @@ export function MeetingsPanel({ projectId, canPost }: { projectId: string; canPo
   const [editing, setEditing] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft>(defaultDraft);
   const [showPast, setShowPast] = useState(false);
-  /** ปฏิทินเป็นค่าเริ่มต้น — เห็นทั้งที่ผ่านมาและที่จะถึงในภาพเดียว */
-  const [mode, setMode] = useState<"calendar" | "list">("calendar");
   const [month, setMonth] = useState(() => new Date());
   /** เดินนาฬิกาเองทุกนาที ไม่งั้น "อีก 5 นาที" จะค้างจนกว่าจะรีเฟรช */
   const [now, setNow] = useState(() => new Date());
@@ -69,6 +78,18 @@ export function MeetingsPanel({ projectId, canPost }: { projectId: string; canPo
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 60_000);
     return () => clearInterval(t);
+  }, []);
+
+  // Escape ปิดกล่อง — ผูกที่ document เพราะกล่องไม่ได้จับโฟกัสไว้เอง
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setAdding(false);
+        setEditing(null);
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
   }, []);
 
   const load = useCallback(async () => {
@@ -174,6 +195,11 @@ export function MeetingsPanel({ projectId, canPost }: { projectId: string; canPo
   const list = rows ?? [];
   const upcoming = list.filter((m) => !isPast(m, now));
   const past = list.filter((m) => isPast(m, now)).reverse();
+
+  function closeForm() {
+    setAdding(false);
+    setEditing(null);
+  }
 
   /** เปิดฟอร์มนัดใหม่โดยตั้งวันไว้ให้แล้ว — ใช้ตอนกดวันบนปฏิทิน */
   function startAddOn(year: number, monthIndex: number, day: number) {
@@ -407,8 +433,6 @@ export function MeetingsPanel({ projectId, canPost }: { projectId: string; canPo
   );
 
   const row = (m: ProjectMeeting, dim: boolean) => {
-    if (editing === m.id) return <li key={m.id}>{form(() => save(m.id), () => setEditing(null), "บันทึก")}</li>;
-
     const live = isLive(m, now);
     const countdown = countdownOf(m, now);
 
@@ -491,26 +515,8 @@ export function MeetingsPanel({ projectId, canPost }: { projectId: string; canPo
   };
 
   return (
-    <div className="mb-5 border-b border-line pb-5">
+    <div>
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <h3 className="text-[0.95rem] font-bold">ตารางประชุม</h3>
-
-        <div className="flex gap-1 rounded-xl border border-line bg-surface-overlay p-1">
-          {([["calendar", "ปฏิทิน"], ["list", "รายการ"]] as const).map(([id, label]) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => setMode(id)}
-              aria-pressed={mode === id}
-              className={`rounded-lg px-3 py-1 text-[0.82rem] font-bold transition-colors ${
-                mode === id ? "bg-brand-500 text-brand-950" : "text-ink-muted hover:text-ink"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
         {mode === "calendar" && !isSameMonth(month, now) && (
           <button
             type="button"
@@ -521,7 +527,7 @@ export function MeetingsPanel({ projectId, canPost }: { projectId: string; canPo
           </button>
         )}
 
-        {canPost && !adding && (
+        {canPost && (
           <button
             type="button"
             onClick={() => {
@@ -529,7 +535,7 @@ export function MeetingsPanel({ projectId, canPost }: { projectId: string; canPo
               setEditing(null);
               setAdding(true);
             }}
-            className="ml-auto rounded-xl border border-line px-3 py-1.5 text-[0.85rem] font-bold text-ink-muted transition-colors hover:text-ink"
+            className="ml-auto rounded-xl bg-brand-500 px-4 py-2 text-[0.85rem] font-bold text-brand-950"
           >
             ＋ นัดประชุม
           </button>
@@ -557,11 +563,9 @@ export function MeetingsPanel({ projectId, canPost }: { projectId: string; canPo
           {upcoming.length > 0 ? (
             <ul className="grid gap-2">{upcoming.map((m) => row(m, false))}</ul>
           ) : (
-            !adding && (
-              <p className="rounded-xl border border-dashed border-line px-4 py-6 text-center text-sm text-ink-faint">
-                ยังไม่มีนัดประชุมที่จะถึง
-              </p>
-            )
+            <p className="rounded-xl border border-dashed border-line px-4 py-6 text-center text-sm text-ink-faint">
+              ยังไม่มีนัดประชุมที่จะถึง
+            </p>
           )}
 
           {past.length > 0 && (
@@ -580,7 +584,27 @@ export function MeetingsPanel({ projectId, canPost }: { projectId: string; canPo
         </>
       )}
 
-      {canPost && adding && <div className="mt-3">{form(add, () => setAdding(false), "บันทึกนัด")}</div>}
+      {/*
+        กล่องนัด/แก้ — เป็น modal เพราะการกรอกเวลากับลิงก์ห้องต้องโฟกัส
+        ถ้าแทรกกลางปฏิทินจะดันของอื่นเลื่อนจนหาที่เดิมไม่เจอ
+        ปิดได้ด้วยคลิกพื้นหลังหรือกด Escape เหมือนกล่องแก้งานในแท็บงาน
+      */}
+      {canPost && (adding || editing) && (
+        <div
+          className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label={editing ? "แก้ไขนัดประชุม" : "นัดประชุมใหม่"}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closeForm();
+          }}
+        >
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-line bg-surface-raised p-5">
+            <h3 className="mb-4 text-base font-bold">{editing ? "แก้ไขนัดประชุม" : "นัดประชุมใหม่"}</h3>
+            {editing ? form(() => save(editing), closeForm, "บันทึก") : form(add, closeForm, "บันทึกนัด")}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
