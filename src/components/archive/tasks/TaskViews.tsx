@@ -4,6 +4,7 @@ import { Avatar } from "./Avatar";
 import {
   colorOf,
   dueText,
+  groupTasks,
   isDone,
   isOverdue,
   isoOf,
@@ -13,6 +14,7 @@ import {
   type Person,
   type Task,
   type TaskColumn,
+  type TaskGroup,
 } from "@/lib/project-tasks";
 
 /* ============================================================
@@ -24,6 +26,8 @@ import {
 export type ViewProps = {
   tasks: Task[];
   columns: TaskColumn[];
+  /** หมวดตามเนื้องาน — คนละแกนกับ columns ที่เป็นสถานะ */
+  groups: TaskGroup[];
   /** คนในโปรเจกต์ ใช้แปลง assignee_id เป็นชื่อกับรูป */
   people: Person[];
   canEdit: boolean;
@@ -91,26 +95,83 @@ function Title({ t, columns }: { t: Task; columns: TaskColumn[] }) {
   );
 }
 
+/** ป้ายบอกว่างานนี้อยู่หมวดไหน — ใช้ตอนที่หัวข้อไม่ได้บอกอยู่แล้ว */
+function GroupChip({ t, groups }: { t: Task; groups: TaskGroup[] }) {
+  const g = groups.find((x) => x.id === t.group_id);
+  if (!g) return null;
+  return (
+    <span className={`flex-none rounded-full px-2 py-0.5 text-[0.7rem] font-bold ${colorOf(g.color).chip}`}>
+      {g.name}
+    </span>
+  );
+}
+
+/** ป้ายบอกสถานะ — ใช้ตอนจัดกลุ่มตามหมวด ซึ่งหัวข้อไม่ได้บอกสถานะแล้ว */
+function ColumnChip({ t, columns }: { t: Task; columns: TaskColumn[] }) {
+  const c = columns.find((x) => x.id === t.column_id);
+  if (!c) return null;
+  return (
+    <span className={`flex-none rounded-full px-2 py-0.5 text-[0.7rem] font-bold ${colorOf(c.color).chip}`}>
+      {c.name}
+    </span>
+  );
+}
+
 /* ---------------- 1. รายการ ---------------- */
-export function ListView({ tasks, columns, people, canEdit, onToggle, onEdit, onDelete }: ViewProps) {
+/**
+ * จัดกลุ่มได้สองแบบ เพราะสองแกนนี้ตอบคนละคำถาม
+ *   "column" (เดิม) — งานไหนอยู่ขั้นไหน
+ *   "group"  (ใหม่) — งานไหนเป็นเรื่องเดียวกัน
+ * แถวจะโชว์ป้ายของ *อีกแกนหนึ่ง* เสมอ จะได้ไม่เสียข้อมูลที่หัวข้อไม่ได้บอก
+ */
+export function ListView({
+  tasks,
+  columns,
+  groups,
+  people,
+  canEdit,
+  onToggle,
+  onEdit,
+  onDelete,
+  groupBy = "column",
+}: ViewProps & { groupBy?: "column" | "group" }) {
+  const sections =
+    groupBy === "group"
+      ? groupTasks(tasks, groups).map((b) => ({
+          key: b.group?.id ?? "ไม่มีหมวด",
+          name: b.group?.name ?? "ยังไม่จัดหมวด",
+          dot: b.group ? colorOf(b.group.color).dot : "bg-line-strong",
+          items: b.items,
+        }))
+      : columns.map((col) => ({
+          key: col.id,
+          name: col.name,
+          dot: colorOf(col.color).dot,
+          items: tasks.filter((t) => t.column_id === col.id),
+        }));
+
   return (
     <div className="grid gap-4">
-      {columns.map((col) => {
-        const items = tasks.filter((t) => t.column_id === col.id);
-        if (items.length === 0) return null;
+      {sections.map((s) => {
+        if (s.items.length === 0) return null;
         return (
-          <div key={col.id}>
+          <div key={s.key}>
             <h3 className="mb-2 flex items-center gap-2 text-[0.82rem] font-bold text-ink-muted">
-              <span className={`size-2 rounded-full ${colorOf(col.color).dot}`} />
-              {col.name}
-              <span className="text-ink-faint">{items.length}</span>
+              <span className={`size-2 rounded-full ${s.dot}`} />
+              {s.name}
+              <span className="text-ink-faint">{s.items.length}</span>
             </h3>
             <ul className="grid gap-1.5">
-              {items.map((t) => (
-                <li key={t.id} className={`flex items-center gap-3 ${rowBase}`}>
+              {s.items.map((t) => (
+                <li key={t.id} className={`flex flex-wrap items-center gap-x-3 gap-y-1 ${rowBase}`}>
                   <Check t={t} columns={columns} canEdit={canEdit} onToggle={onToggle} />
                   <Title t={t} columns={columns} />
                   <span className="ml-auto flex items-center gap-2">
+                    {groupBy === "group" ? (
+                      <ColumnChip t={t} columns={columns} />
+                    ) : (
+                      <GroupChip t={t} groups={groups} />
+                    )}
                     <DueBadge t={t} columns={columns} />
                     <Assignee t={t} people={people} />
                   </span>
@@ -126,7 +187,7 @@ export function ListView({ tasks, columns, people, canEdit, onToggle, onEdit, on
 }
 
 /* ---------------- 2. บอร์ด ---------------- */
-export function BoardView({ tasks, columns, people, canEdit, onToggle, onMove, onEdit, onDelete }: ViewProps) {
+export function BoardView({ tasks, columns, groups, people, canEdit, onToggle, onMove, onEdit, onDelete }: ViewProps) {
   return (
     <div className="flex gap-3 overflow-x-auto pb-2">
       {columns.map((col) => {
@@ -166,7 +227,9 @@ export function BoardView({ tasks, columns, people, canEdit, onToggle, onMove, o
                       {t.title}
                     </span>
                   </div>
-                  <div className="mt-2 flex items-center gap-2">
+                  {/* หัวคอลัมน์บอกสถานะอยู่แล้ว การ์ดจึงบอกหมวดแทน ไม่ซ้ำกัน */}
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <GroupChip t={t} groups={groups} />
                     <DueBadge t={t} columns={columns} />
                     <Assignee t={t} people={people} size={20} />
                     <Actions t={t} canEdit={canEdit} onEdit={onEdit} onDelete={onDelete} />
@@ -188,14 +251,15 @@ export function BoardView({ tasks, columns, people, canEdit, onToggle, onMove, o
 }
 
 /* ---------------- 3. ตาราง ---------------- */
-export function TableView({ tasks, columns, people, canEdit, onToggle, onEdit, onDelete }: ViewProps) {
+export function TableView({ tasks, columns, groups, people, canEdit, onToggle, onEdit, onDelete }: ViewProps) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[34rem] text-sm">
+      <table className="w-full min-w-[40rem] text-sm">
         <thead>
           <tr className="border-b border-line-strong text-left text-[0.72rem] uppercase tracking-wider text-ink-faint">
             <th className="w-8 pb-2" />
             <th className="pb-2 font-medium">งาน</th>
+            <th className="pb-2 font-medium">หมวด</th>
             <th className="pb-2 font-medium">คอลัมน์</th>
             <th className="pb-2 font-medium">ผู้รับผิดชอบ</th>
             <th className="pb-2 font-medium">กำหนดส่ง</th>
@@ -212,6 +276,13 @@ export function TableView({ tasks, columns, people, canEdit, onToggle, onEdit, o
                 </td>
                 <td className="py-2.5 pr-3">
                   <Title t={t} columns={columns} />
+                </td>
+                <td className="py-2.5 pr-3">
+                  {t.group_id ? (
+                    <GroupChip t={t} groups={groups} />
+                  ) : (
+                    <span className="text-[0.82rem] text-ink-faint">—</span>
+                  )}
                 </td>
                 <td className="py-2.5 pr-3">
                   <span className="inline-flex items-center gap-1.5 text-[0.82rem] text-ink-muted">

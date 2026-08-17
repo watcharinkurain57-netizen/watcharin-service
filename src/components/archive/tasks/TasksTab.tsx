@@ -5,6 +5,7 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
   COLUMN_COLORS,
   COLUMN_SELECT,
+  GROUP_SELECT,
   PROFILE_SELECT,
   TASK_SELECT,
   colorOf,
@@ -15,6 +16,7 @@ import {
   type Person,
   type Task,
   type TaskColumn,
+  type TaskGroup,
 } from "@/lib/project-tasks";
 import {
   BoardView,
@@ -58,23 +60,34 @@ export function TasksTab({ projectId, canEdit }: { projectId: string; canEdit: b
   const [me, setMe] = useState<string | null>(null);
   /** "all" | "none" | user_id */
   const [who, setWho] = useState("all");
+  const [groups, setGroups] = useState<TaskGroup[]>([]);
+  /** "all" | "none" | group_id */
+  const [whichGroup, setWhichGroup] = useState("all");
+  /**
+   * มุมมองรายการจัดกลุ่มตามอะไร — null = ยังไม่ได้เลือกเอง ให้ระบบเดาให้
+   * เดาว่า: มีหมวดแล้วก็จัดตามหมวด (เพราะตั้งหมวดไว้ก็ตั้งใจจะใช้)
+   * ยังไม่มีหมวดก็จัดตามคอลัมน์เหมือนเดิม จะได้ไม่เห็นหน้าเปลี่ยนไปเฉย ๆ
+   */
+  const [listGroupBy, setListGroupBy] = useState<"column" | "group" | null>(null);
 
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
 
   const fetchAll = useCallback(async () => {
-    const [t, c, m] = await Promise.all([
+    const [t, c, g, m] = await Promise.all([
       supabase.from("project_tasks").select(TASK_SELECT).eq("project_id", projectId).order("sort"),
       supabase.from("project_task_columns").select(COLUMN_SELECT).eq("project_id", projectId).order("sort"),
+      supabase.from("project_task_groups").select(GROUP_SELECT).eq("project_id", projectId).order("sort"),
       // ดึงโปรไฟล์ผ่านความสัมพันธ์ของ project_members จะได้เฉพาะคนในโปรเจกต์นี้
       supabase.from("project_members").select(`profiles!inner(${PROFILE_SELECT})`).eq("project_id", projectId),
     ]);
     return {
       tasks: (t.data ?? []) as Task[],
       columns: (c.data ?? []) as TaskColumn[],
+      groups: (g.data ?? []) as TaskGroup[],
       people: ((m.data ?? []) as unknown as { profiles: Person }[]).map((r) => r.profiles),
       // แยก error ของรายชื่อคนออกจากงาน เพราะระดับความร้ายแรงต่างกัน
       // งานโหลดไม่ได้ = แท็บใช้ไม่ได้เลย · รายชื่อโหลดไม่ได้ = แค่ไม่มีรูปกับชื่อ
-      error: t.error ?? c.error,
+      error: t.error ?? c.error ?? g.error,
       peopleError: m.error,
     };
   }, [supabase, projectId]);
@@ -89,6 +102,7 @@ export function TasksTab({ projectId, canEdit }: { projectId: string; canEdit: b
         setError("โหลดรายชื่อคนในโปรเจกต์ไม่ได้ — ชื่อกับรูปผู้รับผิดชอบจะไม่ขึ้น แต่งานยังใช้ได้ตามปกติ");
       setTasks(r.tasks);
       setColumns(r.columns);
+      setGroups(r.groups);
       setPeople(r.people);
       setMe(auth.data.user?.id ?? null);
       setLoading(false);
@@ -102,6 +116,7 @@ export function TasksTab({ projectId, canEdit }: { projectId: string; canEdit: b
     const r = await fetchAll();
     setTasks(r.tasks);
     setColumns(r.columns);
+    setGroups(r.groups);
     setPeople(r.people);
   }
 
@@ -130,9 +145,16 @@ export function TasksTab({ projectId, canEdit }: { projectId: string; canEdit: b
     if (!title || columns.length === 0) return;
     const due = String(form.get("due_on") ?? "").trim();
 
+    // ถ้ากำลังกรองหมวดใดหมวดหนึ่งอยู่ ให้งานใหม่ลงหมวดนั้นเลย
+    // คนที่กรองหมวด "ออกแบบ" แล้วพิมพ์งานเพิ่ม ย่อมตั้งใจให้อยู่หมวดนั้น
+    const groupFromForm = String(form.get("group_id") ?? "");
+    const group_id =
+      groupFromForm || (whichGroup !== "all" && whichGroup !== "none" ? whichGroup : null);
+
     const { error: e } = await supabase.from("project_tasks").insert({
       project_id: projectId,
       column_id: columns[0].id,
+      group_id: group_id || null,
       title,
       due_on: due || null,
       sort: (tasks.at(-1)?.sort ?? 0) + 1,
@@ -207,14 +229,71 @@ export function TasksTab({ projectId, canEdit }: { projectId: string; canEdit: b
     reload();
   }
 
+  /* ---------- หมวด ---------- */
+
+  async function addGroup(form: FormData) {
+    const name = String(form.get("name") ?? "").trim();
+    if (!name) return;
+
+    const { error: e } = await supabase.from("project_task_groups").insert({
+      project_id: projectId,
+      name,
+      color: String(form.get("color") ?? "sky") as ColumnColor,
+      sort: Math.max(0, ...groups.map((g) => g.sort)) + 1,
+    });
+
+    if (e) setError(friendly(e.code, e.message, "เพิ่มหมวด"));
+    reload();
+  }
+
+  async function patchGroup(g: TaskGroup, changes: Partial<TaskGroup>) {
+    setGroups((prev) => prev.map((x) => (x.id === g.id ? { ...x, ...changes } : x)));
+    const { error: e } = await supabase.from("project_task_groups").update(changes).eq("id", g.id);
+    if (e) {
+      setError(friendly(e.code, e.message, "แก้หมวด"));
+      reload();
+    }
+  }
+
+  /**
+   * ลบหมวดได้เลยแม้มีงานอยู่ ต่างจากคอลัมน์ที่ต้องย้ายงานออกก่อน
+   * เพราะ group_id เป็น null ได้ งานจะกลับไปเป็น "ยังไม่จัดหมวด" ไม่มีอะไรหาย
+   * (คอลัมน์ทำแบบนี้ไม่ได้เพราะ column_id เป็น not null งานจะหลุดออกจากบอร์ด)
+   */
+  async function removeGroup(g: TaskGroup) {
+    const inside = tasks.filter((t) => t.group_id === g.id).length;
+    if (inside > 0 && !confirm(`ลบหมวด “${g.name}”?\nงาน ${inside} งานข้างในจะกลับไปเป็นยังไม่จัดหมวด ไม่ถูกลบ`)) return;
+
+    const { error: e } = await supabase.from("project_task_groups").delete().eq("id", g.id);
+    if (e) setError(friendly(e.code, e.message, "ลบหมวด"));
+    // ถ้ากำลังกรองหมวดที่เพิ่งลบอยู่ ต้องคืนเป็นทั้งหมด ไม่งั้นเจอหน้าว่าง
+    if (whichGroup === g.id) setWhichGroup("all");
+    reload();
+  }
+
+  async function moveGroup(g: TaskGroup, dir: -1 | 1) {
+    const i = groups.findIndex((x) => x.id === g.id);
+    const j = i + dir;
+    if (j < 0 || j >= groups.length) return;
+    const other = groups[j];
+    await Promise.all([patchGroup(g, { sort: other.sort }), patchGroup(other, { sort: g.sort })]);
+    reload();
+  }
+
   /** กรองก่อนส่งเข้ามุมมอง ทุกมุมมองจึงเห็นชุดเดียวกันเสมอ ไม่ต้องรู้เรื่องตัวกรอง */
-  const shown = tasks.filter((t) =>
-    who === "all" ? true : who === "none" ? !t.assignee_id : t.assignee_id === who
-  );
+  const shown = tasks
+    .filter((t) => (who === "all" ? true : who === "none" ? !t.assignee_id : t.assignee_id === who))
+    .filter((t) =>
+      whichGroup === "all" ? true : whichGroup === "none" ? !t.group_id : t.group_id === whichGroup
+    );
+
+  // ยังไม่ได้เลือกเอง = เดาจากว่าโปรเจกต์นี้ตั้งหมวดไว้หรือยัง
+  const groupBy = listGroupBy ?? (groups.length > 0 ? "group" : "column");
 
   const viewProps: ViewProps = {
     tasks: shown,
     columns,
+    groups,
     people,
     canEdit,
     onToggle: toggle,
@@ -282,6 +361,39 @@ export function TasksTab({ projectId, canEdit }: { projectId: string; canEdit: b
           </select>
         )}
 
+        {/* กรองตามหมวด — โผล่เมื่อมีหมวดแล้วเท่านั้น ไม่งั้นเป็นช่องที่เลือกอะไรไม่ได้ */}
+        {groups.length > 0 && (
+          <select
+            value={whichGroup}
+            onChange={(e) => setWhichGroup(e.target.value)}
+            aria-label="กรองตามหมวด"
+            className="rounded-xl border border-line bg-surface-overlay px-3 py-2 text-[0.85rem] font-semibold text-ink-muted"
+          >
+            <option value="all">ทุกหมวด ({tasks.length})</option>
+            {groups.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.name} ({tasks.filter((t) => t.group_id === g.id).length})
+              </option>
+            ))}
+            <option value="none">ยังไม่จัดหมวด ({tasks.filter((t) => !t.group_id).length})</option>
+          </select>
+        )}
+
+        {/* สลับว่ามุมมองรายการจะจัดกลุ่มตามอะไร — มีความหมายเฉพาะมุมมองรายการ */}
+        {view === "list" && groups.length > 0 && (
+          <label className="flex items-center gap-1.5 text-[0.85rem] text-ink-faint">
+            จัดกลุ่มตาม
+            <select
+              value={groupBy}
+              onChange={(e) => setListGroupBy(e.target.value as "column" | "group")}
+              className="rounded-xl border border-line bg-surface-overlay px-2.5 py-2 text-[0.85rem] font-semibold text-ink-muted"
+            >
+              <option value="group">หมวด</option>
+              <option value="column">คอลัมน์</option>
+            </select>
+          </label>
+        )}
+
         {canEdit && (
           <button
             type="button"
@@ -291,7 +403,7 @@ export function TasksTab({ projectId, canEdit }: { projectId: string; canEdit: b
               managing ? "border-brand-500 text-brand-400" : "border-line text-ink-muted hover:text-ink"
             }`}
           >
-            จัดการคอลัมน์
+            จัดการคอลัมน์และหมวด
           </button>
         )}
 
@@ -412,6 +524,101 @@ export function TasksTab({ projectId, canEdit }: { projectId: string; canEdit: b
             ติ๊ก “จบแล้ว” เพื่อบอกว่าคอลัมน์ไหนถือว่างานเสร็จ — ใช้ตัดสินว่าจะขีดฆ่าและไม่นับว่าเลยกำหนด
             · ลบคอลัมน์ได้เฉพาะตอนที่ไม่มีงานค้างอยู่
           </p>
+
+          {/* ---------- หมวดของงาน ---------- */}
+          <h3 className="mb-1 mt-6 border-t border-line pt-5 text-[0.95rem] font-bold">หมวดของงาน</h3>
+          <p className="mb-3 max-w-[60ch] text-[0.8rem] text-ink-faint">
+            คนละแกนกับคอลัมน์ — คอลัมน์บอกว่างาน<b className="text-ink-muted">อยู่ขั้นไหน</b>{" "}
+            หมวดบอกว่างาน<b className="text-ink-muted">เป็นเรื่องอะไร</b> เช่น การทำงานร่วมกัน / ออกแบบ / ติดตั้ง
+            งานหนึ่งมีได้ทั้งสองอย่างพร้อมกัน
+          </p>
+
+          {groups.length > 0 && (
+            <ul className="mb-4 grid gap-2">
+              {groups.map((g, i) => (
+                <li key={g.id} className="flex flex-wrap items-center gap-2 rounded-xl bg-surface-overlay px-3 py-2">
+                  <span className={`size-2.5 flex-none rounded-full ${colorOf(g.color).dot}`} />
+
+                  <input
+                    defaultValue={g.name}
+                    onBlur={(e) => {
+                      const v = e.target.value.trim();
+                      if (v && v !== g.name) patchGroup(g, { name: v });
+                    }}
+                    aria-label={`ชื่อหมวด ${g.name}`}
+                    className="min-w-[7rem] flex-1 rounded-lg bg-transparent px-1 py-1 text-[0.9rem] font-semibold text-ink outline-none focus:bg-surface-raised"
+                  />
+
+                  <select
+                    value={g.color}
+                    onChange={(e) => patchGroup(g, { color: e.target.value as ColumnColor })}
+                    aria-label={`สีของ ${g.name}`}
+                    className="rounded-lg border border-line bg-surface-raised px-2 py-1 text-[0.8rem] text-ink-muted"
+                  >
+                    {COLUMN_COLORS.map((col) => (
+                      <option key={col.id} value={col.id}>
+                        {col.label}
+                      </option>
+                    ))}
+                  </select>
+
+                  <span className="text-[0.78rem] text-ink-faint">
+                    {tasks.filter((t) => t.group_id === g.id).length} งาน
+                  </span>
+
+                  <span className="ml-auto flex flex-none gap-1">
+                    <button
+                      type="button"
+                      onClick={() => moveGroup(g, -1)}
+                      disabled={i === 0}
+                      aria-label={`ย้าย ${g.name} ขึ้น`}
+                      className="rounded px-1.5 py-0.5 text-ink-faint hover:text-ink disabled:opacity-30"
+                    >
+                      ‹
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moveGroup(g, 1)}
+                      disabled={i === groups.length - 1}
+                      aria-label={`ย้าย ${g.name} ลง`}
+                      className="rounded px-1.5 py-0.5 text-ink-faint hover:text-ink disabled:opacity-30"
+                    >
+                      ›
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeGroup(g)}
+                      className="rounded px-1.5 py-0.5 text-[0.76rem] font-semibold text-ink-faint hover:text-red-400"
+                    >
+                      ลบ
+                    </button>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <form action={addGroup} className="flex flex-wrap gap-2">
+            <input
+              name="name"
+              placeholder="ชื่อหมวดใหม่ เช่น การทำงานร่วมกัน, ออกแบบ"
+              className={`${field} min-w-[10rem] flex-1`}
+            />
+            <select name="color" defaultValue="violet" className={field} aria-label="สีหมวด">
+              {COLUMN_COLORS.map((col) => (
+                <option key={col.id} value={col.id}>
+                  {col.label}
+                </option>
+              ))}
+            </select>
+            <button type="submit" className="rounded-xl bg-brand-500 px-4 py-2 text-[0.9rem] font-bold text-brand-950">
+              เพิ่มหมวด
+            </button>
+          </form>
+
+          <p className="mt-3 text-[0.8rem] text-ink-faint">
+            ลบหมวดได้เลยแม้มีงานอยู่ — งานข้างในจะกลับไปเป็น “ยังไม่จัดหมวด” ไม่ถูกลบ
+          </p>
         </section>
       )}
 
@@ -420,6 +627,21 @@ export function TasksTab({ projectId, canEdit }: { projectId: string; canEdit: b
       {canEdit && columns.length > 0 && (
         <form action={addTask} className="mb-4 flex flex-wrap gap-2">
           <input name="title" placeholder={`เพิ่มงานใหม่ลง “${columns[0].name}”…`} className={`${field} min-w-[12rem] flex-1`} />
+          {groups.length > 0 && (
+            <select
+              name="group_id"
+              defaultValue={whichGroup !== "all" && whichGroup !== "none" ? whichGroup : ""}
+              className={field}
+              aria-label="หมวด"
+            >
+              <option value="">— ไม่ระบุหมวด —</option>
+              {groups.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.name}
+                </option>
+              ))}
+            </select>
+          )}
           <input name="due_on" type="date" className={field} aria-label="กำหนดส่ง" />
           <button
             type="submit"
@@ -435,7 +657,7 @@ export function TasksTab({ projectId, canEdit }: { projectId: string; canEdit: b
           {tasks.length === 0 ? "ยังไม่มีงานในโปรเจกต์นี้" : "ไม่มีงานที่ตรงกับตัวกรองนี้"}
         </p>
       ) : view === "list" ? (
-        <ListView {...viewProps} />
+        <ListView {...viewProps} groupBy={groupBy} />
       ) : view === "board" ? (
         <BoardView {...viewProps} />
       ) : view === "table" ? (
@@ -465,6 +687,7 @@ export function TasksTab({ projectId, canEdit }: { projectId: string; canEdit: b
               await patch(editing, {
                 title: String(f.get("title") ?? "").trim() || editing.title,
                 column_id: String(f.get("column_id")),
+                group_id: String(f.get("group_id") ?? "") || null,
                 assignee_id: String(f.get("assignee_id") ?? "") || null,
                 due_on: String(f.get("due_on") ?? "") || null,
                 started_on: String(f.get("started_on") ?? "") || null,
@@ -502,6 +725,20 @@ export function TasksTab({ projectId, canEdit }: { projectId: string; canEdit: b
                   </select>
                 </label>
               </div>
+
+              {groups.length > 0 && (
+                <label className="grid gap-1 text-[0.8rem] text-ink-muted">
+                  หมวด
+                  <select name="group_id" defaultValue={editing.group_id ?? ""} className={field}>
+                    <option value="">— ยังไม่จัดหมวด —</option>
+                    {groups.map((g) => (
+                      <option key={g.id} value={g.id}>
+                        {g.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
 
               <div className="grid grid-cols-2 gap-3">
                 <label className="grid gap-1 text-[0.8rem] text-ink-muted">
