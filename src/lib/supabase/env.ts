@@ -3,12 +3,27 @@
  * ไม่ใช่ไปพังตอนผู้ใช้กดใช้งานจริงแล้วขึ้นหน้าขาว
  */
 function required(name: string, value: string | undefined): string {
-  if (!value) {
+  // ตัดช่องว่างและขึ้นบรรทัดใหม่ที่ติดมาตอนคัดลอกวาง
+  // เจอจริงตอน deploy: คีย์ที่วางใน Vercel มี newline ท้ายค่า ทำให้ build ล้มด้วย
+  //   TypeError: Headers.set: "..." is an invalid header value
+  // เพราะ HTTP header ห้ามมี CR/LF — และ log ก็ปิดค่าไว้ ไล่หาสาเหตุยากมาก
+  const clean = value?.trim();
+
+  if (!clean) {
     throw new Error(
       `ขาดตัวแปร ${name} — คัดลอก .env.example เป็น .env.local แล้วเติมค่าจาก Supabase dashboard`
     );
   }
-  return value;
+
+  // ถ้ายังมีอักขระที่ header รับไม่ได้หลงเหลืออยู่ ให้ฟ้องตรง ๆ ว่าตัวไหน
+  // ดีกว่าปล่อยให้ไปตายที่ Headers.set ซึ่งไม่บอกว่าเป็นตัวแปรอะไร
+  if (/[\r\n\t]/.test(clean)) {
+    throw new Error(
+      `ค่าของ ${name} มีอักขระขึ้นบรรทัดใหม่หรือแท็บอยู่ข้างใน — คัดลอกใหม่ให้เป็นบรรทัดเดียว`
+    );
+  }
+
+  return clean;
 }
 
 export const SUPABASE_URL = required(
