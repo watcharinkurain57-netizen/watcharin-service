@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { ChargesPanel } from "@/components/archive/ChargesPanel";
 import { thaiDate, todayIso } from "@/lib/project-tasks";
 import {
   PAYMENT_SELECT,
@@ -417,6 +418,8 @@ export function PaymentsTab({ projectId, canManage }: { projectId: string; canMa
           </p>
         </div>
       )}
+
+      <ChargesPanel projectId={projectId} canManage={canManage} paymentsTotal={totals.all} />
     </section>
   );
 }
