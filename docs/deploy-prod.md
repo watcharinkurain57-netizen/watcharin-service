@@ -40,6 +40,10 @@ SQL Editor → วางไฟล์ `supabase/prod_deploy_0001_0008.sql` ทั
 select slug, name, status from public.projects order by slug;
 ```
 
+> ⚠️ ไฟล์รวมนี้หยุดที่ **0008** ตามชื่อไฟล์ — migration ที่มาทีหลัง (0009 เป็นต้นไป)
+> ต้องรันทีละไฟล์จาก `supabase/migrations/` เอง **ทั้ง dev และ prod**
+> อย่าลืมข้างใดข้างหนึ่ง ไม่งั้นจะเจออาการ "dev ใช้ได้ prod พัง" ที่ไล่หายาก
+
 ## 3. ตั้ง Google OAuth ให้ project ใหม่
 
 **project ใหม่ = callback URL ใหม่** ต้องเพิ่มใน Google Cloud ไม่งั้นล็อกอินไม่ได้
@@ -134,4 +138,5 @@ sha ต้องตรงกัน ถ้าไม่ตรง → `git commit -
 
 - `/studio` ยังมีลิงก์ไป `tang-tee.com` / `x-tier.pro` ที่ถูกตัด url ออกแล้ว
   แต่เนื้อหายังพูดถึงอยู่ ไม่พังอะไร
-- ยังไม่มี: แท็บแชท/คอมเมนต์ · อัปโหลดไฟล์จริงผ่าน Storage · แก้งวดจ่ายจากหน้าเว็บ
+- ยังไม่มี: แท็บแชท/คอมเมนต์ · แก้งวดจ่ายจากหน้าเว็บ
+- อัปโหลดไฟล์จริงผ่าน Storage ทำแล้วใน migration `0009_file_storage.sql` — ต้องรันไฟล์นั้นทั้ง dev และ prod

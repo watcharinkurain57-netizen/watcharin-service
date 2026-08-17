@@ -34,7 +34,16 @@ export type Capability =
   /** ตัวเลขฝั่งเรา — ต้นทุน กำไร เรทที่คิดจริง คนละเรื่องกับ invoice */
   | "project.finance.view"
   | "project.files.view"
-  | "project.members.view";
+  | "project.members.view"
+  /**
+   * สิทธิ์ลงมือทำ — คนละชั้นกับ *.view
+   *
+   * แยกออกมาเพราะวันหน้าจะมีบทบาทที่ "เห็นแต่แก้ไม่ได้" หรือ
+   * "แก้งานได้แต่ยุ่งกับไฟล์ส่งมอบไม่ได้" ซึ่งเป็นคนละเส้นกัน
+   */
+  | "project.tasks.manage"
+  | "project.files.manage"
+  | "project.members.manage";
 
 const PUBLIC_CAPS: Capability[] = ["project.view", "project.progress.view"];
 
@@ -58,6 +67,9 @@ const CAPABILITIES: Record<ViewerRole, readonly Capability[]> = {
     "project.finance.view",
     "project.files.view",
     "project.members.view",
+    "project.tasks.manage",
+    "project.files.manage",
+    "project.members.manage",
   ],
 };
 
