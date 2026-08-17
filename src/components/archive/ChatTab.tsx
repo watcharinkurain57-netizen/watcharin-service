@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Avatar } from "@/components/archive/tasks/Avatar";
+import { MeetingsPanel } from "@/components/archive/MeetingsPanel";
 import { personName } from "@/lib/project-tasks";
 import {
   COMMENT_MAX,
@@ -28,6 +29,14 @@ import {
  * เพราะแบบนี้ตรวจสอบได้แน่นอนกว่าและไม่ต้องไปตั้งค่า publication เพิ่ม
  * — หยุดถามเองตอนผู้ใช้สลับไปแท็บอื่นของเบราว์เซอร์ จะได้ไม่กินโควตาฟรี ๆ
  */
+type SubTab = "calendar" | "list" | "chat";
+
+const SUB_TABS: { id: SubTab; label: string }[] = [
+  { id: "calendar", label: "ปฏิทิน" },
+  { id: "list", label: "รายการ" },
+  { id: "chat", label: "ห้องแชท" },
+];
+
 export function ChatTab({
   projectId,
   canPost,
@@ -37,6 +46,8 @@ export function ChatTab({
   canPost: boolean;
   canModerate: boolean;
 }) {
+  /** ปฏิทินมาก่อน เพราะเจ้าของบอกว่างานจริงคุยผ่าน Meet มากกว่าพิมพ์ */
+  const [sub, setSub] = useState<SubTab>("calendar");
   const [rows, setRows] = useState<ProjectComment[] | null>(null);
   const [me, setMe] = useState<string | null>(null);
   const [text, setText] = useState("");
@@ -163,9 +174,38 @@ export function ChatTab({
     <section className="rounded-2xl border border-line bg-surface-raised p-6">
       <h2 className="mb-1 text-base font-bold tracking-tight">คุยงาน</h2>
       <p className="mb-4 max-w-[56ch] text-[0.85rem] text-ink-muted">
-        ที่คุยกันของคนในโปรเจกต์นี้ — สรุปที่ตกลงกันไว้ตรงนี้จะได้ย้อนอ่านได้ ไม่ต้องไปไล่หาในไลน์
+        นัดประชุมและที่คุยกันของคนในโปรเจกต์นี้ — สรุปที่ตกลงกันไว้ตรงนี้จะได้ย้อนอ่านได้ ไม่ต้องไปไล่หาในไลน์
       </p>
 
+      {/* แท็บย่อย — แยกของสามอย่างออกจากกัน ไม่ให้กองอยู่หน้าเดียวจนรก
+          ใช้รูปแบบเดียวกับตัวสลับมุมมองในแท็บงาน จะได้ไม่ต้องเรียนรู้ใหม่ */}
+      <div
+        role="tablist"
+        aria-label="มุมมองของแท็บคุยงาน"
+        className="mb-4 flex flex-wrap gap-1 rounded-xl border border-line bg-surface-overlay p-1"
+      >
+        {SUB_TABS.map((t) => (
+          <button
+            key={t.id}
+            role="tab"
+            type="button"
+            aria-selected={sub === t.id}
+            onClick={() => setSub(t.id)}
+            className={`flex-none rounded-lg px-4 py-2 text-[0.85rem] font-bold transition-colors ${
+              sub === t.id ? "bg-brand-500 text-brand-950" : "text-ink-muted hover:text-ink"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* เขียนเป็นเงื่อนไขเดียวเพื่อให้ MeetingsPanel ไม่ถูก unmount
+          ตอนสลับ ปฏิทิน↔รายการ จะได้ไม่โหลดรายการประชุมใหม่ทุกครั้ง */}
+      {sub !== "chat" && <MeetingsPanel projectId={projectId} canPost={canPost} mode={sub} />}
+
+      {sub === "chat" && (
+        <>
       {error && (
         <p
           role="alert"
@@ -337,6 +377,8 @@ export function ChatTab({
         </form>
       ) : (
         <p className="mt-3 text-[0.8rem] text-ink-faint">เข้าร่วมโปรเจกต์นี้ก่อนถึงจะพิมพ์ได้</p>
+      )}
+        </>
       )}
     </section>
   );
