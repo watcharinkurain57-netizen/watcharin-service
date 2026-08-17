@@ -6,7 +6,10 @@ import { personName } from "@/lib/project-tasks";
 import {
   MEETING_SELECT,
   MEET_NEW_URL,
+  byDay,
   countdownOf,
+  dayKeyOf,
+  dayToLocalInput,
   googleCalendarUrl,
   isLive,
   isPast,
@@ -14,6 +17,7 @@ import {
   localInputToIso,
   meetingErrorMessage,
   meetingWhen,
+  monthCells,
   normalizeMeetings,
   type ProjectMeeting,
 } from "@/lib/project-meetings";
@@ -34,6 +38,10 @@ const field =
 
 type Draft = { title: string; when: string; minutes: string; meet_url: string; note: string };
 
+function isSameMonth(a: Date, b: Date): boolean {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth();
+}
+
 /** ค่าเริ่มต้น: พรุ่งนี้ 10:00 — เวลาที่คนนัดประชุมงานกันจริง ๆ บ่อยที่สุด */
 function defaultDraft(): Draft {
   const d = new Date();
@@ -50,6 +58,9 @@ export function MeetingsPanel({ projectId, canPost }: { projectId: string; canPo
   const [editing, setEditing] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft>(defaultDraft);
   const [showPast, setShowPast] = useState(false);
+  /** ปฏิทินเป็นค่าเริ่มต้น — เห็นทั้งที่ผ่านมาและที่จะถึงในภาพเดียว */
+  const [mode, setMode] = useState<"calendar" | "list">("calendar");
+  const [month, setMonth] = useState(() => new Date());
   /** เดินนาฬิกาเองทุกนาที ไม่งั้น "อีก 5 นาที" จะค้างจนกว่าจะรีเฟรช */
   const [now, setNow] = useState(() => new Date());
 
@@ -163,6 +174,130 @@ export function MeetingsPanel({ projectId, canPost }: { projectId: string; canPo
   const list = rows ?? [];
   const upcoming = list.filter((m) => !isPast(m, now));
   const past = list.filter((m) => isPast(m, now)).reverse();
+
+  /** เปิดฟอร์มนัดใหม่โดยตั้งวันไว้ให้แล้ว — ใช้ตอนกดวันบนปฏิทิน */
+  function startAddOn(year: number, monthIndex: number, day: number) {
+    setDraft({ ...defaultDraft(), when: dayToLocalInput(year, monthIndex, day) });
+    setEditing(null);
+    setAdding(true);
+  }
+
+  function calendar() {
+    const y = month.getFullYear();
+    const mi = month.getMonth();
+    const cells = monthCells(month);
+    const index = byDay(list);
+    const todayKey = dayKeyOf(now.toISOString());
+
+    return (
+      <div>
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <button
+            type="button"
+            onClick={() => setMonth(new Date(y, mi - 1, 1))}
+            aria-label="เดือนก่อนหน้า"
+            className="rounded-lg border border-line px-2.5 py-1.5 text-sm font-bold text-ink-muted transition-colors hover:text-ink"
+          >
+            ‹
+          </button>
+          <span className="text-[0.9rem] font-bold text-ink">
+            {["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"][mi]}{" "}
+            {y + 543}
+          </span>
+          <button
+            type="button"
+            onClick={() => setMonth(new Date(y, mi + 1, 1))}
+            aria-label="เดือนถัดไป"
+            className="rounded-lg border border-line px-2.5 py-1.5 text-sm font-bold text-ink-muted transition-colors hover:text-ink"
+          >
+            ›
+          </button>
+        </div>
+
+        <div className="grid grid-cols-7 gap-px overflow-hidden rounded-xl border border-line bg-line">
+          {["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"].map((d) => (
+            <div key={d} className="bg-surface-overlay py-1.5 text-center text-[0.72rem] font-bold text-ink-faint">
+              {d}
+            </div>
+          ))}
+
+          {cells.map((day, i) => {
+            if (!day) return <div key={i} className="min-h-[4.5rem] bg-surface-raised" />;
+
+            const key = dayToLocalInput(y, mi, day).slice(0, 10);
+            const items = (index.get(key) ?? []).map((n) => list[n]);
+            const isToday = key === todayKey;
+
+            return (
+              <div
+                key={i}
+                className={`relative min-h-[4.5rem] bg-surface-raised p-1.5 ${isToday ? "ring-1 ring-inset ring-brand-500" : ""}`}
+              >
+                {/*
+                  กดที่ว่างของช่องเพื่อนัดวันนั้น — วางเป็นชั้นล่างสุดด้วย absolute
+                  ปุ่มของประชุมแต่ละรายการอยู่ทับข้างบน จะได้ไม่แย่งคลิกกัน
+                */}
+                {canPost && (
+                  <button
+                    type="button"
+                    onClick={() => startAddOn(y, mi, day)}
+                    aria-label={`นัดประชุมวันที่ ${day}`}
+                    className="absolute inset-0 z-0 transition-colors hover:bg-brand-500/5"
+                  />
+                )}
+
+                <span
+                  className={`relative z-10 text-[0.72rem] ${isToday ? "font-bold text-brand-400" : "text-ink-faint"}`}
+                >
+                  {day}
+                </span>
+
+                <div className="relative z-10 mt-1 grid gap-1">
+                  {items.map((m) => {
+                    const live = isLive(m, now);
+                    const done = isPast(m, now);
+                    return (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => {
+                          if (!canPost) return;
+                          setDraft({
+                            title: m.title,
+                            when: isoToLocalInput(m.starts_at),
+                            minutes: String(m.minutes),
+                            meet_url: m.meet_url ?? "",
+                            note: m.note ?? "",
+                          });
+                          setAdding(false);
+                          setEditing(m.id);
+                        }}
+                        title={`${m.title} · ${meetingWhen(m, now)}${m.meet_url ? "" : " · ยังไม่มีลิงก์ห้อง"}`}
+                        className={`truncate rounded px-1.5 py-0.5 text-left text-[0.7rem] leading-snug ${
+                          live
+                            ? "bg-brand-500 font-bold text-brand-950"
+                            : done
+                              ? "bg-white/5 text-ink-faint line-through"
+                              : "bg-brand-500/15 text-brand-300"
+                        }`}
+                      >
+                        {isoToLocalInput(m.starts_at).slice(11)} {m.title}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <p className="mt-2 text-[0.8rem] text-ink-faint">
+          {canPost ? "กดวันบนปฏิทินเพื่อนัดประชุมวันนั้น · กดชื่อประชุมเพื่อแก้ไข" : "กดชื่อประชุมเพื่อดูรายละเอียด"}
+          {" · "}ประชุมที่ผ่านมาแล้วจะมีเส้นขีดฆ่า
+        </p>
+      </div>
+    );
+  }
 
   const form = (onSubmit: () => void, onCancel: () => void, submitLabel: string) => (
     <form
@@ -357,8 +492,35 @@ export function MeetingsPanel({ projectId, canPost }: { projectId: string; canPo
 
   return (
     <div className="mb-5 border-b border-line pb-5">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+      <div className="mb-3 flex flex-wrap items-center gap-2">
         <h3 className="text-[0.95rem] font-bold">ตารางประชุม</h3>
+
+        <div className="flex gap-1 rounded-xl border border-line bg-surface-overlay p-1">
+          {([["calendar", "ปฏิทิน"], ["list", "รายการ"]] as const).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setMode(id)}
+              aria-pressed={mode === id}
+              className={`rounded-lg px-3 py-1 text-[0.82rem] font-bold transition-colors ${
+                mode === id ? "bg-brand-500 text-brand-950" : "text-ink-muted hover:text-ink"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {mode === "calendar" && !isSameMonth(month, now) && (
+          <button
+            type="button"
+            onClick={() => setMonth(new Date())}
+            className="rounded-xl border border-line px-3 py-1.5 text-[0.82rem] font-bold text-ink-muted transition-colors hover:text-ink"
+          >
+            กลับมาเดือนนี้
+          </button>
+        )}
+
         {canPost && !adding && (
           <button
             type="button"
@@ -367,7 +529,7 @@ export function MeetingsPanel({ projectId, canPost }: { projectId: string; canPo
               setEditing(null);
               setAdding(true);
             }}
-            className="rounded-xl border border-line px-3 py-1.5 text-[0.85rem] font-bold text-ink-muted transition-colors hover:text-ink"
+            className="ml-auto rounded-xl border border-line px-3 py-1.5 text-[0.85rem] font-bold text-ink-muted transition-colors hover:text-ink"
           >
             ＋ นัดประชุม
           </button>
@@ -388,6 +550,8 @@ export function MeetingsPanel({ projectId, canPost }: { projectId: string; canPo
 
       {rows === null ? (
         <p className="text-sm text-ink-faint">กำลังโหลด…</p>
+      ) : mode === "calendar" ? (
+        calendar()
       ) : (
         <>
           {upcoming.length > 0 ? (

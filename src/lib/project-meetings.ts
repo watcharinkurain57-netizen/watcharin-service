@@ -39,6 +39,50 @@ export function endOf(m: { starts_at: string; minutes: number }): Date {
   return new Date(new Date(m.starts_at).getTime() + m.minutes * 60_000);
 }
 
+/**
+ * คีย์วัน YYYY-MM-DD ตาม **เวลาเครื่องผู้อ่าน**
+ *
+ * ⚠️ ห้ามใช้ `iso.slice(0, 10)` แทน เพราะค่าใน DB เป็น UTC
+ * ประชุมไทยตอนตีหนึ่งของวันที่ 20 คือ 18:00 ของวันที่ 19 ใน UTC
+ * ตัดสตริงตรง ๆ จะไปโผล่ผิดช่องบนปฏิทินแบบเงียบ ๆ
+ */
+export function dayKeyOf(iso: string): string {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+/** จัดประชุมลงช่องวัน สำหรับวาดปฏิทิน */
+export function byDay(list: { starts_at: string }[]): Map<string, number[]> {
+  const map = new Map<string, number[]>();
+  list.forEach((m, i) => {
+    const k = dayKeyOf(m.starts_at);
+    map.set(k, [...(map.get(k) ?? []), i]);
+  });
+  return map;
+}
+
+/** ช่องของเดือน: เติม null หน้า-หลังให้ครบสัปดาห์ แบบเดียวกับปฏิทินงาน */
+export function monthCells(month: Date): (number | null)[] {
+  const y = month.getFullYear();
+  const m = month.getMonth();
+  const lead = new Date(y, m, 1).getDay();
+  const days = new Date(y, m + 1, 0).getDate();
+
+  const cells: (number | null)[] = [
+    ...Array.from({ length: lead }, () => null),
+    ...Array.from({ length: days }, (_, i) => i + 1),
+  ];
+  while (cells.length % 7 !== 0) cells.push(null);
+  return cells;
+}
+
+/** เวลาเริ่มต้นตอนกดวันบนปฏิทิน — 10:00 ของวันนั้น */
+export function dayToLocalInput(year: number, monthIndex: number, day: number): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${year}-${pad(monthIndex + 1)}-${pad(day)}T10:00`;
+}
+
 /** กำลังประชุมอยู่ตอนนี้ — ใช้ตัดสินว่าจะเน้นปุ่มเข้าห้องไหม */
 export function isLive(m: { starts_at: string; minutes: number }, now = new Date()): boolean {
   return new Date(m.starts_at) <= now && now < endOf(m);
