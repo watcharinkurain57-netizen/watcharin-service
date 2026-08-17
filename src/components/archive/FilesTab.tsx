@@ -6,11 +6,17 @@ import { thaiDate, todayIso } from "@/lib/project-tasks";
 import {
   FILES_BUCKET,
   FILE_SELECT,
+  MAX_FILES_PER_BATCH,
   MAX_FILE_BYTES,
   SIGNED_URL_SECONDS,
+  downloadName,
+  dropEntries,
+  expandEntries,
   fileErrorMessage,
   formatBytes,
+  pickedName,
   storageKey,
+  type PickedFile,
   type ProjectFile,
 } from "@/lib/project-files";
 
@@ -71,9 +77,9 @@ export function FilesTab({ projectId, canManage }: { projectId: string; canManag
    * ที่ไม่มีใครมองเห็นแต่ยังกินโควตา — และไม่มีทางไปตามลบทีหลังด้วย
    * เพราะหน้าเว็บรู้จักไฟล์ผ่านตาราง project_files เท่านั้น
    */
-  async function uploadOne(file: File, sortFrom: number) {
-    const key = `${file.name}-${file.size}-${crypto.randomUUID()}`;
-    setPending((p) => [...p, { key, name: file.name, size: file.size, error: null }]);
+  async function uploadOne({ file, name }: PickedFile, sortFrom: number) {
+    const key = `${name}-${file.size}-${crypto.randomUUID()}`;
+    setPending((p) => [...p, { key, name, size: file.size, error: null }]);
 
     const fail = (msg: string) => setPending((p) => p.map((x) => (x.key === key ? { ...x, error: msg } : x)));
     const done = () => setPending((p) => p.filter((x) => x.key !== key));
@@ -83,11 +89,11 @@ export function FilesTab({ projectId, canManage }: { projectId: string; canManag
       return false;
     }
     if (file.size === 0) {
-      fail("ไฟล์ว่าง");
+      fail("ไฟล์ว่าง — ข้ามไป");
       return false;
     }
 
-    const path = storageKey(projectId, file.name, crypto.randomUUID());
+    const path = storageKey(projectId, name, crypto.randomUUID());
 
     const up = await supabase.storage.from(FILES_BUCKET).upload(path, file, {
       contentType: file.type || undefined,
@@ -101,8 +107,9 @@ export function FilesTab({ projectId, canManage }: { projectId: string; canManag
     const ins = await supabase.from("project_files").insert({
       project_id: projectId,
       // ชื่อที่คนอ่าน เก็บของจริงไว้ตรงนี้ ภาษาไทยได้เต็มที่
-      // ส่วน path ใน Storage เป็น ascii ล้วน (ดูเหตุผลใน lib/project-files.ts)
-      name: file.name,
+      // ถ้ามาจากการเลือกโฟลเดอร์จะมีเส้นทางติดมาด้วย เช่น ส่งมอบงวด3/คู่มือ.pdf
+      // ส่วน path ใน Storage เป็น ascii ล้วนและแบนราบ (ดูเหตุผลใน lib/project-files.ts)
+      name,
       storage_path: path,
       size_bytes: file.size,
       mime_type: file.type || null,
@@ -121,16 +128,47 @@ export function FilesTab({ projectId, canManage }: { projectId: string; canManag
     return true;
   }
 
-  async function upload(list: FileList | null) {
-    if (!list || list.length === 0) return;
+  async function upload(picked: PickedFile[]) {
+    if (picked.length === 0) return;
     setError(null);
+
+    if (picked.length > MAX_FILES_PER_BATCH) {
+      setError(`เลือกมา ${picked.length} ไฟล์ — อัปให้ครั้งละ ${MAX_FILES_PER_BATCH} ไฟล์ ที่เหลือลากมาเพิ่มได้`);
+      picked = picked.slice(0, MAX_FILES_PER_BATCH);
+    }
 
     const base = Math.max(0, ...(files ?? []).map((f) => f.sort)) + 1;
     let ok = 0;
-    for (const [i, file] of Array.from(list).entries()) {
-      if (await uploadOne(file, base + i)) ok += 1;
+    for (const [i, item] of picked.entries()) {
+      if (await uploadOne(item, base + i)) ok += 1;
     }
     if (ok > 0) await reload();
+  }
+
+  /** จาก <input> — ทั้งแบบเลือกไฟล์และแบบเลือกโฟลเดอร์มาทางนี้เหมือนกัน */
+  function uploadFromInput(list: FileList | null) {
+    upload(Array.from(list ?? []).map((file) => ({ file, name: pickedName(file) })));
+  }
+
+  /**
+   * จากการลากมาวาง — ต้องอ่าน entry ให้เสร็จก่อน await ตัวแรก
+   * เพราะ DataTransfer ใช้ไม่ได้แล้วหลัง handler คืนค่า
+   */
+  async function uploadFromDrop(dt: DataTransfer) {
+    const entries = dropEntries(dt);
+    const plain = Array.from(dt.files ?? []);
+
+    if (entries.length === 0) {
+      upload(plain.map((file) => ({ file, name: file.name })));
+      return;
+    }
+
+    const picked = await expandEntries(entries);
+    if (picked.length === 0) {
+      setError("โฟลเดอร์ที่ลากมาไม่มีไฟล์ข้างใน");
+      return;
+    }
+    await upload(picked);
   }
 
   /**
@@ -145,7 +183,7 @@ export function FilesTab({ projectId, canManage }: { projectId: string; canManag
     setBusy(f.id);
     const { data, error: e } = await supabase.storage
       .from(FILES_BUCKET)
-      .createSignedUrl(f.storage_path, SIGNED_URL_SECONDS, { download: f.name });
+      .createSignedUrl(f.storage_path, SIGNED_URL_SECONDS, { download: downloadName(f.name) });
     setBusy(null);
 
     if (e || !data?.signedUrl) {
@@ -309,7 +347,7 @@ export function FilesTab({ projectId, canManage }: { projectId: string; canManag
           onDrop={(e) => {
             e.preventDefault();
             setDragging(false);
-            upload(e.dataTransfer.files);
+            uploadFromDrop(e.dataTransfer);
           }}
           className={`mt-4 rounded-xl border border-dashed px-4 py-6 text-center transition-colors ${
             dragging ? "border-brand-500 bg-brand-500/5" : "border-line"
@@ -321,20 +359,50 @@ export function FilesTab({ projectId, canManage }: { projectId: string; canManag
             multiple
             className="hidden"
             onChange={(e) => {
-              upload(e.target.files);
+              uploadFromInput(e.target.files);
               // ล้างค่าเพื่อให้เลือกไฟล์ชื่อเดิมซ้ำได้ ไม่งั้น onChange ไม่ยิงรอบสอง
               e.target.value = "";
             }}
           />
-          <button
-            type="button"
-            onClick={() => inputRef.current?.click()}
-            className="rounded-xl bg-brand-500 px-4 py-2 text-[0.9rem] font-bold text-brand-950"
-          >
-            เลือกไฟล์อัปโหลด
-          </button>
+          {/*
+            เลือกทั้งโฟลเดอร์ — ต้องตั้ง webkitdirectory ผ่าน ref
+            เพราะยังไม่ใช่ attribute มาตรฐาน ใส่ใน JSX ตรง ๆ TypeScript ไม่รับ
+          */}
+          <input
+            ref={(el) => {
+              if (el) el.webkitdirectory = true;
+            }}
+            type="file"
+            multiple
+            className="hidden"
+            onChange={(e) => {
+              uploadFromInput(e.target.files);
+              e.target.value = "";
+            }}
+            id={`${projectId}-folder-input`}
+          />
+          <div className="flex flex-wrap justify-center gap-2">
+            <button
+              type="button"
+              onClick={() => inputRef.current?.click()}
+              className="rounded-xl bg-brand-500 px-4 py-2 text-[0.9rem] font-bold text-brand-950"
+            >
+              เลือกไฟล์อัปโหลด
+            </button>
+            <button
+              type="button"
+              onClick={() => document.getElementById(`${projectId}-folder-input`)?.click()}
+              className="rounded-xl border border-line px-4 py-2 text-[0.9rem] font-bold text-ink-muted transition-colors hover:text-ink"
+            >
+              เลือกทั้งโฟลเดอร์
+            </button>
+          </div>
           <p className="mt-2 text-[0.8rem] text-ink-faint">
-            หรือลากไฟล์มาวางตรงนี้ · ไฟล์ละไม่เกิน {formatBytes(MAX_FILE_BYTES)}
+            หรือลากไฟล์/โฟลเดอร์มาวางตรงนี้ · ไฟล์ละไม่เกิน {formatBytes(MAX_FILE_BYTES)} ·
+            ครั้งละไม่เกิน {MAX_FILES_PER_BATCH} ไฟล์
+          </p>
+          <p className="mt-1 text-[0.78rem] text-ink-faint">
+            โฟลเดอร์จะถูกคลี่เป็นไฟล์เรียงกัน โดยเก็บชื่อโฟลเดอร์ไว้หน้าชื่อไฟล์
           </p>
         </div>
       )}

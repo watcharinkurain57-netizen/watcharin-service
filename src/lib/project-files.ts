@@ -63,6 +63,102 @@ export function storageKey(projectId: string, fileName: string, unique: string):
   return `${projectId}/${unique}-${base}${ext ? `.${ext}` : ""}`;
 }
 
+/** ไฟล์ที่ผู้ใช้เลือกมา พร้อมชื่อที่จะเอาไปแสดง (มีเส้นทางในโฟลเดอร์ติดมาถ้ามี) */
+export type PickedFile = { file: File; name: string };
+
+/** กันคนลากทั้ง Downloads มาวางแล้วยิงขึ้น Storage เป็นพันไฟล์ */
+export const MAX_FILES_PER_BATCH = 100;
+
+/**
+ * ชื่อที่จะแสดงของไฟล์ที่เลือกผ่าน "เลือกโฟลเดอร์"
+ *
+ * `webkitRelativePath` ให้เส้นทางในโฟลเดอร์มาด้วย เช่น `ส่งมอบงวด3/คู่มือ.pdf`
+ * เก็บทั้งเส้นทางไว้ในชื่อเพื่อให้แยกออกว่าไฟล์ชื่อซ้ำมาจากโฟลเดอร์ไหน
+ *
+ * ⚠️ เส้นทางนี้ลงไปใน **ชื่อที่แสดง** เท่านั้น ไม่ลงไปใน path ของ Storage
+ * เพราะ policy ใน 0009 ต้องการให้โฟลเดอร์แรกเป็น project_id และมี slash เดียว
+ * `storageKey()` แปลง `/` เป็น `-` ให้อยู่แล้ว
+ */
+export function pickedName(file: File): string {
+  const rel = (file as File & { webkitRelativePath?: string }).webkitRelativePath;
+  return rel && rel.length > 0 ? rel : file.name;
+}
+
+/**
+ * ชื่อสำหรับตอนบันทึกลงเครื่อง — ตัดเส้นทางโฟลเดอร์ออก
+ * ใส่ slash ลงใน Content-Disposition ไม่ได้ เบราว์เซอร์จะตัดทิ้งหรือเพี้ยน
+ */
+export function downloadName(name: string): string {
+  return name.split("/").pop() || name;
+}
+
+/** ---------- ลากโฟลเดอร์มาวาง ---------- */
+
+/**
+ * `dataTransfer.files` ไม่มีของข้างในโฟลเดอร์
+ * ลากโฟลเดอร์มาวางจะได้รายการเดียวขนาด 0 ไบต์ ซึ่งอัปไม่ได้และอ่านไม่รู้เรื่อง
+ * ต้องไล่ผ่าน entry API ของเบราว์เซอร์เอาไฟล์ข้างในออกมาเอง
+ */
+type FsEntry = {
+  isFile: boolean;
+  isDirectory: boolean;
+  fullPath: string;
+  file(onOk: (f: File) => void, onErr: (e: unknown) => void): void;
+  createReader(): { readEntries(onOk: (e: FsEntry[]) => void, onErr: (e: unknown) => void): void };
+};
+
+/**
+ * ต้องเรียก **ทันทีใน event handler ก่อน await ตัวแรก**
+ * `DataTransfer` ใช้ไม่ได้แล้วหลังจาก handler คืนค่า
+ */
+export function dropEntries(dt: DataTransfer): FsEntry[] {
+  const out: FsEntry[] = [];
+  for (const item of Array.from(dt.items ?? [])) {
+    const get = (item as DataTransferItem & { webkitGetAsEntry?: () => FsEntry | null }).webkitGetAsEntry;
+    const entry = typeof get === "function" ? get.call(item) : null;
+    if (entry) out.push(entry);
+  }
+  return out;
+}
+
+/** readEntries คืนมาทีละไม่เกิน ~100 รายการ ต้องวนเรียกจนกว่าจะได้ array ว่าง */
+function readAll(reader: ReturnType<FsEntry["createReader"]>): Promise<FsEntry[]> {
+  return new Promise((resolve) => {
+    const all: FsEntry[] = [];
+    const step = () =>
+      reader.readEntries((batch) => {
+        if (batch.length === 0) return resolve(all);
+        all.push(...batch);
+        step();
+      }, () => resolve(all));
+    step();
+  });
+}
+
+export async function expandEntries(entries: FsEntry[], limit = MAX_FILES_PER_BATCH): Promise<PickedFile[]> {
+  const out: PickedFile[] = [];
+
+  async function walk(entry: FsEntry) {
+    if (out.length >= limit) return;
+
+    if (entry.isFile) {
+      const file = await new Promise<File | null>((resolve) =>
+        entry.file((f) => resolve(f), () => resolve(null))
+      );
+      // fullPath ขึ้นต้นด้วย / เสมอ ตัดทิ้งให้เหมือนรูปแบบของ webkitRelativePath
+      if (file) out.push({ file, name: entry.fullPath.replace(/^\//, "") || file.name });
+      return;
+    }
+
+    if (entry.isDirectory) {
+      for (const child of await readAll(entry.createReader())) await walk(child);
+    }
+  }
+
+  for (const e of entries) await walk(e);
+  return out.slice(0, limit);
+}
+
 /** ขนาดไฟล์แบบที่คนอ่านรู้เรื่อง — ไม่ใช้ Intl เพราะอยากได้ผลเดิมทุกเครื่อง */
 export function formatBytes(bytes: number | null): string {
   if (bytes === null || !Number.isFinite(bytes) || bytes < 0) return "—";
