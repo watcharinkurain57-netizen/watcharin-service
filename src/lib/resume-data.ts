@@ -72,10 +72,10 @@ const en: ResumeData = {
     role: "Software Architect",
     tagline: "System Design Studio · End-to-End Web, Mobile & AI Systems",
     summary:
-      "Software Architect with 4+ years across full-stack development, enterprise engineering, and architectural design — with experience at public companies including PTT Digital Solutions and MFEC. Currently building and operating the Watcharin Ecosystem, having shipped 3 production systems end-to-end (watcharin-service.com, tang-tee.com, x-tier.pro): designing, developing, deploying, and maintaining each, using AI to accelerate delivery.",
+      "Software Architect with 4+ years across full-stack development, enterprise engineering, and architectural design — with experience at public companies including PTT Digital Solutions and MFEC. Shipped 3 production systems end-to-end (watcharin-service.com, tang-tee.com, x-tier.pro): designing, developing, deploying, and operating each one, using AI to accelerate delivery. Two were sunset in Aug 2026 after their lessons were taken forward.",
   },
   highlights: [
-    "Shipped 3 production systems end-to-end as sole architect & developer — all live today.",
+    "Shipped and operated 3 production systems end-to-end as sole architect & developer.",
     "4+ years at public companies (PTT Digital Solutions, MFEC, Taokaenoi) — from full-stack to enterprise architecture.",
     "AI-augmented delivery: working MVPs in weeks, not quarters, without trading away scalability.",
     "Compliance-aware by design — built systems aligned with Thai Direct Sales law and PDPA.",
@@ -133,9 +133,9 @@ const en: ResumeData = {
     description:
       "A connected, AI-powered business ecosystem — products designed to work together end to end. Three systems are already live in production.",
     systems: [
-      "watcharin-service.com — System Design Studio (live)",
-      "tang-tee.com — Team & trip coordination platform (live)",
-      "x-tier.pro — Direct-selling organization management (live)",
+      "watcharin-service.com — consulting & project archive (live)",
+      "tang-tee.com — Team & trip coordination platform (2026, sunset)",
+      "x-tier.pro — Direct-selling organization management (2026, sunset)",
     ],
   },
   labels: {
@@ -154,7 +154,7 @@ const th: ResumeData = {
     role: "Software Architect",
     tagline: "System Design Studio · ออกแบบและสร้างระบบ Web, Mobile และ AI ครบวงจร",
     summary:
-      "Software Architect ประสบการณ์ 4+ ปี ครอบคลุมงาน full-stack, enterprise engineering และการออกแบบสถาปัตยกรรมระบบ — ผ่านงานองค์กรมหาชนอย่าง PTT Digital Solutions และ MFEC ปัจจุบันสร้างและดูแล Watcharin Ecosystem โดยส่งระบบขึ้น production จริงแล้ว 3 ระบบ (watcharin-service.com, tang-tee.com, x-tier.pro) แบบ end-to-end — ออกแบบ พัฒนา deploy และดูแลเอง โดยใช้ AI เร่ง delivery",
+      "Software Architect ประสบการณ์ 4+ ปี ครอบคลุมงาน full-stack, enterprise engineering และการออกแบบสถาปัตยกรรมระบบ — ผ่านงานองค์กรมหาชนอย่าง PTT Digital Solutions และ MFEC ส่งระบบขึ้น production จริงมาแล้ว 3 ระบบ (watcharin-service.com, tang-tee.com, x-tier.pro) แบบ end-to-end — ออกแบบ พัฒนา deploy และดูแลใช้งานเอง โดยใช้ AI เร่ง delivery · สองระบบปิดบริการเมื่อ ส.ค. 2026 หลังถอดบทเรียนไปต่อยอดแล้ว",
   },
   highlights: [
     "ส่งระบบขึ้น production จริง 3 ระบบแบบ end-to-end ในฐานะ architect และ developer คนเดียว — ใช้งานอยู่ตอนนี้ทั้งหมด",
@@ -215,9 +215,9 @@ const th: ResumeData = {
     description:
       "ระบบนิเวศธุรกิจที่ขับเคลื่อนด้วย AI — ออกแบบให้แต่ละระบบทำงานเชื่อมกันแบบครบวงจร ตอนนี้มี 3 ระบบเปิดใช้งานจริงบน production แล้ว",
     systems: [
-      "watcharin-service.com — System Design Studio (เปิดใช้งานแล้ว)",
-      "tang-tee.com — แพลตฟอร์มรวมทีมและจัดทริป (เปิดใช้งานแล้ว)",
-      "x-tier.pro — ระบบจัดการองค์กรขายตรง (เปิดใช้งานแล้ว)",
+      "watcharin-service.com — ที่ปรึกษาและคลังโปรเจกต์ (เปิดใช้งานอยู่)",
+      "tang-tee.com — แพลตฟอร์มรวมทีมและจัดทริป (2026 ปิดบริการแล้ว)",
+      "x-tier.pro — ระบบจัดการองค์กรขายตรง (2026 ปิดบริการแล้ว)",
     ],
   },
   labels: {

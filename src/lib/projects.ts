@@ -56,11 +56,12 @@ export const projects: Record<string, Project> = {
     id: "tang-tee",
     icon: "🎉",
     name: "tang-tee",
+    // ไม่มี url แล้ว — ปิดบริการ ส.ค. 2026 และไม่ต่ออายุโดเมน
+    // ถ้าใส่ลิงก์ไว้ พอโดเมนหมดอายุคนอื่นจดต่อได้ แล้วผลงานเราจะพาคนไปเว็บของคนอื่น
     domain: "tang-tee.com",
-    url: "https://tang-tee.com",
     category: "Community + Trip Planning",
-    status: "ACTIVE",
-    statusLabel: "🟢 LIVE",
+    status: "OVERVIEW",
+    statusLabel: "⚫ ปิดบริการแล้ว",
     tagline: "ตั้งทีม จัดทริป รวมกิจกรรม Public/Private",
     description:
       "แพลตฟอร์มสำหรับ 'ตั้งตี้' — รวมกลุ่ม จัดทริป จัดกิจกรรม ทั้งแบบ Public และ Private รองรับตั้งแต่ทริปเที่ยวต่างจังหวัด ปาร์ตี้ผับบาร์ ไปจนถึงตั้งทีมทำงาน/ทีมขาย",
@@ -74,8 +75,9 @@ export const projects: Record<string, Project> = {
       "🎵 อนาคต: ตี้ผับ/บาร์, ตั้งทีมทำงาน, ทีมขาย, ทีม R&D",
     ],
     techStack: ["Next.js 16", "Supabase", "Vercel", "Claude API", "Tailwind", "MapLibre", "Sentry"],
-    timeline: "Live — tang-tee.com (2026)",
-    currentInfo: "✅ Live ที่ tang-tee.com — ตั้งตี้ หารบิล แผนที่ค้นหาตี้ รีวิว ครบทุกฟีเจอร์หลัก",
+    timeline: "2026 — ปิดบริการแล้ว",
+    currentInfo:
+      "เคยเปิดใช้งานจริงที่ tang-tee.com ปี 2026 — ตั้งตี้ หารบิล แผนที่ค้นหาตี้ รีวิว ครบทุกฟีเจอร์หลัก ปิดบริการเมื่อ ส.ค. 2026",
     iconBg: "bg-cyan-500/15",
     accentText: "text-cyan-400",
     statusBadge: "text-emerald-300 bg-emerald-500/10 border-emerald-500/30",
@@ -107,11 +109,11 @@ export const projects: Record<string, Project> = {
     id: "x-tier",
     icon: "🤝",
     name: "x-tier",
+    // ไม่มี url แล้ว — ปิดบริการ ส.ค. 2026 และไม่ต่ออายุโดเมน (เหตุผลเดียวกับ tang-tee)
     domain: "www.x-tier.pro",
-    url: "https://www.x-tier.pro",
     category: "Direct-Selling + Organization Management",
-    status: "ACTIVE",
-    statusLabel: "🟢 LIVE",
+    status: "OVERVIEW",
+    statusLabel: "⚫ ปิดบริการแล้ว",
     tagline: "จัดการองค์กรขายตรง ตั้งเป้า เทรน ติดตามทีม",
     description:
       "แพลตฟอร์มจัดการองค์กรขายตรง/เครือข่าย — ตั้งเป้ายอด ติดตามทีม ระบบฝึกอบรม และแคตตาล็อกสินค้า ออกแบบให้สอดคล้องกับ พ.ร.บ.ขายตรง และ PDPA",
@@ -124,8 +126,9 @@ export const projects: Record<string, Project> = {
       "⚖️ ออกแบบให้สอดคล้อง พ.ร.บ.ขายตรง ม.19 + PDPA",
     ],
     techStack: ["Next.js 16", "Supabase", "Vercel", "Tailwind", "Google/LINE OAuth"],
-    timeline: "Live — www.x-tier.pro (2026)",
-    currentInfo: "✅ Live ที่ www.x-tier.pro — MVP + เป้า/เคลม/แคตตาล็อก/เทรน + เฟส 2 ครบ",
+    timeline: "2026 — ปิดบริการแล้ว",
+    currentInfo:
+      "เคยเปิดใช้งานจริงที่ www.x-tier.pro ปี 2026 — MVP + เป้า/เคลม/แคตตาล็อก/เทรน + เฟส 2 ครบ ปิดบริการเมื่อ ส.ค. 2026",
     iconBg: "bg-purple-500/15",
     accentText: "text-purple-400",
     statusBadge: "text-emerald-300 bg-emerald-500/10 border-emerald-500/30",
@@ -173,7 +176,8 @@ export const projects: Record<string, Project> = {
     ],
     techStack: ["Vertical integration", "AI-orchestrated", "Multi-tenant SaaS"],
     timeline: "18-24 เดือน (ทั้งระบบ)",
-    currentInfo: "🚀 Phase 1 Live — watcharin-service + tang-tee + x-tier",
+    currentInfo:
+      "🚀 Phase 1 — watcharin-service เปิดใช้งานอยู่ · tang-tee และ x-tier ปิดบริการแล้ว ส.ค. 2026",
     iconBg: "bg-brand-500",
     accentText: "text-brand-400",
     statusBadge: "text-brand-300 bg-brand-500/10 border-brand-500/30",

@@ -55,9 +55,51 @@
   --color-ink-faint: #94a3b8;
 }
 
+/* ---------- Soft scope ----------
+   หน้าแรกใช้พื้นสว่าง ส่วนคลังโปรเจกต์ (ตัวแอป) ยังเป็นพื้นเข้ม
+   ตั้งใจให้ต่างกัน เพื่อให้รู้สึกว่าหน้าแรกคือหน้าร้าน ข้างในคืออีกที่หนึ่ง
+
+   ต่างจาก .theme-light ตรงที่โทนกลางเอียงไปทางเขียวเล็กน้อยให้เข้ากับ
+   สีแบรนด์ ไม่ใช่เทา slate ที่เป็นกลางจนดูไม่ได้ตั้งใจเลือก
+   (.theme-light ใช้กับหน้าเรซูเม่ที่ต้องสั่งพิมพ์ จึงต้องเป็นเทากลางจริง ๆ) */
+.theme-soft {
+  color-scheme: light;
+  --color-surface: #f1f7f4;
+  --color-surface-raised: #ffffff;
+  --color-surface-overlay: #e4efea;
+  --color-line: #e1eae6;
+  --color-line-strong: #c6d6cf;
+  --color-ink: #121a17;
+  --color-ink-muted: #55645f;
+  --color-ink-faint: #8a9a94;
+}
+
+/* body ถูกทาสีเข้มไว้ที่ layout ซึ่งอยู่นอกขอบเขต .theme-soft
+   ถ้าไม่ทาทับ จะเห็นแถบดำโผล่ตอนดึงหน้าจอเกินขอบ (overscroll) บนมือถือ */
+body:has(.theme-soft) {
+  background: #f1f7f4;
+}
+
 @media print {
   :root {
     color-scheme: light;
+  }
+}
+
+/* แถบคำวิ่ง — หยุดเมื่อผู้ใช้ตั้งค่าลดการเคลื่อนไหว */
+@keyframes marquee-slide {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.marquee-track {
+  animation: marquee-slide 26s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track {
+    animation: none;
   }
 }
 
