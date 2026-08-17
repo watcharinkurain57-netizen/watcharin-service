@@ -36,6 +36,14 @@ export type Capability =
   | "project.files.view"
   | "project.members.view"
   /**
+   * ห้องคุยงาน — ต่างจาก capability อื่นตรงที่ `post` เปิดให้ลูกค้าด้วย
+   * ห้องที่พูดได้ข้างเดียวไม่ใช่ห้องคุย · `moderate` = ลบข้อความของคนอื่น เจ้าของเท่านั้น
+   * (ลบข้อความ *ของตัวเอง* ไม่ต้องมี capability ทุกคนทำได้อยู่แล้ว กันที่ policy)
+   */
+  | "project.comments.view"
+  | "project.comments.post"
+  | "project.comments.moderate"
+  /**
    * สิทธิ์ลงมือทำ — คนละชั้นกับ *.view
    *
    * แยกออกมาเพราะวันหน้าจะมีบทบาทที่ "เห็นแต่แก้ไม่ได้" หรือ
@@ -64,6 +72,9 @@ const CAPABILITIES: Record<ViewerRole, readonly Capability[]> = {
     "project.invoice.view",
     "project.files.view",
     "project.members.view",
+    // ลูกค้าพิมพ์ได้ด้วย — ไม่ใช่แค่อ่าน
+    "project.comments.view",
+    "project.comments.post",
   ],
 
   owner: [
@@ -73,6 +84,9 @@ const CAPABILITIES: Record<ViewerRole, readonly Capability[]> = {
     "project.finance.view",
     "project.files.view",
     "project.members.view",
+    "project.comments.view",
+    "project.comments.post",
+    "project.comments.moderate",
     "project.tasks.manage",
     "project.files.manage",
     "project.members.manage",
