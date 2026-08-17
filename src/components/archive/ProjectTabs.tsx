@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { InvitePanel } from "@/components/archive/InvitePanel";
 import { Avatar } from "@/components/archive/tasks/Avatar";
 import { TasksTab } from "@/components/archive/tasks/TasksTab";
 import { personName } from "@/lib/project-tasks";
@@ -261,9 +262,7 @@ export function ProjectTabs({
               ))}
             </ul>
           )}
-          <p className="mt-4 text-[0.8rem] text-ink-faint">
-            ยังเชิญคนเข้าโปรเจกต์จากหน้านี้ไม่ได้ — ตาราง project_invites เตรียมไว้แล้ว รอทำหน้าสร้างลิงก์เชิญ
-          </p>
+          {viewer.role === "owner" && <InvitePanel projectId={projectId} />}
         </section>
       )}
     </div>
