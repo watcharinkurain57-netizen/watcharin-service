@@ -20,9 +20,57 @@ export type ProjectFile = {
   size_bytes: number | null;
   mime_type: string | null;
   sort: number;
+  folder_id: string | null;
 };
 
-export const FILE_SELECT = "id, name, status, delivered_on, storage_path, size_bytes, mime_type, sort";
+export const FILE_SELECT =
+  "id, name, status, delivered_on, storage_path, size_bytes, mime_type, sort, folder_id";
+
+export type ProjectFolder = {
+  id: string;
+  name: string;
+  parent_id: string | null;
+  sort: number;
+};
+
+export const FOLDER_SELECT = "id, name, parent_id, sort";
+
+/** ชื่อโฟลเดอร์ห้ามมี / ตาม CHECK ใน migration 0010 — ตัดให้ตั้งแต่ฝั่งหน้าเว็บ */
+export function cleanFolderName(raw: string): string {
+  return raw.replace(/\//g, " ").replace(/\s+/g, " ").trim().slice(0, 80);
+}
+
+/** ไล่จากโฟลเดอร์ขึ้นไปหาชั้นบนสุด — ใช้ทำ breadcrumb */
+export function folderTrail(folders: ProjectFolder[], id: string | null): ProjectFolder[] {
+  const byId = new Map(folders.map((f) => [f.id, f]));
+  const trail: ProjectFolder[] = [];
+  let cur = id ? byId.get(id) : undefined;
+
+  // กันวนไม่รู้จบเผื่อข้อมูลเสีย — ลึกเกิน 50 ชั้นถือว่าผิดปกติแล้ว
+  while (cur && trail.length < 50) {
+    trail.unshift(cur);
+    cur = cur.parent_id ? byId.get(cur.parent_id) : undefined;
+  }
+  return trail;
+}
+
+/** เส้นทางเต็มแบบอ่านได้ เช่น `เอกสาร / คู่มือ` — ใช้ในช่องเลือกโฟลเดอร์ปลายทาง */
+export function folderPath(folders: ProjectFolder[], id: string | null): string {
+  const trail = folderTrail(folders, id);
+  return trail.length === 0 ? "" : trail.map((f) => f.name).join(" / ");
+}
+
+/** โฟลเดอร์ทั้งหมดเรียงแบบ tree แล้วแบนออกมา พร้อมความลึก — ใช้ทำ <select> */
+export function flattenFolders(
+  folders: ProjectFolder[],
+  parent: string | null = null,
+  depth = 0
+): { folder: ProjectFolder; depth: number }[] {
+  return folders
+    .filter((f) => f.parent_id === parent)
+    .sort((a, b) => a.sort - b.sort || a.name.localeCompare(b.name, "th"))
+    .flatMap((f) => [{ folder: f, depth }, ...flattenFolders(folders, f.id, depth + 1)]);
+}
 
 /**
  * ตัดให้เหลือเฉพาะอักขระที่ใช้เป็น key ของ Storage ได้แน่ ๆ
