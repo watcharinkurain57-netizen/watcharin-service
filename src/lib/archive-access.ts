@@ -43,7 +43,13 @@ export type Capability =
    */
   | "project.tasks.manage"
   | "project.files.manage"
-  | "project.members.manage";
+  | "project.members.manage"
+  /**
+   * แก้ตารางงวดจ่าย — เจ้าของเท่านั้น
+   * ⚠️ อย่าสับสนกับ `project.finance.view` ที่เป็นต้นทุน/กำไรฝั่งเรา
+   * อันนี้คือยอดที่เรียกเก็บซึ่งลูกค้าเห็นอยู่แล้ว แค่แก้ไม่ได้
+   */
+  | "project.invoice.manage";
 
 const PUBLIC_CAPS: Capability[] = ["project.view", "project.progress.view"];
 
@@ -70,6 +76,7 @@ const CAPABILITIES: Record<ViewerRole, readonly Capability[]> = {
     "project.tasks.manage",
     "project.files.manage",
     "project.members.manage",
+    "project.invoice.manage",
   ],
 };
 

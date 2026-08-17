@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { FilesTab } from "@/components/archive/FilesTab";
+import { PaymentsTab } from "@/components/archive/PaymentsTab";
 import { InvitePanel } from "@/components/archive/InvitePanel";
 import { Avatar } from "@/components/archive/tasks/Avatar";
 import { TasksTab } from "@/components/archive/tasks/TasksTab";
@@ -20,22 +21,12 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
  * และต่อให้แก้ DOM ให้โผล่ ก็ยังดึงข้อมูลไม่ได้เพราะ RLS กันที่ฐานข้อมูล
  */
 
-type Payment = {
-  id: string;
-  label: string;
-  amount: number;
-  status: "paid" | "pending" | "overdue";
-  due_label: string | null;
-};
-
 type Member = {
   user_id: string;
   role: ViewerRole;
   created_at: string;
   profiles: ProfileShape | null;
 };
-
-const baht = new Intl.NumberFormat("th-TH", { maximumFractionDigits: 0 });
 
 type ProfileShape = { display_name: string | null; email: string | null; avatar_url: string | null };
 
@@ -75,7 +66,6 @@ export function ProjectTabs({
 }) {
   const [viewer, setViewer] = useState<Viewer>({ role: "public" });
   const [active, setActive] = useState("overview");
-  const [payments, setPayments] = useState<Payment[] | null>(null);
   const [members, setMembers] = useState<Member[] | null>(null);
 
   useEffect(() => {
@@ -98,20 +88,17 @@ export function ProjectTabs({
       if (!alive || !member) return;
       setViewer({ role: member.role as ViewerRole });
 
-      // ไฟล์ไม่ได้ดึงตรงนี้แล้ว — FilesTab โหลดเองเพราะต้องรีเฟรชหลังอัป/ลบ
-      const [pay, mem] = await Promise.all([
-        supabase.from("project_payments").select("id,label,amount,status,due_label").eq("project_id", projectId).order("sort"),
-        supabase
-          .from("project_members")
-          .select("user_id,role,created_at,profiles(display_name,email,avatar_url)")
-          .eq("project_id", projectId),
-      ]);
+      // ไฟล์กับงวดจ่ายไม่ได้ดึงตรงนี้แล้ว — แท็บของมันโหลดเอง
+      // เพราะต้องรีเฟรชรายการหลังเพิ่ม/แก้/ลบ
+      const { data: mem } = await supabase
+        .from("project_members")
+        .select("user_id,role,created_at,profiles(display_name,email,avatar_url)")
+        .eq("project_id", projectId);
 
       if (!alive) return;
-      setPayments((pay.data as Payment[]) ?? []);
       // PostgREST คืนความสัมพันธ์แบบ many-to-one มาเป็น object เดี่ยว
       // แต่ตัวอนุมานชนิดของ supabase-js มองเป็น array จึงต้องปรับให้ตรงกันเอง
-      setMembers(normalizeMembers(mem.data));
+      setMembers(normalizeMembers(mem));
     })();
 
     return () => {
@@ -123,10 +110,6 @@ export function ProjectTabs({
 
   // คนนอกเห็นแท็บเดียว ก็ไม่ต้องมีแถบแท็บให้รก
   if (visible.length === 1) return <>{overview}</>;
-
-  const totalDue = (payments ?? [])
-    .filter((p) => p.status !== "paid")
-    .reduce((s, p) => s + Number(p.amount), 0);
 
   return (
     <div>
@@ -158,44 +141,7 @@ export function ProjectTabs({
       )}
 
       {active === "money" && (
-        <section className="rounded-2xl border border-line bg-surface-raised p-6">
-          <h2 className="mb-3 text-base font-bold tracking-tight">งวดจ่าย</h2>
-          {payments === null ? (
-            <p className="text-sm text-ink-faint">กำลังโหลด…</p>
-          ) : payments.length === 0 ? (
-            <p className="text-sm text-ink-faint">ยังไม่มีงวดจ่ายในโปรเจกต์นี้</p>
-          ) : (
-            <>
-              <ul>
-                {payments.map((p) => (
-                  <li
-                    key={p.id}
-                    className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-line py-2.5 text-sm last:border-b-0"
-                  >
-                    <span className="text-ink-muted">{p.label}</span>
-                    <span
-                      className={`font-bold tabular-nums ${
-                        p.status === "paid"
-                          ? "text-brand-400"
-                          : p.status === "overdue"
-                            ? "text-red-400"
-                            : "text-amber-400"
-                      }`}
-                    >
-                      {p.status === "paid" ? "จ่ายแล้ว" : (p.due_label ?? "รอจ่าย")} ·{" "}
-                      {baht.format(Number(p.amount))} ฿
-                    </span>
-                  </li>
-                ))}
-              </ul>
-              {totalDue > 0 && (
-                <p className="mt-3 text-sm text-ink-muted">
-                  ยังไม่ได้จ่าย <b className="font-bold tabular-nums text-ink">{baht.format(totalDue)} ฿</b>
-                </p>
-              )}
-            </>
-          )}
-        </section>
+        <PaymentsTab projectId={projectId} canManage={can(viewer, "project.invoice.manage")} />
       )}
 
       {active === "files" && (
