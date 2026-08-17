@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Avatar } from "@/components/archive/tasks/Avatar";
+import { MeetingsPanel } from "@/components/archive/MeetingsPanel";
 import { personName } from "@/lib/project-tasks";
 import {
   COMMENT_MAX,
@@ -163,8 +164,11 @@ export function ChatTab({
     <section className="rounded-2xl border border-line bg-surface-raised p-6">
       <h2 className="mb-1 text-base font-bold tracking-tight">คุยงาน</h2>
       <p className="mb-4 max-w-[56ch] text-[0.85rem] text-ink-muted">
-        ที่คุยกันของคนในโปรเจกต์นี้ — สรุปที่ตกลงกันไว้ตรงนี้จะได้ย้อนอ่านได้ ไม่ต้องไปไล่หาในไลน์
+        นัดประชุมและที่คุยกันของคนในโปรเจกต์นี้ — สรุปที่ตกลงกันไว้ตรงนี้จะได้ย้อนอ่านได้ ไม่ต้องไปไล่หาในไลน์
       </p>
+
+      {/* ตารางประชุมอยู่บน เพราะงานจริงคุยผ่าน Meet มากกว่าพิมพ์ */}
+      <MeetingsPanel projectId={projectId} canPost={canPost} />
 
       {error && (
         <p
