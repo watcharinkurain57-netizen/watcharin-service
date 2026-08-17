@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { FilesTab } from "@/components/archive/FilesTab";
 import { InvitePanel } from "@/components/archive/InvitePanel";
 import { Avatar } from "@/components/archive/tasks/Avatar";
 import { TasksTab } from "@/components/archive/tasks/TasksTab";
@@ -25,13 +26,6 @@ type Payment = {
   amount: number;
   status: "paid" | "pending" | "overdue";
   due_label: string | null;
-};
-
-type FileRow = {
-  id: string;
-  name: string;
-  status: "delivered" | "pending";
-  delivered_on: string | null;
 };
 
 type Member = {
@@ -82,7 +76,6 @@ export function ProjectTabs({
   const [viewer, setViewer] = useState<Viewer>({ role: "public" });
   const [active, setActive] = useState("overview");
   const [payments, setPayments] = useState<Payment[] | null>(null);
-  const [files, setFiles] = useState<FileRow[] | null>(null);
   const [members, setMembers] = useState<Member[] | null>(null);
 
   useEffect(() => {
@@ -105,9 +98,9 @@ export function ProjectTabs({
       if (!alive || !member) return;
       setViewer({ role: member.role as ViewerRole });
 
-      const [pay, file, mem] = await Promise.all([
+      // ไฟล์ไม่ได้ดึงตรงนี้แล้ว — FilesTab โหลดเองเพราะต้องรีเฟรชหลังอัป/ลบ
+      const [pay, mem] = await Promise.all([
         supabase.from("project_payments").select("id,label,amount,status,due_label").eq("project_id", projectId).order("sort"),
-        supabase.from("project_files").select("id,name,status,delivered_on").eq("project_id", projectId).order("sort"),
         supabase
           .from("project_members")
           .select("user_id,role,created_at,profiles(display_name,email,avatar_url)")
@@ -116,7 +109,6 @@ export function ProjectTabs({
 
       if (!alive) return;
       setPayments((pay.data as Payment[]) ?? []);
-      setFiles((file.data as FileRow[]) ?? []);
       // PostgREST คืนความสัมพันธ์แบบ many-to-one มาเป็น object เดี่ยว
       // แต่ตัวอนุมานชนิดของ supabase-js มองเป็น array จึงต้องปรับให้ตรงกันเอง
       setMembers(normalizeMembers(mem.data));
@@ -162,7 +154,7 @@ export function ProjectTabs({
       {active === "overview" && overview}
 
       {active === "tasks" && (
-        <TasksTab projectId={projectId} canEdit={viewer.role === "owner"} />
+        <TasksTab projectId={projectId} canEdit={can(viewer, "project.tasks.manage")} />
       )}
 
       {active === "money" && (
@@ -207,32 +199,7 @@ export function ProjectTabs({
       )}
 
       {active === "files" && (
-        <section className="rounded-2xl border border-line bg-surface-raised p-6">
-          <h2 className="mb-3 text-base font-bold tracking-tight">ไฟล์ส่งมอบ</h2>
-          {files === null ? (
-            <p className="text-sm text-ink-faint">กำลังโหลด…</p>
-          ) : files.length === 0 ? (
-            <p className="text-sm text-ink-faint">ยังไม่มีไฟล์ส่งมอบ</p>
-          ) : (
-            <ul className="grid gap-2">
-              {files.map((f) => (
-                <li key={f.id} className="flex items-center gap-3 rounded-xl bg-surface-overlay px-3 py-2.5 text-sm">
-                  <span
-                    className={`size-2 flex-none rounded-full ${f.status === "delivered" ? "bg-brand-500" : "bg-line-strong"}`}
-                    aria-hidden="true"
-                  />
-                  <span className="text-ink-muted">{f.name}</span>
-                  <span className="ml-auto flex-none text-[0.76rem] text-ink-faint">
-                    {f.status === "delivered" ? (f.delivered_on ?? "ส่งแล้ว") : "ยังไม่ส่ง"}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-          <p className="mt-4 text-[0.8rem] text-ink-faint">
-            ยังอัปโหลดไฟล์จากหน้านี้ไม่ได้ — ต้องต่อ Supabase Storage ก่อน
-          </p>
-        </section>
+        <FilesTab projectId={projectId} canManage={can(viewer, "project.files.manage")} />
       )}
 
       {active === "people" && (
@@ -262,7 +229,7 @@ export function ProjectTabs({
               ))}
             </ul>
           )}
-          {viewer.role === "owner" && <InvitePanel projectId={projectId} />}
+          {can(viewer, "project.members.manage") && <InvitePanel projectId={projectId} />}
         </section>
       )}
     </div>
