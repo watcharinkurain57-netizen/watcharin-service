@@ -23,7 +23,7 @@ export async function createSupabaseServerClient() {
           }
         } catch {
           // Server Component เขียนคุกกี้ไม่ได้ — ปกติ ไม่ใช่ error
-          // การต่ออายุ session ทำใน middleware แทน
+          // การต่ออายุ session ทำใน src/proxy.ts แทน
         }
       },
     },
