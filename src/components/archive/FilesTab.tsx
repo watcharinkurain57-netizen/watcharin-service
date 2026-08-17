@@ -146,14 +146,44 @@ export function FilesTab({ projectId, canManage }: { projectId: string; canManag
     await reload();
   }
 
+  /** โฟลเดอร์นี้กับลูกหลานทั้งหมด — ใช้ Set กันข้อมูลที่วนเป็นวงกลมทำลูปไม่รู้จบ */
+  function folderAndDescendants(rootId: string): string[] {
+    const seen = new Set([rootId]);
+    const queue = [rootId];
+
+    while (queue.length > 0) {
+      const cur = queue.shift() as string;
+      for (const f of folders) {
+        if (f.parent_id === cur && !seen.has(f.id)) {
+          seen.add(f.id);
+          queue.push(f.id);
+        }
+      }
+    }
+    return [...seen];
+  }
+
+  /**
+   * ลบโฟลเดอร์ = ลบของข้างในทั้งหมดจริง ๆ ทั้งโฟลเดอร์ย่อยและไฟล์
+   *
+   * ⚠️ ทำไมแอปเป็นคนไล่ลบเอง ไม่ปล่อยให้ FK cascade จัดการ:
+   * ถ้าให้ DB ลบแถว project_files เป็นทอด ๆ **ไฟล์จริงใน Storage ไม่หายตาม**
+   * เพราะ Postgres ไม่รู้จัก Storage และหน้าเว็บรู้จักไฟล์ผ่านตารางนี้ทางเดียว
+   * พอแถวหาย = ไฟล์นั้นค้างกินโควตาตลอดกาลและตามลบไม่ได้อีกเลย
+   * `folder_id` จึงยังเป็น `on delete set null` ที่ DB ไว้เป็นตาข่ายกันพลาด
+   * ถ้าวันหนึ่งมีทางลบโฟลเดอร์ที่ไม่ผ่านฟังก์ชันนี้ ไฟล์จะเด้งออกมาให้เห็น
+   * ดีกว่าหายเงียบพร้อมทิ้งขยะไว้
+   */
   async function removeFolder(f: ProjectFolder) {
-    const inside = (files ?? []).filter((x) => x.folder_id === f.id).length;
-    const subs = folders.filter((x) => x.parent_id === f.id).length;
+    const ids = folderAndDescendants(f.id);
+    const victims = (files ?? []).filter((x) => x.folder_id && ids.includes(x.folder_id));
+    const subCount = ids.length - 1;
 
     const warn = [
-      `ลบโฟลเดอร์ "${f.name}"?`,
-      inside > 0 ? `ไฟล์ ${inside} ไฟล์ข้างในจะย้ายออกมาอยู่นอกโฟลเดอร์ ไม่ถูกลบ` : null,
-      subs > 0 ? `โฟลเดอร์ย่อย ${subs} อันจะถูกลบไปด้วย` : null,
+      `ลบโฟลเดอร์ "${f.name}" และทุกอย่างข้างใน?`,
+      subCount > 0 ? `· โฟลเดอร์ย่อย ${subCount} อัน` : null,
+      victims.length > 0 ? `· ไฟล์ ${victims.length} ไฟล์` : "· ไม่มีไฟล์ข้างใน",
+      victims.length > 0 ? "\nไฟล์จะถูกลบถาวร กู้คืนไม่ได้" : null,
     ]
       .filter(Boolean)
       .join("\n");
@@ -161,9 +191,41 @@ export function FilesTab({ projectId, canManage }: { projectId: string; canManag
     if (!confirm(warn)) return;
 
     setBusy(f.id);
+
+    // ลบใน Storage ก่อนเสมอ แบ่งเป็นก้อนกันคำขอใหญ่เกิน
+    // ถ้าพลาดตรงนี้ให้หยุดทันทีโดยยังไม่แตะฐานข้อมูล — รายการยังครบ ลองใหม่ได้
+    const paths = victims.map((v) => v.storage_path).filter((p): p is string => !!p);
+    for (let i = 0; i < paths.length; i += 100) {
+      const { error: se } = await supabase.storage.from(FILES_BUCKET).remove(paths.slice(i, i + 100));
+      if (se) {
+        setBusy(null);
+        setError(fileErrorMessage(se, "ลบไฟล์ออกจากที่เก็บไม่สำเร็จ — ยังไม่ได้ลบอะไรในรายการ ลองใหม่ได้"));
+        return;
+      }
+    }
+
+    if (victims.length > 0) {
+      const { error: fe } = await supabase
+        .from("project_files")
+        .delete()
+        .in("id", victims.map((v) => v.id));
+
+      if (fe) {
+        setBusy(null);
+        setError(fileErrorMessage(fe, "ลบไฟล์ใน Storage แล้ว แต่ลบรายการไม่สำเร็จ — กดลบซ้ำอีกครั้ง"));
+        await reload();
+        return;
+      }
+    }
+
+    // ลบตัวโฟลเดอร์ ตัวลูกหายตาม parent_id cascade
     const { error: e } = await supabase.from("project_folders").delete().eq("id", f.id);
     setBusy(null);
     if (e) setError(fileErrorMessage(e, "ลบโฟลเดอร์ไม่สำเร็จ"));
+
+    // ถ้ากำลังยืนอยู่ในโฟลเดอร์ที่เพิ่งลบ ต้องเด้งกลับ ไม่งั้นค้างหน้าว่าง
+    if (cwd && ids.includes(cwd)) setCwd(f.parent_id);
+
     await reload();
   }
 
@@ -659,7 +721,7 @@ export function FilesTab({ projectId, canManage }: { projectId: string; canManag
 
       <p className="mt-4 text-[0.8rem] text-ink-faint">
         ไฟล์เก็บแบบไม่เปิดสาธารณะ คนนอกโปรเจกต์เปิดไม่ได้แม้จะรู้ลิงก์
-        {canManage && " — ลิงก์ดาวน์โหลดมีอายุ 1 นาที ส่งต่อให้คนอื่นใช้ไม่ได้ · ลบโฟลเดอร์แล้วไฟล์ข้างในย้ายออกมา ไม่ถูกลบ"}
+        {canManage && " — ลิงก์ดาวน์โหลดมีอายุ 1 นาที ส่งต่อให้คนอื่นใช้ไม่ได้ · ลบโฟลเดอร์คือลบไฟล์ข้างในทั้งหมดถาวร"}
       </p>
     </section>
   );
