@@ -5,6 +5,7 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Avatar } from "@/components/archive/tasks/Avatar";
 import { MeetingsPanel } from "@/components/archive/MeetingsPanel";
 import { personName } from "@/lib/project-tasks";
+import type { Unread } from "@/lib/use-unread-comments";
 import {
   COMMENT_MAX,
   COMMENT_SELECT,
@@ -41,10 +42,13 @@ export function ChatTab({
   projectId,
   canPost,
   canModerate,
+  unread,
 }: {
   projectId: string;
   canPost: boolean;
   canModerate: boolean;
+  /** มาจาก ProjectTabs — ตัวนับอยู่ที่นั่นที่เดียว ที่นี่แค่แสดงกับเคลียร์ */
+  unread: Unread;
 }) {
   /** ปฏิทินมาก่อน เพราะเจ้าของบอกว่างานจริงคุยผ่าน Meet มากกว่าพิมพ์ */
   const [sub, setSub] = useState<SubTab>("calendar");
@@ -105,6 +109,16 @@ export function ChatTab({
     const el = listRef.current;
     if (el && stickToBottom.current) el.scrollTop = el.scrollHeight;
   }, [rows]);
+
+  /**
+   * อยู่ในห้องแชท = ถือว่าอ่านแล้ว
+   * ผูกกับ rows ด้วย เพราะข้อความที่เข้ามาระหว่างที่นั่งดูอยู่ก็ต้องนับว่าอ่านแล้ว
+   * (ตัวเขียนลง DB มีตัวหน่วง 10 วิ ในตัวมันเอง จึงไม่กลายเป็นเขียนรัว)
+   */
+  const markRead = unread.markRead;
+  useEffect(() => {
+    if (sub === "chat") markRead();
+  }, [sub, rows, markRead]);
 
   function onScroll() {
     const el = listRef.current;
@@ -196,6 +210,11 @@ export function ChatTab({
             }`}
           >
             {t.label}
+            {t.id === "chat" && unread.count > 0 && sub !== "chat" && (
+              <span className="ml-1.5 rounded-full bg-brand-500 px-1.5 py-0.5 text-[0.7rem] font-bold text-brand-950">
+                {unread.count > 99 ? "99+" : unread.count}
+              </span>
+            )}
           </button>
         ))}
       </div>

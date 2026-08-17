@@ -9,6 +9,7 @@ import { Avatar } from "@/components/archive/tasks/Avatar";
 import { TasksTab } from "@/components/archive/tasks/TasksTab";
 import { personName } from "@/lib/project-tasks";
 import { can, type Capability, type Viewer, type ViewerRole } from "@/lib/archive-access";
+import { useUnreadComments } from "@/lib/use-unread-comments";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 /**
@@ -108,6 +109,13 @@ export function ProjectTabs({
     };
   }, [projectId]);
 
+  /**
+   * ตัวนับอยู่ที่นี่ที่เดียว แล้วส่งลงไปให้ ChatTab
+   * ถ้าให้ ChatTab เรียกเองจะกลายเป็นสองตัวยิงถามซ้อนกัน และแบดจ์บนแท็บหลัก
+   * จะขึ้นเฉพาะตอนเปิดแท็บคุยงานอยู่ ซึ่งไม่มีประโยชน์อะไรเลย
+   */
+  const unread = useUnreadComments(projectId, can(viewer, "project.comments.view"));
+
   const visible = TABS.filter((t) => !t.need || can(viewer, t.need));
 
   // คนนอกเห็นแท็บเดียว ก็ไม่ต้องมีแถบแท็บให้รก
@@ -132,6 +140,12 @@ export function ProjectTabs({
             }`}
           >
             {t.label}
+            {/* แบดจ์โผล่เฉพาะตอนไม่ได้เปิดแท็บนั้นอยู่ — เปิดอยู่แล้วก็เห็นเองว่ามีอะไร */}
+            {t.id === "chat" && unread.count > 0 && active !== "chat" && (
+              <span className="ml-1.5 rounded-full bg-brand-500 px-1.5 py-0.5 text-[0.7rem] font-bold text-brand-950">
+                {unread.count > 99 ? "99+" : unread.count}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -155,6 +169,7 @@ export function ProjectTabs({
           projectId={projectId}
           canPost={can(viewer, "project.comments.post")}
           canModerate={can(viewer, "project.comments.moderate")}
+          unread={unread}
         />
       )}
 
