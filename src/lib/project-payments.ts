@@ -85,6 +85,84 @@ export function parseAmount(raw: string): number | null {
   return Math.round(n * 100) / 100;
 }
 
+/* ==========================================================================
+ * รายการที่เรียกเก็บ — แจกแจงว่าเก็บค่าอะไรบ้าง
+ *
+ * คนละเรื่องกับงวดจ่าย: งวดจ่ายตอบว่า "แบ่งจ่ายยังไง"
+ * ตารางนี้ตอบว่า "เก็บค่าอะไร"
+ *
+ * ⚠️ ลูกค้าเห็นด้วยเหมือนกัน — เป็นราคาที่เรียกเก็บ ไม่ใช่ต้นทุนที่เราจ่าย
+ * ========================================================================== */
+
+export type ChargeCategory = "hardware" | "software" | "subscription" | "service" | "other";
+
+export type ProjectCharge = {
+  id: string;
+  category: ChargeCategory;
+  label: string;
+  qty: number;
+  unit_amount: number;
+  /** null = จ่ายครั้งเดียว · มีค่า = ของรายเดือน คิดกี่เดือน */
+  months: number | null;
+  note: string | null;
+  /** คอลัมน์คำนวณจาก DB — unit_amount × qty × coalesce(months, 1) */
+  total: number;
+  sort: number;
+};
+
+export const CHARGE_SELECT = "id, category, label, qty, unit_amount, months, note, total, sort";
+
+export const CHARGE_CATEGORIES: { id: ChargeCategory; label: string; tone: string }[] = [
+  { id: "hardware", label: "ฮาร์ดแวร์", tone: "bg-sky-400/15 text-sky-200" },
+  { id: "software", label: "ซอฟต์แวร์ / ไลเซนส์", tone: "bg-violet-400/15 text-violet-200" },
+  { id: "subscription", label: "ค่าบริการรายเดือน", tone: "bg-amber-400/15 text-amber-200" },
+  { id: "service", label: "ค่าดำเนินการ", tone: "bg-brand-500/15 text-brand-300" },
+  { id: "other", label: "อื่น ๆ", tone: "bg-line-strong/40 text-ink-muted" },
+];
+
+export function categoryOf(id: ChargeCategory) {
+  return CHARGE_CATEGORIES.find((c) => c.id === id) ?? CHARGE_CATEGORIES[4];
+}
+
+/**
+ * ยอดรวมของแถว — คิดแบบเดียวกับคอลัมน์ generated ใน 0011
+ * ใช้ตอนพรีวิวในฟอร์มก่อนบันทึก ซึ่งยังไม่มีค่าจาก DB ให้อ่าน
+ */
+export function chargeTotal(unitAmount: number, qty: number, months: number | null): number {
+  return Math.round(unitAmount * qty * (months ?? 1) * 100) / 100;
+}
+
+/** รวมยอดแยกตามหมวด เรียงจากมากไปน้อย — ใช้ทำแถบสรุป */
+export function byCategory(rows: ProjectCharge[]): { id: ChargeCategory; label: string; tone: string; total: number }[] {
+  return CHARGE_CATEGORIES.map((c) => ({
+    ...c,
+    total: rows.filter((r) => r.category === c.id).reduce((s, r) => s + Number(r.total), 0),
+  }))
+    .filter((c) => c.total > 0)
+    .sort((a, b) => b.total - a.total);
+}
+
+export function chargesTotal(rows: ProjectCharge[]): number {
+  return rows.reduce((s, r) => s + Number(r.total), 0);
+}
+
+/** จำนวนชิ้น/เดือน — ยอมให้เป็นทศนิยมเพราะค่าแรงคิด 1.5 วันก็มี */
+export function parseQty(raw: string): number | null {
+  const n = Number(raw.replace(/[,\s]/g, ""));
+  if (!Number.isFinite(n) || n <= 0 || n > 99_999_999) return null;
+  return Math.round(n * 100) / 100;
+}
+
+/** จำนวนเดือน — ว่าง = ไม่ใช่ของรายเดือน จึงต้องแยก null ออกจาก "กรอกผิด" */
+export function parseMonths(raw: string): { ok: true; value: number | null } | { ok: false } {
+  const t = raw.trim();
+  if (t === "") return { ok: true, value: null };
+
+  const n = Number(t);
+  if (!Number.isInteger(n) || n <= 0 || n > 600) return { ok: false };
+  return { ok: true, value: n };
+}
+
 export function paymentErrorMessage(error: { code?: string; message?: string } | null, fallback: string): string {
   if (error?.code === "42501") return "แก้งวดจ่ายได้เฉพาะเจ้าของโปรเจกต์";
   if (error?.code === "23514") return "จำนวนเงินติดลบไม่ได้";
