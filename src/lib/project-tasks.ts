@@ -13,10 +13,28 @@ export type TaskColumn = {
   sort: number;
 };
 
+/**
+ * หมวดหมู่งานตามเนื้องาน — คนละแกนกับ TaskColumn
+ *
+ * TaskColumn = สถานะ (รอทำ / กำลังทำ / เสร็จแล้ว) — งานต้องมีเสมอ
+ * TaskGroup  = เนื้องาน (การทำงานร่วมกัน / ออกแบบ) — มีหรือไม่มีก็ได้
+ *
+ * งานหนึ่งมีได้ทั้งสองอย่างพร้อมกัน "Dashboard" อยู่หมวดออกแบบ และกำลังทำ
+ */
+export type TaskGroup = {
+  id: string;
+  project_id: string;
+  name: string;
+  color: ColumnColor;
+  sort: number;
+};
+
 export type Task = {
   id: string;
   project_id: string;
   column_id: string;
+  /** null = ยังไม่จัดหมวด — แสดงรวมกันใต้ "ไม่มีหมวด" */
+  group_id: string | null;
   title: string;
   due_label: string | null;
   due_on: string | null;
@@ -60,9 +78,43 @@ export function colorOf(c: ColumnColor) {
 
 /** คอลัมน์ที่ดึงจากตาราง — รวมไว้ที่เดียวกันลืมเวลาเพิ่มฟิลด์ */
 export const TASK_SELECT =
-  "id, project_id, column_id, title, due_label, due_on, started_on, assignee_id, sort";
+  "id, project_id, column_id, group_id, title, due_label, due_on, started_on, assignee_id, sort";
 export const COLUMN_SELECT = "id, project_id, name, color, is_done, sort";
+export const GROUP_SELECT = "id, project_id, name, color, sort";
 export const PROFILE_SELECT = "id, display_name, email, avatar_url";
+
+/**
+ * จัดงานลงหมวด พร้อมถังท้ายสำหรับงานที่ยังไม่ได้จัด
+ *
+ * คืนหมวดที่ไม่มีงานมาด้วย (`items` ว่าง) เพื่อให้ผู้ใช้เห็นว่าหมวดที่ตั้งไว้
+ * ยังว่างอยู่ ไม่ใช่หายไปเฉย ๆ — ฝั่งที่เรียกเป็นคนตัดสินเองว่าจะซ่อนไหม
+ */
+export function groupTasks(
+  tasks: Task[],
+  groups: TaskGroup[]
+): { group: TaskGroup | null; items: Task[] }[] {
+  const known = new Set(groups.map((g) => g.id));
+
+  const buckets = [...groups]
+    .sort((a, b) => a.sort - b.sort || a.name.localeCompare(b.name, "th"))
+    .map((group) => ({ group: group as TaskGroup | null, items: tasks.filter((t) => t.group_id === group.id) }));
+
+  /**
+   * ถังท้าย = งานที่ไม่มีหมวด **และ** งานที่ชี้หมวดซึ่งหาไม่เจอ
+   *
+   * ⚠️ เงื่อนไขที่สองสำคัญกว่าที่คิด ถ้าเช็คแค่ `!t.group_id`
+   * งานที่ชี้หมวดแปลกปลอมจะไม่เข้าถังไหนเลย = **หายไปจากทุกมุมมองแบบเงียบ ๆ**
+   * เกิดได้จริงตอนโหลดรายการหมวดไม่สำเร็จแต่โหลดงานสำเร็จ
+   * (เป็นอาการเดียวกับที่ 0005 เตือนไว้เรื่อง column_id — งานหลุดออกจากบอร์ด)
+   */
+  const loose = tasks.filter((t) => !t.group_id || !known.has(t.group_id));
+
+  // ไว้ท้ายสุดเสมอ ไม่ใช่บนสุด — ถ้าอยู่บนสุดจะบังหมวดที่ตั้งใจจัดไว้
+  // ซึ่งเป็นของที่ผู้ใช้อยากเห็นก่อน
+  if (loose.length > 0) buckets.push({ group: null, items: loose });
+
+  return buckets;
+}
 
 const THAI_MONTH = [
   "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
