@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { ChargesPanel } from "@/components/archive/ChargesPanel";
+import { CostsPanel } from "@/components/archive/CostsPanel";
 import { thaiDate, todayIso } from "@/lib/project-tasks";
 import {
   PAYMENT_SELECT,
@@ -43,7 +44,16 @@ function draftOf(p: ProjectPayment): Draft {
   };
 }
 
-export function PaymentsTab({ projectId, canManage }: { projectId: string; canManage: boolean }) {
+export function PaymentsTab({
+  projectId,
+  canManage,
+  canSeeFinance,
+}: {
+  projectId: string;
+  canManage: boolean;
+  /** ต้นทุน/กำไร — เจ้าของเท่านั้น คนละเรื่องกับ canManage ที่คุมการแก้งวดจ่าย */
+  canSeeFinance: boolean;
+}) {
   const [rows, setRows] = useState<ProjectPayment[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -420,6 +430,11 @@ export function PaymentsTab({ projectId, canManage }: { projectId: string; canMa
       )}
 
       <ChargesPanel projectId={projectId} canManage={canManage} paymentsTotal={totals.all} />
+
+      {/* ต้นทุน/กำไร อยู่ล่างสุดและพับไว้ — ของที่ลูกค้าไม่ควรเห็นไม่ควรอยู่บนสุด */}
+      {canSeeFinance && (
+        <CostsPanel projectId={projectId} revenue={totals.all} received={totals.paid} />
+      )}
     </section>
   );
 }
