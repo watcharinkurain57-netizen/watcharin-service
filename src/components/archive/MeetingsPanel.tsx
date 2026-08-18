@@ -16,9 +16,11 @@ import {
   isoToLocalInput,
   localInputToIso,
   meetingErrorMessage,
+  REMIND_OPTIONS,
   meetingWhen,
   monthCells,
   normalizeMeetings,
+  remindLabel,
   type ProjectMeeting,
 } from "@/lib/project-meetings";
 
@@ -39,7 +41,7 @@ import {
 const field =
   "rounded-xl border border-line bg-surface-overlay px-3 py-2 text-[0.9rem] text-ink outline-none transition-colors placeholder:text-ink-faint focus:border-brand-500";
 
-type Draft = { title: string; when: string; minutes: string; meet_url: string; note: string };
+type Draft = { title: string; when: string; minutes: string; meet_url: string; note: string; remind: string };
 
 function isSameMonth(a: Date, b: Date): boolean {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth();
@@ -50,7 +52,7 @@ function defaultDraft(): Draft {
   const d = new Date();
   d.setDate(d.getDate() + 1);
   d.setHours(10, 0, 0, 0);
-  return { title: "", when: isoToLocalInput(d.toISOString()), minutes: "60", meet_url: "", note: "" };
+  return { title: "", when: isoToLocalInput(d.toISOString()), minutes: "60", meet_url: "", note: "", remind: "30" };
 }
 
 export function MeetingsPanel({
@@ -145,7 +147,16 @@ export function MeetingsPanel({
       return null;
     }
 
-    return { title, starts_at, minutes, meet_url: url || null, note: d.note.trim() || null };
+    return {
+      title,
+      starts_at,
+      minutes,
+      meet_url: url || null,
+      note: d.note.trim() || null,
+      remind_minutes: d.remind ? Number(d.remind) : null,
+      // แก้เวลานัดแล้วต้องล้างสถานะ "เตือนแล้ว" ไม่งั้นเลื่อนนัดไปวันหน้าจะไม่มีใครได้เตือน
+      reminded_at: null,
+    };
   }
 
   async function add() {
@@ -294,6 +305,7 @@ export function MeetingsPanel({
                             minutes: String(m.minutes),
                             meet_url: m.meet_url ?? "",
                             note: m.note ?? "",
+                            remind: m.remind_minutes === null ? "" : String(m.remind_minutes),
                           });
                           setAdding(false);
                           setEditing(m.id);
@@ -376,6 +388,21 @@ export function MeetingsPanel({
         />
       </label>
 
+      <label className="grid gap-1 text-[0.72rem] text-ink-faint sm:col-span-4">
+        เตือนทางอีเมลก่อนถึงเวลา
+        <select
+          value={draft.remind}
+          onChange={(e) => setDraft({ ...draft, remind: e.target.value })}
+          className={field}
+        >
+          {REMIND_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+      </label>
+
       <input
         value={draft.note}
         onChange={(e) => setDraft({ ...draft, note: e.target.value })}
@@ -448,6 +475,7 @@ export function MeetingsPanel({
           <span className="block truncate text-[0.76rem] text-ink-faint">
             {meetingWhen(m, now)}
             {countdown && ` · ${countdown}`}
+            {remindLabel(m) && ` · ${remindLabel(m)}`}
             {m.profiles && ` · นัดโดย ${personName(m.profiles)}`}
             {m.note && ` · ${m.note}`}
           </span>
@@ -490,6 +518,7 @@ export function MeetingsPanel({
                     minutes: String(m.minutes),
                     meet_url: m.meet_url ?? "",
                     note: m.note ?? "",
+                    remind: m.remind_minutes === null ? "" : String(m.remind_minutes),
                   });
                   setAdding(false);
                   setEditing(m.id);

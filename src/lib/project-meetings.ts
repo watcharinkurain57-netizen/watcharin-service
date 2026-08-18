@@ -18,12 +18,39 @@ export type ProjectMeeting = {
   minutes: number;
   meet_url: string | null;
   note: string | null;
+  /** null = ไม่เตือน · มีค่า = เตือนล่วงหน้ากี่นาที */
+  remind_minutes: number | null;
+  /** null = ยังไม่ได้เตือน · ตัว cron เป็นคนเซ็ต */
+  reminded_at: string | null;
   created_by: string | null;
   profiles: Person | null;
 };
 
 export const MEETING_SELECT =
-  "id, title, starts_at, minutes, meet_url, note, created_by, profiles(id, display_name, email, avatar_url)";
+  "id, title, starts_at, minutes, meet_url, note, remind_minutes, reminded_at, created_by, profiles(id, display_name, email, avatar_url)";
+
+/** ตัวเลือกเตือนล่วงหน้า — "" = ไม่เตือน (ช่อง select เก็บเป็นข้อความ) */
+export const REMIND_OPTIONS: { value: string; label: string }[] = [
+  { value: "", label: "ไม่ต้องเตือน" },
+  { value: "15", label: "เตือนล่วงหน้า 15 นาที" },
+  { value: "30", label: "เตือนล่วงหน้า 30 นาที" },
+  { value: "60", label: "เตือนล่วงหน้า 1 ชั่วโมง" },
+  { value: "1440", label: "เตือนล่วงหน้า 1 วัน" },
+];
+
+/**
+ * เตือนไปแล้วหรือยัง — ใช้บอกบนหน้าจอ
+ * นัดที่ผ่านมาแล้วไม่ต้องบอกอะไร เพราะไม่มีความหมาย
+ */
+export function remindLabel(m: { remind_minutes: number | null; reminded_at: string | null }): string | null {
+  if (m.remind_minutes === null) return null;
+  if (m.reminded_at) return "เตือนแล้ว";
+
+  const mins = m.remind_minutes;
+  if (mins < 60) return `เตือนก่อน ${mins} นาที`;
+  if (mins < 1440) return `เตือนก่อน ${Math.round(mins / 60)} ชั่วโมง`;
+  return `เตือนก่อน ${Math.round(mins / 1440)} วัน`;
+}
 
 /** PostgREST คืน many-to-one เป็น object เดี่ยว แต่ตัวอนุมานชนิดมองเป็น array */
 export function normalizeMeetings(rows: unknown): ProjectMeeting[] {
