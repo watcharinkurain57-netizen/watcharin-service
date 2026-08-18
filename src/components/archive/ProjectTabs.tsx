@@ -157,7 +157,11 @@ export function ProjectTabs({
       )}
 
       {active === "money" && (
-        <PaymentsTab projectId={projectId} canManage={can(viewer, "project.invoice.manage")} />
+        <PaymentsTab
+          projectId={projectId}
+          canManage={can(viewer, "project.invoice.manage")}
+          canSeeFinance={can(viewer, "project.finance.view")}
+        />
       )}
 
       {active === "files" && (
