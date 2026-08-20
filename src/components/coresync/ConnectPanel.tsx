@@ -81,6 +81,13 @@ export function ConnectPanel() {
   -d '{"token":"${session.token}","readings":[{"tag":"KK1_LEVEL","value":68.4,"unit":"%","ts":"${new Date().toISOString()}"}]}'`
     : "";
 
+  const connectorCmd = session
+    ? `.\\coresync-connector.ps1 \`
+  -Token "${session.token}" \`
+  -Path "C:\\export\\tags.csv" \`
+  -Endpoint "${typeof window === "undefined" ? "" : window.location.origin}/api/demo/ingest"`
+    : "";
+
   return (
     <div className="space-y-6">
       {/* ───────── สถานะสด — ส่วนที่สำคัญที่สุดของหน้านี้ ───────── */}
@@ -203,6 +210,51 @@ export function ConnectPanel() {
               <span>ก้อนละไม่เกิน {Math.round(LIMITS.bodyBytes / 1024)} KB</span>
               <span>โทเคนอายุ {LIMITS.sessionMinutes / 60} ชั่วโมง</span>
             </div>
+          </section>
+
+          {/* ───────── ระดับ 1 — อ่านไฟล์ที่ระบบเดิมของเขาส่งออกอยู่แล้ว ───────── */}
+          <section className="rounded-2xl border border-line bg-surface-raised p-5 sm:p-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-lg font-semibold">อ่านจากไฟล์ที่ระบบของคุณส่งออกอยู่แล้ว</h2>
+              <button
+                type="button"
+                onClick={() => copy("ps", connectorCmd)}
+                className="rounded-lg border border-line-strong px-3 py-1.5 text-xs font-semibold transition hover:border-brand-500"
+              >
+                {copied === "ps" ? "คัดลอกแล้ว" : "คัดลอกคำสั่ง"}
+              </button>
+            </div>
+            <p className="mt-1 text-sm text-ink-muted">
+              ถ้าระบบเดิมของคุณส่งออกไฟล์ CSV อยู่แล้ว ชี้ตัวเชื่อมต่อไปที่ไฟล์นั้นได้เลย
+              ไม่ต้องแตะระบบจริง ตัวเชื่อมต่ออ่านไฟล์แล้วส่งออกทางเดียว
+            </p>
+            <ol className="mt-3 space-y-1.5 text-sm text-ink-muted">
+              <li>
+                1.{" "}
+                <a
+                  href="/coresync-connector.ps1"
+                  download
+                  className="text-brand-400 underline underline-offset-4"
+                >
+                  ดาวน์โหลด coresync-connector.ps1
+                </a>{" "}
+                — เป็นสคริปต์ข้อความ เปิดอ่านได้ทุกบรรทัดก่อนรัน
+              </li>
+              <li>2. เปิด PowerShell ในโฟลเดอร์ที่วางไฟล์ไว้</li>
+              <li>3. วางคำสั่งด้านล่าง แก้เส้นทางไฟล์ให้ตรงกับของคุณ</li>
+            </ol>
+            <pre className="mt-3 overflow-x-auto rounded-xl border border-line bg-surface p-3 text-xs leading-relaxed">
+              <code>{connectorCmd}</code>
+            </pre>
+            <p className="mt-3 text-xs text-ink-faint">
+              รองรับ CSV สองแบบโดยตรวจให้เอง — แบบที่คอลัมน์คือชื่อ tag
+              และแบบที่หนึ่งแถวคือหนึ่งค่า (<span className="font-mono">tag,value,timestamp</span>) ·
+              ใส่ <span className="font-mono">-Once</span> เพื่อส่งครั้งเดียวตอนทดสอบว่าเครือข่ายส่งออกได้
+            </p>
+            <p className="mt-2 text-xs text-ink-faint">
+              ถ้า Windows ไม่ยอมรันสคริปต์ที่ดาวน์โหลดมา ให้เปิดด้วย{" "}
+              <span className="font-mono">powershell -ExecutionPolicy Bypass -File .\coresync-connector.ps1 …</span>
+            </p>
           </section>
 
           {/* ───────── ให้เห็นว่าเราตีความข้อมูลเขาถูก ───────── */}
