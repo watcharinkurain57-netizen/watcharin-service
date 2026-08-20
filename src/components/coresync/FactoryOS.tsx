@@ -12,6 +12,7 @@ import {
   sensorStatusLabel,
   viewTitles,
 } from "@/lib/coresync-data";
+import { LiveTagsView } from "./LiveTagsView";
 import {
   AiView,
   DigitalTwinView,
@@ -27,6 +28,7 @@ type ModalTarget = { line: number; machineKey: string };
 
 const BUILT_VIEWS = [
   "overview",
+  "live",
   "digital",
   "ai",
   "quality",
@@ -170,6 +172,7 @@ export function FactoryOS() {
               onOpenAi={() => setView("ai")}
             />
           )}
+          {view === "live" && <LiveTagsView />}
           {view === "digital" && (
             <DigitalTwinView
               filter={dtFilter}
