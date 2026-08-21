@@ -10,6 +10,8 @@ export type DemoChannelState = {
   status: ChannelStatus;
   /** เวลาที่ได้รับข้อมูลชุดล่าสุด (epoch ms) — null คือยังไม่เคยได้รับ */
   lastAt: number | null;
+  /** เวลาที่ได้รับชุดแรก — ใช้คำนวณอัตราการส่งจริงในสรุปผลการทดลอง */
+  firstAt: number | null;
   totalReadings: number;
   batches: number;
   /** ชื่อ tag ที่เคยเห็น เรียงตามลำดับที่เจอครั้งแรก */
@@ -26,6 +28,7 @@ export type DemoChannelState = {
 const EMPTY: DemoChannelState = {
   status: "idle",
   lastAt: null,
+  firstAt: null,
   totalReadings: 0,
   batches: 0,
   tags: [],
@@ -82,9 +85,11 @@ export function useDemoChannel(sessionId: string | null): DemoChannelState {
             history[reading.tag] = [...past, reading.value].slice(-HISTORY_KEPT);
           }
         }
+        const now = Date.now();
         return {
           status: "listening",
-          lastAt: Date.now(),
+          lastAt: now,
+          firstAt: prev.firstAt ?? now,
           totalReadings: prev.totalReadings + incoming.length,
           batches: prev.batches + 1,
           tags,

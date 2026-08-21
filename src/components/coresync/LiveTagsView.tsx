@@ -6,6 +6,7 @@ import { SPARK, seriesToPath } from "@/lib/coresync-data";
 import type { Reading } from "@/lib/demo/contract";
 import { useStoredSession } from "@/lib/demo/session-store";
 import { DEFAULT_TAGS, useDemoSimulator } from "@/lib/demo/simulate";
+import { ExperimentSummary } from "./ExperimentSummary";
 import { useDemoChannel, useSecondsSince } from "@/lib/demo/useDemoChannel";
 
 /**
@@ -112,6 +113,20 @@ export function LiveTagsView() {
             />
           ))}
         </div>
+      )}
+
+      {/* ปิดท้ายด้วยตัวเลขของผู้ใช้เอง — เปลี่ยนเดโมให้เป็นข้อมูลที่คุยขอบเขตงานต่อได้ */}
+      {waiting ? null : (
+        <ExperimentSummary
+          stats={{
+            tagCount: live.tags.length,
+            totalReadings: live.totalReadings,
+            batches: live.batches,
+            firstAt: live.firstAt,
+            lastAt: live.lastAt,
+          }}
+          tags={live.tags}
+        />
       )}
     </section>
   );
