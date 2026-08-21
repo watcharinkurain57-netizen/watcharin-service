@@ -2,7 +2,7 @@
 
 import { useEffect, useReducer, useState } from "react";
 import { CLAIM_TTL_MS, RESUME_GRACE_MS, initialState, reduce } from "@/lib/demo/plant/engine";
-import type { LogEntry, PlantState, Silo } from "@/lib/demo/plant/types";
+import type { LogEntry, Silo } from "@/lib/demo/plant/types";
 
 /**
  * เดโมระบบจัดการงานรถตัก — เล่นได้จากเบราว์เซอร์ ไม่ต้องติดตั้งอะไร
@@ -12,6 +12,10 @@ import type { LogEntry, PlantState, Silo } from "@/lib/demo/plant/types";
  * เดโมนี้จึงยกมาเฉพาะ **กฎการทำงาน** เพื่อให้คนนอกกดลองเองได้ว่าระบบตัดสินอย่างไร
  *
  * ⚠️ เป็นโรงงานสมมติ ชื่อไซโล เตา และรถ ตั้งขึ้นใหม่ทั้งหมด ไม่ใช่ของลูกค้ารายใด
+ *
+ * ⚠️ สไตล์ทั้งหมดใช้คลาส .wl-* ของตัวเอง ไม่ยืมคลาสจากมุมมองอื่น
+ * คลาสเดิมอย่าง .alert-row เป็นกริด 24px|1fr|auto ที่ออกแบบไว้ใส่ไอคอนนำหน้า
+ * พอเอามาใช้กับ markup ที่ไม่มีไอคอน ข้อความจะถูกบีบลงคอลัมน์ 24px แล้วแตกทีละคำ
  */
 
 const TICK_MS = 1000;
@@ -27,10 +31,8 @@ export function PlantDemo() {
   }, []);
 
   // ผลลัพธ์ล่าสุดอนุมานจากบันทึกได้ตรง ๆ ไม่ต้องเก็บเป็น state คู่ขนาน
-  // ซึ่งจะหลุดจากกันได้และต้องคอยซิงค์ด้วย effect โดยไม่จำเป็น
   const latest = state.log.find((entry) => entry.detail);
   const lastResult = latest ? `${latest.text} — ${latest.detail}` : null;
-  const run = dispatch;
 
   const holderOf = (siloId: string) =>
     state.jobs.find((j) => j.siloId === siloId && j.endedAt === null)?.vehicleId ?? null;
@@ -46,55 +48,61 @@ export function PlantDemo() {
       : `ระงับแจ้งเตือน — ${kiln.id} หยุดเดิน`;
   };
 
+  const activeJobs = state.jobs.filter((j) => j.endedAt === null).length;
+
   return (
     <section className="view">
-      {/* ───────── คำอธิบายว่านี่คืออะไร ───────── */}
-      <div className="card" style={{ marginBottom: 14 }}>
-        <div className="chart-head">
-          <div className="section-title">ระบบจัดการงานรถตัก — โรงงานตัวอย่าง</div>
-          <span className="pill warn">โรงงานสมมติ</span>
+      {/* ───────── หัวเรื่องและตัวควบคุม ───────── */}
+      <div className="wl-panel">
+        <div className="wl-head">
+          <div className="wl-title">ระบบจัดการงานรถตัก — โรงงานตัวอย่าง</div>
+          <span className="wl-tag wait">โรงงานสมมติ</span>
         </div>
-        <p className="sub" style={{ marginTop: 8 }}>
+        <p className="wl-note">
           กดลองได้ทุกปุ่ม ระบบจะบอกทุกครั้งว่าตัดสินอย่างไรและเพราะอะไร
           ทั้งหมดทำงานในเบราว์เซอร์ของคุณ ไม่มีการส่งข้อมูลออกและไม่มีการบันทึกที่ใด
         </p>
-        <div className="dt-toolbar" style={{ marginTop: 12 }}>
-          <button type="button" className={state.running ? "active" : ""} onClick={() => run({ type: "toggleRun" })}>
+
+        <div className="wl-tools">
+          <button type="button" className="wl-btn" onClick={() => dispatch({ type: "toggleRun" })}>
             {state.running ? "◼ หยุดเวลา" : "▶ เดินเวลา"}
           </button>
-          <button type="button" onClick={() => run({ type: "reset", at: Date.now() })}>
+          <button
+            type="button"
+            className="wl-btn"
+            onClick={() => dispatch({ type: "reset", at: Date.now() })}
+          >
             ↻ เริ่มใหม่
           </button>
         </div>
-        <div className="statstrip" style={{ marginTop: 12 }}>
-          <div className="stat">
-            <label>ค่าที่อ่านจากหน้างาน</label>
-            <strong>{state.counters.scadaMessages.toLocaleString("th-TH")}</strong>
+
+        <div className="wl-stats">
+          <div className="wl-stat">
+            <span>ค่าที่อ่านจากหน้างาน</span>
+            <b>{state.counters.scadaMessages.toLocaleString("th-TH")}</b>
           </div>
-          <div className="stat">
-            <label>คำขอที่ถูกปฏิเสธ</label>
-            <strong className={state.counters.rejected > 0 ? "t-yellow" : ""}>
+          <div className="wl-stat">
+            <span>คำขอที่ถูกปฏิเสธ</span>
+            <b className={state.counters.rejected > 0 ? "t-yellow" : undefined}>
               {state.counters.rejected}
-            </strong>
+            </b>
           </div>
-          <div className="stat">
-            <label>ข้อความซ้ำที่กันไว้ได้</label>
-            <strong className={state.counters.duplicates > 0 ? "t-green" : ""}>
+          <div className="wl-stat">
+            <span>ข้อความซ้ำที่กันไว้ได้</span>
+            <b className={state.counters.duplicates > 0 ? "t-green" : undefined}>
               {state.counters.duplicates}
-            </strong>
+            </b>
           </div>
-          <div className="stat">
-            <label>งานที่กำลังทำ</label>
-            <strong>{state.jobs.filter((j) => j.endedAt === null).length}</strong>
+          <div className="wl-stat">
+            <span>งานที่กำลังทำ</span>
+            <b>{activeJobs}</b>
           </div>
         </div>
       </div>
 
       {/* ───────── ไซโล ───────── */}
-      <div className="section-title" style={{ marginBottom: 8 }}>
-        ไซโลวัตถุดิบ — กดที่ไซโลเพื่อเลือกเป็นเป้าหมาย
-      </div>
-      <div className="grid-kpi" style={{ marginBottom: 14 }}>
+      <div className="wl-sect">ไซโลวัตถุดิบ — กดที่ไซโลเพื่อเลือกเป็นเป้าหมาย</div>
+      <div className="wl-silos">
         {state.silos.map((silo) => (
           <SiloCard
             key={silo.id}
@@ -108,113 +116,125 @@ export function PlantDemo() {
         ))}
       </div>
 
-      <div className="two-col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+      <div className="wl-cols">
         {/* ───────── เตา ───────── */}
-        <div className="card">
-          <div className="section-title">เตาเผา</div>
-          <p className="hint" style={{ marginTop: 4 }}>
+        <div className="wl-panel">
+          <div className="wl-title">เตาเผา</div>
+          <p className="wl-fine">
             สั่งเตาหยุดแล้วดูว่าไซโลที่ป้อนเตานั้นเลิกแจ้งเตือน — ระดับที่ลดตอนเตาหยุด
             ไม่ใช่เหตุให้ต้องรีบเติม ถ้าเตือนผิดบ่อย ๆ คนขับจะเลิกเชื่อการเตือน
           </p>
-          {state.kilns.map((kiln) => {
-            const fed = state.silos.filter((s) => s.feedsKiln === kiln.id).map((s) => s.id);
-            const inGrace =
-              kiln.running && kiln.resumedAt !== null && state.now - kiln.resumedAt < RESUME_GRACE_MS;
-            return (
-              <div key={kiln.id} className="alert-row" style={{ marginTop: 10, alignItems: "center" }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <b className="mono">{kiln.id}</b>{" "}
-                  <span className={kiln.running ? "pill ok" : "pill crit"}>
-                    {kiln.running ? "กำลังเดิน" : "หยุดเดิน"}
-                  </span>
-                  {inGrace ? <span className="pill warn"> ผ่อนผัน</span> : null}
-                  <div className="sub" style={{ marginTop: 3 }}>
-                    {kiln.material} · ป้อนโดย {fed.join(", ")}
+          <div style={{ marginTop: 10 }}>
+            {state.kilns.map((kiln) => {
+              const fed = state.silos.filter((s) => s.feedsKiln === kiln.id).map((s) => s.id);
+              const inGrace =
+                kiln.running &&
+                kiln.resumedAt !== null &&
+                state.now - kiln.resumedAt < RESUME_GRACE_MS;
+              return (
+                <div key={kiln.id} className="wl-item">
+                  <div className="wl-item-main">
+                    <div className="wl-item-top">
+                      <span className="wl-item-id">{kiln.id}</span>
+                      <span className={`wl-tag ${kiln.running ? "on" : "off"}`}>
+                        {kiln.running ? "กำลังเดิน" : "หยุดเดิน"}
+                      </span>
+                      {inGrace ? <span className="wl-tag wait">ผ่อนผัน</span> : null}
+                    </div>
+                    <div className="wl-item-sub">
+                      {kiln.material} · ป้อนโดย {fed.join(", ")}
+                    </div>
                   </div>
+                  <button
+                    type="button"
+                    className="wl-btn"
+                    onClick={() =>
+                      dispatch({
+                        type: "setKiln",
+                        kilnId: kiln.id,
+                        running: !kiln.running,
+                        at: Date.now(),
+                      })
+                    }
+                  >
+                    {kiln.running ? "สั่งหยุด" : "สั่งเดิน"}
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() =>
-                    run({ type: "setKiln", kilnId: kiln.id, running: !kiln.running, at: Date.now() })
-                  }
-                >
-                  {kiln.running ? "สั่งหยุด" : "สั่งเดิน"}
-                </button>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
 
         {/* ───────── รถตัก ───────── */}
-        <div className="card">
-          <div className="section-title">รถตัก</div>
-          <p className="hint" style={{ marginTop: 4 }}>
+        <div className="wl-panel">
+          <div className="wl-title">รถตัก</div>
+          <p className="wl-fine">
             หนึ่งคันถือได้ทีละงานเดียว ต้องจบงานเดิมก่อนจึงรับงานใหม่ได้
           </p>
-          {state.vehicles.map((vehicle) => {
-            const job = state.jobs.find((j) => j.id === vehicle.activeJobId);
-            return (
-              <div key={vehicle.id} className="alert-row" style={{ marginTop: 10, alignItems: "center" }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <b className="mono">{vehicle.id}</b>{" "}
-                  <span className="sub">{vehicle.operator}</span>
-                  <div className="sub" style={{ marginTop: 3 }}>
-                    {job ? (
-                      <span className="t-green">กำลังทำงานที่ {job.siloId} · {job.id}</span>
-                    ) : (
-                      "ว่าง"
-                    )}
+          <div style={{ marginTop: 10 }}>
+            {state.vehicles.map((vehicle) => {
+              const job = state.jobs.find((j) => j.id === vehicle.activeJobId);
+              return (
+                <div key={vehicle.id} className="wl-item">
+                  <div className="wl-item-main">
+                    <div className="wl-item-top">
+                      <span className="wl-item-id">{vehicle.id}</span>
+                      <span className={`wl-tag ${job ? "on" : "wait"}`}>
+                        {job ? "กำลังทำงาน" : "ว่าง"}
+                      </span>
+                    </div>
+                    <div className="wl-item-sub">
+                      {vehicle.operator}
+                      {job ? ` · ${job.siloId} · ${job.id}` : ""}
+                    </div>
                   </div>
+                  <button
+                    type="button"
+                    className="wl-btn"
+                    disabled={!job}
+                    onClick={() => dispatch({ type: "stopJob", vehicleId: vehicle.id, at: Date.now() })}
+                  >
+                    จบงาน
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  disabled={!job}
-                  onClick={() => run({ type: "stopJob", vehicleId: vehicle.id, at: Date.now() })}
-                >
-                  จบงาน
-                </button>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       </div>
 
       {/* ───────── สถานการณ์ที่กดลองได้ ───────── */}
-      <div className="card" style={{ marginTop: 14 }}>
-        <div className="section-title">ลองสถานการณ์</div>
-        <p className="hint" style={{ marginTop: 4 }}>
-          เป้าหมาย: <b className="mono">{selectedSilo}</b> · รถ:{" "}
+      <div className="wl-panel" style={{ marginTop: 14 }}>
+        <div className="wl-title">ลองสถานการณ์</div>
+        <p className="wl-fine">
+          เป้าหมาย <b style={{ color: "#cfe6f7" }}>{selectedSilo}</b> — เลือกได้จากการ์ดไซโลด้านบน
+        </p>
+
+        <div className="wl-tools">
           <select
+            className="wl-select"
             value={selectedVehicle}
             onChange={(e) => setSelectedVehicle(e.target.value)}
-            style={{
-              background: "var(--panel2)",
-              color: "var(--text)",
-              border: "1px solid var(--line)",
-              borderRadius: 6,
-              padding: "2px 6px",
-              fontFamily: "inherit",
-            }}
+            aria-label="เลือกรถ"
           >
             {state.vehicles.map((v) => (
               <option key={v.id} value={v.id}>
-                {v.id}
+                รถ {v.id}
               </option>
             ))}
           </select>
-        </p>
-
-        <div className="dt-toolbar" style={{ marginTop: 12, flexWrap: "wrap" }}>
           <button
             type="button"
-            onClick={() => run({ type: "requestMaterial", siloId: selectedSilo, at: Date.now() })}
+            className="wl-btn"
+            onClick={() => dispatch({ type: "requestMaterial", siloId: selectedSilo, at: Date.now() })}
           >
             ส่งคำขอวัตถุดิบ
           </button>
           <button
             type="button"
+            className="wl-btn"
             onClick={() =>
-              run({
+              dispatch({
                 type: "claim",
                 vehicleId: selectedVehicle,
                 siloId: selectedSilo,
@@ -227,27 +247,35 @@ export function PlantDemo() {
           </button>
           <button
             type="button"
-            className="active"
-            onClick={() => run({ type: "raceAll", siloId: selectedSilo, at: Date.now() })}
+            className="wl-btn primary"
+            onClick={() => dispatch({ type: "raceAll", siloId: selectedSilo, at: Date.now() })}
           >
-            🏁 กดพร้อมกัน 3 คัน
+            กดพร้อมกัน 3 คัน
           </button>
-          <button type="button" onClick={() => run({ type: "duplicateClaim", at: Date.now() })}>
+          <button
+            type="button"
+            className="wl-btn"
+            onClick={() => dispatch({ type: "duplicateClaim", at: Date.now() })}
+          >
             ส่งข้อความซ้ำ 5 ครั้ง
           </button>
-          <button type="button" onClick={() => run({ type: "staleClaim", at: Date.now() })}>
+          <button
+            type="button"
+            className="wl-btn"
+            onClick={() => dispatch({ type: "staleClaim", at: Date.now() })}
+          >
             สิทธิ์ค้างจากตอนเน็ตหลุด
           </button>
         </div>
 
         {lastResult ? (
-          <div className="panel-note" style={{ marginTop: 12 }}>
+          <div className="wl-result">
             <b>ผลล่าสุด</b>
-            <p style={{ marginTop: 4 }}>{lastResult}</p>
+            {lastResult}
           </div>
         ) : null}
 
-        <ul className="hint" style={{ marginTop: 12, paddingLeft: 16, listStyle: "disc" }}>
+        <ul className="wl-rules">
           <li>
             <b>กดพร้อมกัน 3 คัน</b> — ชนะได้คันเดียว อีกสองคันได้คำตอบว่าใครรับไปแล้ว
             ตัดสินจากลำดับที่คำขอถึงเซิร์ฟเวอร์ ไม่ใช่เวลาที่กดบนเครื่อง
@@ -263,17 +291,15 @@ export function PlantDemo() {
       </div>
 
       {/* ───────── บันทึก ───────── */}
-      <div className="card" style={{ marginTop: 14 }}>
-        <div className="chart-head">
-          <div className="section-title">บันทึกทุกอย่างที่ระบบตัดสิน</div>
-          <span className="sub">{state.log.length} รายการ</span>
+      <div className="wl-panel">
+        <div className="wl-head">
+          <div className="wl-title">บันทึกทุกอย่างที่ระบบตัดสิน</div>
+          <span className="wl-silo-ch">{state.log.length} รายการ</span>
         </div>
         {state.log.length === 0 ? (
-          <p className="sub" style={{ marginTop: 8 }}>
-            ยังไม่มีรายการ — กดปุ่มด้านบนเพื่อลองสถานการณ์
-          </p>
+          <p className="wl-note">ยังไม่มีรายการ — กดปุ่มด้านบนเพื่อลองสถานการณ์</p>
         ) : (
-          <div style={{ marginTop: 8, maxHeight: 280, overflowY: "auto" }}>
+          <div className="wl-log">
             {state.log.map((entry) => (
               <LogRow key={entry.id} entry={entry} />
             ))}
@@ -296,17 +322,11 @@ const TONE: Record<string, string> = {
 function LogRow({ entry }: { entry: LogEntry }) {
   const time = new Date(entry.at).toLocaleTimeString("th-TH", { hour12: false });
   return (
-    <div className="alert-row" style={{ alignItems: "flex-start", gap: 10 }}>
-      <span className="mono sub" style={{ minWidth: 62 }}>
-        {time}
-      </span>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div className={TONE[entry.kind]}>{entry.text}</div>
-        {entry.detail ? (
-          <div className="sub mono" style={{ fontSize: 12, marginTop: 2 }}>
-            {entry.detail}
-          </div>
-        ) : null}
+    <div className="wl-log-row">
+      <span className="wl-log-time">{time}</span>
+      <div className="wl-log-body">
+        <div className={`wl-log-text ${TONE[entry.kind]}`}>{entry.text}</div>
+        {entry.detail ? <div className="wl-log-detail">{entry.detail}</div> : null}
       </div>
     </div>
   );
@@ -334,64 +354,27 @@ function SiloCard({
     <button
       type="button"
       onClick={onSelect}
-      className={`card kpi${blinking ? " wl-blink" : ""}`}
-      style={{
-        textAlign: "left",
-        cursor: "pointer",
-        borderColor: selected ? "var(--cyan)" : undefined,
-        display: "block",
-        width: "100%",
-      }}
+      className={`wl-silo${selected ? " sel" : ""}${blinking ? " blink" : ""}`}
       aria-pressed={selected}
     >
-      <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-        <b className="mono" style={{ fontSize: 16 }}>
-          {silo.id}
-        </b>
-        <span className="sub" style={{ fontSize: 11 }}>
-          {silo.channel}
-        </span>
-        <span style={{ marginLeft: "auto", fontSize: 18, fontWeight: 700, color: tone }}>
+      <div className="wl-silo-top">
+        <span className="wl-silo-id">{silo.id}</span>
+        <span className="wl-silo-ch">{silo.channel}</span>
+        <span className="wl-silo-pct" style={{ color: tone }}>
           {silo.levelPct.toFixed(1)}%
         </span>
       </div>
 
       {/* แถบระดับ พร้อมขีดบอกเกณฑ์แจ้งเตือน */}
-      <div
-        style={{
-          position: "relative",
-          height: 8,
-          borderRadius: 4,
-          background: "var(--panel2)",
-          marginTop: 8,
-          overflow: "hidden",
-        }}
-      >
-        <div
-          style={{
-            width: `${silo.levelPct}%`,
-            height: "100%",
-            background: tone,
-            transition: "width 0.6s linear",
-          }}
-        />
-        <div
-          style={{
-            position: "absolute",
-            left: `${silo.thresholdPct}%`,
-            top: -2,
-            bottom: -2,
-            width: 2,
-            background: "var(--muted)",
-          }}
-          aria-hidden
-        />
+      <div className="wl-bar">
+        <i style={{ width: `${silo.levelPct}%`, background: tone }} />
+        <u style={{ left: `${silo.thresholdPct}%` }} aria-hidden />
       </div>
 
-      <div className="sub" style={{ marginTop: 6, fontSize: 12 }}>
-        สถานะจากหน้างาน: <span className="mono">{silo.statusRaw}</span> · เกณฑ์ {silo.thresholdPct}%
+      <div className="wl-silo-meta">
+        สถานะจากหน้างาน {silo.statusRaw} · เกณฑ์ {silo.thresholdPct}% · ป้อน {silo.feedsKiln}
       </div>
-      <div style={{ marginTop: 4, fontSize: 12 }}>
+      <div className="wl-silo-state">
         {holder ? (
           <span className="t-green">มีรถ {holder} ทำงานอยู่</span>
         ) : suppressReason ? (
@@ -399,12 +382,9 @@ function SiloCard({
         ) : blinking ? (
           <span className="t-red">กำลังแจ้งเตือน</span>
         ) : (
-          <span className="sub">ปกติ · ป้อน {silo.feedsKiln}</span>
+          <span style={{ color: "#6f8ba3" }}>ปกติ</span>
         )}
       </div>
     </button>
   );
 }
-
-/** ให้หน้าอื่นอ้างชนิดได้โดยไม่ต้อง import จาก types โดยตรง */
-export type { PlantState };
