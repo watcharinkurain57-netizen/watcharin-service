@@ -299,7 +299,7 @@ export function ConnectPanel() {
 
           <p className="text-center text-sm">
             <Link href="/coresync" className="text-brand-400 underline underline-offset-4">
-              เปิดหน้าจอ Factory OS แล้วดูที่เมนู Live Data →
+              เปิดหน้าจอ Factory OS แล้วดูที่เมนู Your Data →
             </Link>
           </p>
         </>

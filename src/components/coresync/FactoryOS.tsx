@@ -13,6 +13,7 @@ import {
   viewTitles,
 } from "@/lib/coresync-data";
 import { LiveTagsView } from "./LiveTagsView";
+import { PlantDemo } from "./PlantDemo";
 import {
   AiView,
   DigitalTwinView,
@@ -29,6 +30,7 @@ type ModalTarget = { line: number; machineKey: string };
 const BUILT_VIEWS = [
   "overview",
   "live",
+  "mydata",
   "digital",
   "ai",
   "quality",
@@ -172,7 +174,8 @@ export function FactoryOS() {
               onOpenAi={() => setView("ai")}
             />
           )}
-          {view === "live" && <LiveTagsView />}
+          {view === "live" && <PlantDemo />}
+          {view === "mydata" && <LiveTagsView />}
           {view === "digital" && (
             <DigitalTwinView
               filter={dtFilter}

@@ -28,8 +28,10 @@ export type NavItem = {
 
 export const navItems: readonly NavItem[] = [
   { key: "overview", icon: "⌂", label: "Overview", built: true },
-  // มุมมองเดียวที่ใช้ข้อมูลจริงจากผู้เข้าชม ที่เหลือเป็นข้อมูลตัวอย่างทั้งหมด
-  { key: "live", icon: "◉", label: "Live Data", built: true },
+  // เดโมที่กดเล่นได้จริง — จำลองในเบราว์เซอร์ ไม่ต่อระบบจริงของใคร
+  { key: "live", icon: "◉", label: "Loader Ops", built: true },
+  // ช่องทางให้ผู้เข้าชมส่งข้อมูลของตัวเองเข้ามาแสดง
+  { key: "mydata", icon: "⇱", label: "Your Data", built: true },
   { key: "digital", icon: "◇", label: "Digital Twin", built: true },
   { key: "ai", icon: "✦", label: "AI Insights", built: true },
   { key: "lines", icon: "▤", label: "Lines" },
@@ -49,7 +51,8 @@ export const builtModules = navItems.filter((item) => item.built).map((item) => 
 
 export const viewTitles: Record<string, string> = {
   overview: "Factory Command Center",
-  live: "Live Data — ข้อมูลจริงจากระบบของคุณ",
+  live: "ระบบจัดการงานรถตัก — โรงงานตัวอย่าง (กดเล่นได้)",
+  mydata: "Your Data — ข้อมูลจริงจากระบบของคุณ",
   digital: "Digital Twin — Production Lines",
   ai: "AI Factory Assistant",
   quality: "Quality & Defect Analytics",
