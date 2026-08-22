@@ -12,6 +12,8 @@ import {
   storageKey,
 } from "@/lib/project-files";
 import { MAX_TASK_FILES_PER_BATCH, TASK_FILES_PREFIX, type TaskFile } from "@/lib/project-tasks";
+import { PREVIEW_URL_SECONDS, previewKind, type PreviewItem } from "@/lib/file-preview";
+import { FileViewer } from "../FileViewer";
 
 /**
  * ไฟล์แนบของงานหนึ่งงาน
@@ -20,15 +22,6 @@ import { MAX_TASK_FILES_PER_BATCH, TASK_FILES_PREFIX, type TaskFile } from "@/li
  * ตัวที่กันจริงคือ policy บน storage.objects (0009) กับ project_task_files (0019)
  * ปุ่มในนี้แค่ไม่เอาของที่กดไม่ได้มาให้เกะกะ
  */
-
-/**
- * อายุลิงก์ของรูปตัวอย่าง — ยาวกว่าลิงก์ดาวน์โหลดมาก
- *
- * ลิงก์ดาวน์โหลดใช้ครั้งเดียวทันทีที่กด 60 วินาทีจึงเหลือเฟือ
- * แต่รูปตัวอย่างต้องยังเปิดได้ตลอดเวลาที่กล่องนี้เปิดค้างอยู่ รวมถึงตอนกดเปิดรูปเต็ม
- * ซึ่งเป็นหลังจากเปิดกล่องไปแล้วหลายนาที
- */
-const PREVIEW_URL_SECONDS = 600;
 
 const IMAGE_PREVIEW_LIMIT = 12;
 
@@ -50,6 +43,8 @@ export function TaskAttachments({
   const [uploading, setUploading] = useState<string[]>([]);
   const [dragging, setDragging] = useState(false);
   const [previews, setPreviews] = useState<Record<string, string>>({});
+  /** ไฟล์ที่กำลังเปิดดูอยู่ · null = ไม่ได้เปิดกล่อง */
+  const [viewing, setViewing] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
@@ -59,11 +54,14 @@ export function TaskAttachments({
     [files]
   );
   // เทียบด้วยรายการ path ไม่ใช่ตัว array เพราะ files ถูกสร้างใหม่ทุกครั้งที่ parent render
-  const imageKeys = images.map((f) => f.storage_path).join("|");
+  const previewKeys = files
+    .filter((f) => previewKind(f.mime_type, f.name))
+    .map((f) => f.storage_path)
+    .join("|");
 
-  /** ขอลิงก์รูปทั้งชุดในคำขอเดียว — ยิงทีละรูปจะกลายเป็นสิบคำขอตอนเปิดกล่อง */
+  /** ขอลิงก์ทั้งชุดในคำขอเดียว — ยิงทีละใบจะกลายเป็นสิบคำขอตอนเปิดกล่อง */
   const loadPreviews = useCallback(async () => {
-    const paths = imageKeys ? imageKeys.split("|") : [];
+    const paths = previewKeys ? previewKeys.split("|") : [];
     if (paths.length === 0) return {};
 
     const { data } = await supabase.storage.from(FILES_BUCKET).createSignedUrls(paths, PREVIEW_URL_SECONDS);
@@ -72,7 +70,7 @@ export function TaskAttachments({
       if (row.signedUrl && row.path) map[row.path] = row.signedUrl;
     }
     return map;
-  }, [supabase, imageKeys]);
+  }, [supabase, previewKeys]);
 
   useEffect(() => {
     let alive = true;
@@ -84,6 +82,35 @@ export function TaskAttachments({
       alive = false;
     };
   }, [loadPreviews]);
+
+  /**
+   * ไฟล์ที่เปิดดูได้ในกล่อง — รูปกับ PDF
+   *
+   * ต่างจาก `images` ตรงที่รวม PDF ด้วย · `images` ใช้ทำภาพย่อเท่านั้น
+   * ซึ่ง PDF ทำไม่ได้ (ต้อง render หน้าแรกออกมาก่อน ซึ่งต้องพึ่ง library)
+   */
+  const viewable = useMemo(
+    () => files.filter((f) => previewKind(f.mime_type, f.name)),
+    [files]
+  );
+
+  const viewerItems: PreviewItem[] = viewable
+    .filter((f) => previews[f.storage_path])
+    .map((f) => ({
+      id: f.id,
+      name: f.name,
+      kind: previewKind(f.mime_type, f.name) as "image" | "pdf",
+      url: previews[f.storage_path],
+    }));
+
+  function openViewer(f: TaskFile) {
+    const i = viewerItems.findIndex((x) => x.id === f.id);
+    if (i === -1) {
+      setError("ยังขอลิงก์เปิดดูไฟล์นี้ไม่ได้ — ลองดาวน์โหลดแทน");
+      return;
+    }
+    setViewing(i);
+  }
 
   /* ---------- แนบ ---------- */
 
@@ -246,17 +273,16 @@ export function TaskAttachments({
         <div className="flex flex-wrap gap-2">
           {images.map((f) =>
             previews[f.storage_path] ? (
-              <a
+              <button
                 key={f.id}
-                href={previews[f.storage_path]}
-                target="_blank"
-                rel="noopener noreferrer"
+                type="button"
+                onClick={() => openViewer(f)}
                 title={f.name}
                 className="overflow-hidden rounded-lg border border-line transition-colors hover:border-brand-500"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element -- ลิงก์ signed มีอายุสั้นและเปลี่ยนทุกครั้ง ให้ next/image มาแคชไม่ได้ */}
                 <img src={previews[f.storage_path]} alt={f.name} className="h-24 w-auto max-w-40 object-cover" />
-              </a>
+              </button>
             ) : null
           )}
         </div>
@@ -272,6 +298,15 @@ export function TaskAttachments({
               {f.name}
             </span>
             <span className="flex-none text-[0.74rem] text-ink-faint">{formatBytes(f.size_bytes)}</span>
+            {previewKind(f.mime_type, f.name) && (
+              <button
+                type="button"
+                onClick={() => openViewer(f)}
+                className="flex-none rounded px-1.5 py-0.5 text-[0.76rem] font-semibold text-ink-faint transition-colors hover:text-brand-400"
+              >
+                ดู
+              </button>
+            )}
             <button
               type="button"
               disabled={busy === f.id}
@@ -303,6 +338,19 @@ export function TaskAttachments({
           </li>
         ))}
       </ul>
+
+      {viewing !== null && viewerItems[viewing] && (
+        <FileViewer
+          items={viewerItems}
+          index={viewing}
+          onIndex={setViewing}
+          onClose={() => setViewing(null)}
+          onDownload={(item) => {
+            const row = files.find((f) => f.id === item.id);
+            if (row) download(row);
+          }}
+        />
+      )}
 
       {files.length === 0 && uploading.length === 0 && (
         <p
