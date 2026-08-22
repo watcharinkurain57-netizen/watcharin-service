@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { diagramErrorMessage } from "@/lib/project-diagrams";
+import { PanZoom } from "./PanZoom";
 
 /**
  * แปลงต้นฉบับ mermaid เป็นภาพ
@@ -57,7 +58,7 @@ type State =
 
 export function MermaidView({ source, className = "" }: { source: string; className?: string }) {
   const [state, setState] = useState<State>({ status: "loading" });
-  const holder = useRef<HTMLDivElement>(null);
+  const [expanded, setExpanded] = useState(false);
   // id ต้องไม่ซ้ำกันในหน้าเดียว เพราะ mermaid เอาไปตั้งเป็น id ของ element ที่สร้าง
   const rawId = useId();
   const id = `mmd${rawId.replace(/[^a-zA-Z0-9]/g, "")}`;
@@ -105,11 +106,19 @@ export function MermaidView({ source, className = "" }: { source: string; classN
   }, [trimmed, id]);
 
   useEffect(() => {
-    if (!holder.current) return;
-    // ล้างของเดิมเสมอ ไม่ใช่แค่ตอนมี svg ใหม่ — ไม่งั้นผังเก่าค้างอยู่
-    // ตอนที่ต้นฉบับเพิ่งพิมพ์ผิด ซึ่งทำให้เข้าใจผิดว่ายังใช้ได้อยู่
-    holder.current.innerHTML = state.status === "ok" ? state.svg : "";
-  }, [state]);
+    if (!expanded) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setExpanded(false);
+    };
+    window.addEventListener("keydown", onKey);
+    // ล็อกการเลื่อนของหน้าข้างหลัง เหมือนกล่องซ้อนหน้าอื่น ๆ ในคลังโปรเจกต์
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [expanded]);
 
   if (!trimmed) {
     return (
@@ -130,15 +139,53 @@ export function MermaidView({ source, className = "" }: { source: string; classN
     );
   }
 
+  if (state.status === "loading") {
+    return (
+      <div className={`grid h-[26rem] place-items-center rounded-xl border border-line bg-surface-raised ${className}`}>
+        <p className="text-sm text-ink-faint">กำลังวาดผัง…</p>
+      </div>
+    );
+  }
+
   return (
-    <div className={`overflow-auto rounded-xl border border-line bg-surface-raised p-4 ${className}`}>
-      {state.status === "loading" ? (
-        <p className="py-8 text-center text-sm text-ink-faint">กำลังวาดผัง…</p>
-      ) : (
-        // [&_svg]:mx-auto — mermaid ให้ svg ความกว้างคงที่มา จัดกลางเองไม่ได้
-        <div ref={holder} className="[&_svg]:mx-auto [&_svg]:h-auto [&_svg]:max-w-full" />
+    <>
+      <div className={`relative ${className}`}>
+        <PanZoom svg={state.svg} className="h-[26rem]" />
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          className="absolute right-2 top-2 rounded-lg border border-line bg-surface/80 px-2.5 py-1.5 text-[0.72rem] font-bold text-ink-muted backdrop-blur transition-colors hover:border-brand-500 hover:text-brand-300"
+        >
+          ขยายเต็มจอ
+        </button>
+      </div>
+
+      {/* เต็มจอ — ผังสถาปัตยกรรมของงานจริงต้องการพื้นที่มากกว่ากล่องในหน้า
+          key ที่ต่างกันบังคับให้ PanZoom ตัวในสร้างใหม่ จะได้จัดพอดีจอของตัวเอง
+          ไม่ใช่รับมุมมองที่คำนวณจากขนาดกล่องเล็กมาใช้ */}
+      {expanded && (
+        <div
+          className="fixed inset-0 z-60 flex flex-col bg-black/90 p-3 sm:p-5"
+          role="dialog"
+          aria-modal="true"
+          aria-label="ผังแบบเต็มจอ"
+        >
+          <div className="mb-3 flex flex-none items-center gap-3">
+            <span className="text-[0.85rem] font-bold text-ink-muted">
+              ลากเพื่อเลื่อน · ล้อเพื่อซูม · สองนิ้วหุบเข้าออกบนมือถือ
+            </span>
+            <button
+              type="button"
+              onClick={() => setExpanded(false)}
+              className="ml-auto rounded-lg border border-line-strong px-3 py-1.5 text-[0.8rem] font-bold text-ink-muted transition-colors hover:text-ink"
+            >
+              ปิด
+            </button>
+          </div>
+          <PanZoom key="full" svg={state.svg} immersive className="min-h-0 flex-1" />
+        </div>
       )}
-    </div>
+    </>
   );
 }
 

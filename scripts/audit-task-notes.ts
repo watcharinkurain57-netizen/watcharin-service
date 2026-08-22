@@ -13,6 +13,7 @@
  */
 import { storageKey } from "../src/lib/project-files.ts";
 import { bucketBy } from "../src/lib/grouping.ts";
+import { MAX_ZOOM, MIN_ZOOM, contentPointAt, fitView, zoomAt } from "../src/lib/pan-zoom.ts";
 import {
   bulletLines,
   fenceBlock,
@@ -288,6 +289,62 @@ const withGroup = (id: string, group_id: string | null): I => ({ id, group_id })
   const out = bucketBy(items, gs, (i) => i.group_id);
   check(out.every((b) => b.group !== null), "ไม่มีของนอกหมวด = ไม่ต้องมีถังท้ายมาให้รก");
 }
+
+/* ---------------- เลื่อน/ซูมผัง ---------------- */
+
+/**
+ * ข้อที่ต้องจริงเสมอ: จุดที่อยู่ใต้เมาส์ต้องอยู่ที่เดิมหลังซูม
+ * ถ้าผิด ภาพจะไถลหนีมือทุกครั้งที่หมุนล้อ ซึ่งไม่ error และคนใช้
+ * จะอธิบายได้แค่ว่า "มันแปลก ๆ" — ต้องมีข้อตรวจกันไว้
+ */
+section("เลื่อน/ซูมผัง");
+
+const near = (a: number, b: number) => Math.abs(a - b) < 1e-9;
+
+for (const [px, py] of [[0, 0], [120, 80], [640, 360]]) {
+  for (const factor of [1.25, 1 / 1.25, 2, 0.5]) {
+    const before = { x: -37, y: 21, k: 0.8 };
+    const after = zoomAt(before, factor, px, py);
+    const a = contentPointAt(before, px, py);
+    const b = contentPointAt(after, px, py);
+    check(near(a.x, b.x) && near(a.y, b.y), `ซูม ×${factor} ที่ (${px},${py}) แล้วจุดใต้เมาส์อยู่ที่เดิม`);
+  }
+}
+
+{
+  const v = zoomAt({ x: 0, y: 0, k: MAX_ZOOM }, 4, 50, 50);
+  check(v.k === MAX_ZOOM, "ซูมเข้าเกินเพดานแล้วหยุดที่เพดาน");
+  check(v.x === 0 && v.y === 0, "ซูมที่ไม่เปลี่ยนอัตราขยาย ต้องไม่ขยับภาพ");
+
+  const out = zoomAt({ x: 0, y: 0, k: MIN_ZOOM }, 0.1, 50, 50);
+  check(out.k === MIN_ZOOM, "ซูมออกเกินพื้นแล้วหยุดที่พื้น");
+}
+
+{
+  // ผังใหญ่กว่ากรอบ → ต้องย่อลงและวางไว้กลาง
+  // กรอบ 400x300 กับผัง 800x600: แนวนอนได้ 0.470 แนวตั้งได้ 0.460
+  // ต้องเลือก 0.460 ไม่งั้นผังล้นออกนอกกรอบด้านบนล่าง
+  const v = fitView({ width: 400, height: 300 }, { w: 800, h: 600 }, 24);
+  check(v !== null, "คำนวณพอดีจอได้");
+  if (v) {
+    check(near(v.k, (300 - 24) / 600), "ย่อตามด้านที่คับที่สุด (รอบนี้คือแนวตั้ง)");
+    check(near(v.x, (400 - 800 * v.k) / 2), "วางกลางแนวนอน");
+    check(near(v.y, (300 - 600 * v.k) / 2), "วางกลางแนวตั้ง");
+  }
+}
+
+{
+  // สลับให้แนวนอนเป็นด้านที่คับ — กันเทสต์ข้างบนผ่านเพราะบังเอิญ
+  const v = fitView({ width: 300, height: 900 }, { w: 800, h: 600 }, 24);
+  if (v) check(near(v.k, (300 - 24) / 800), "ผังเตี้ยกว้าง ย่อตามแนวนอนแทน");
+
+  // ผังเล็กกว่ากรอบมาก ๆ ก็ต้องไม่ถูกจับขยายจนเกินเพดาน
+  const small = fitView({ width: 4000, height: 4000 }, { w: 10, h: 10 });
+  if (small) check(small.k <= MAX_ZOOM, "ผังจิ๋วในกรอบใหญ่ ขยายได้ไม่เกินเพดาน");
+}
+
+check(fitView({ width: 400, height: 300 }, { w: 0, h: 0 }) === null, "ยังไม่รู้ขนาดผัง = ไม่คำนวณมั่ว");
+check(fitView({ width: 0, height: 0 }, { w: 800, h: 600 }) === null, "กรอบยังไม่มีขนาด = ไม่คำนวณมั่ว");
 
 console.log(
   failures === 0
