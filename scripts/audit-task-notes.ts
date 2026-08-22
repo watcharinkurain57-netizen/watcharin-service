@@ -12,6 +12,7 @@
  * ซึ่งไม่มีใครสังเกตจนกว่าจะพิมพ์อยู่แล้วรู้สึกว่ามันแปลก ๆ
  */
 import { storageKey } from "../src/lib/project-files.ts";
+import { bucketBy } from "../src/lib/grouping.ts";
 import {
   bulletLines,
   fenceBlock,
@@ -239,6 +240,54 @@ check(
   storageKey(PID, "doc.pdf", "UNIQ") === `${PID}/UNIQ-doc.pdf`,
   "ไฟล์ส่งมอบยังได้ path ทรงเดิม การเพิ่ม group ไม่ไปกวนของเดิม",
 );
+
+/* ---------------- จัดของลงหมวด ---------------- */
+
+/**
+ * ตรรกะนี้ใช้ร่วมกันระหว่างงาน (0014) กับไดอะแกรม (0021)
+ * และมีกับดักที่พังแบบไม่ error: ของที่ชี้หมวดซึ่งหาไม่เจอ **หายจากทุกมุมมอง**
+ * ต้องมีข้อตรวจไว้ตลอดไป เพราะไม่มีทางสังเกตเห็นเองจนกว่าจะมีคนทัก
+ */
+section("จัดของลงหมวด");
+
+type G = { id: string; name: string; sort: number };
+type I = { id: string; group_id: string | null };
+
+const gs: G[] = [
+  { id: "g2", name: "ข", sort: 2 },
+  { id: "g1", name: "ก", sort: 1 },
+];
+const withGroup = (id: string, group_id: string | null): I => ({ id, group_id });
+
+{
+  const items = [withGroup("a", "g1"), withGroup("b", "g2"), withGroup("c", null)];
+  const out = bucketBy(items, gs, (i) => i.group_id);
+
+  same(out.map((b) => b.group?.id ?? "ไม่มีหมวด"), ["g1", "g2", "ไม่มีหมวด"], "เรียงตาม sort แล้วปิดท้ายด้วยถังไม่มีหมวด");
+  same(out.map((b) => b.items.map((i) => i.id)), [["a"], ["b"], ["c"]], "ของเข้าถังถูกใบ");
+}
+
+{
+  // ⚠️ ข้อสำคัญที่สุดของหมวดนี้
+  const items = [withGroup("a", "g1"), withGroup("ผี", "หมวดที่ไม่มีจริง")];
+  const out = bucketBy(items, gs, (i) => i.group_id);
+  const seen = out.flatMap((b) => b.items.map((i) => i.id));
+
+  check(seen.includes("ผี"), "ของที่ชี้หมวดแปลกปลอมยังโผล่ในถังท้าย ไม่หายเงียบ");
+  check(seen.length === items.length, "ไม่มีของหายไประหว่างจัดถัง");
+}
+
+{
+  const out = bucketBy([] as I[], gs, (i) => i.group_id);
+  same(out.map((b) => b.group?.id), ["g1", "g2"], "หมวดที่ยังไม่มีของก็ยังถูกคืนมา ให้เห็นว่าตั้งไว้แล้ว");
+  check(out.every((b) => b.items.length === 0), "หมวดว่างมี items เป็นรายการเปล่า");
+}
+
+{
+  const items = [withGroup("a", "g1")];
+  const out = bucketBy(items, gs, (i) => i.group_id);
+  check(out.every((b) => b.group !== null), "ไม่มีของนอกหมวด = ไม่ต้องมีถังท้ายมาให้รก");
+}
 
 console.log(
   failures === 0

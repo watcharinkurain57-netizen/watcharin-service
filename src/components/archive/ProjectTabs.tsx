@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ChatTab } from "@/components/archive/ChatTab";
+import { DiagramsTab } from "@/components/archive/diagrams/DiagramsTab";
 import { FilesTab } from "@/components/archive/FilesTab";
 import { PaymentsTab } from "@/components/archive/PaymentsTab";
 import { InvitePanel } from "@/components/archive/InvitePanel";
@@ -56,6 +57,7 @@ const TABS: TabDef[] = [
   { id: "tasks", label: "งาน", need: "project.tasks.view" },
   { id: "money", label: "เงิน", need: "project.invoice.view" },
   { id: "files", label: "ไฟล์", need: "project.files.view" },
+  { id: "diagrams", label: "ไดอะแกรม", need: "project.diagrams.view" },
   { id: "chat", label: "คุยงาน", need: "project.comments.view" },
   { id: "people", label: "คนในโปรเจกต์", need: "project.members.view" },
 ];
@@ -166,6 +168,13 @@ export function ProjectTabs({
 
       {active === "files" && (
         <FilesTab projectId={projectId} canManage={can(viewer, "project.files.manage")} />
+      )}
+
+      {active === "diagrams" && (
+        <section className="rounded-2xl border border-line bg-surface-raised p-6">
+          <h2 className="mb-3 text-base font-bold tracking-tight">ไดอะแกรม</h2>
+          <DiagramsTab projectId={projectId} canEdit={can(viewer, "project.diagrams.manage")} />
+        </section>
       )}
 
       {active === "chat" && (
