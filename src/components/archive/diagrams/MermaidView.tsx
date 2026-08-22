@@ -149,7 +149,8 @@ export function MermaidView({ source, className = "" }: { source: string; classN
 
   return (
     <>
-      <div className={`relative ${className}`}>
+      {/* min-w-0 = กัน grid track บานตามความกว้างของผัง (ดูคอมเมนต์ใน PanZoom) */}
+      <div className={`relative min-w-0 ${className}`}>
         <PanZoom svg={state.svg} className="h-[26rem]" />
         <button
           type="button"
