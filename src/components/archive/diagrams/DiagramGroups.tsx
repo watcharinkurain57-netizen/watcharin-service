@@ -2,6 +2,7 @@
 
 import { COLUMN_COLORS, colorOf, type ColumnColor } from "@/lib/project-tasks";
 import type { DiagramGroup } from "@/lib/project-diagrams";
+import { Modal } from "../Modal";
 
 /**
  * แผงจัดการหมวดของผัง — เพิ่ม เปลี่ยนชื่อ เปลี่ยนสี สลับลำดับ ลบ
@@ -9,7 +10,7 @@ import type { DiagramGroup } from "@/lib/project-diagrams";
  * แยกออกมาจาก DiagramsTab เพราะเป็นของที่เปิดใช้นาน ๆ ครั้ง
  * และปนอยู่ในไฟล์เดียวกันแล้วตัวแท็บอ่านยากขึ้นโดยไม่ได้อะไรกลับมา
  *
- * รูปแบบเดียวกับแผงจัดการหมวดงานในแท็บงาน ตั้งใจให้เหมือนกัน
+ * รูปแบบเดียวกับแผงจัดการคอลัมน์และหมวดงานในแท็บงาน ตั้งใจให้เหมือนกัน
  * คนที่เคยจัดหมวดงานเป็นแล้วต้องไม่ต้องเรียนรู้ใหม่
  */
 
@@ -35,18 +36,7 @@ export function DiagramGroups({
   onClose: () => void;
 }) {
   return (
-    <div className="mb-4 rounded-2xl border border-line bg-surface-overlay/40 p-4">
-      <div className="mb-3 flex items-center gap-2">
-        <h3 className="text-[0.9rem] font-bold">จัดการหมวด</h3>
-        <button
-          type="button"
-          onClick={onClose}
-          className="ml-auto rounded-lg px-2 py-1 text-[0.8rem] font-bold text-ink-faint transition-colors hover:text-ink"
-        >
-          ปิด
-        </button>
-      </div>
-
+    <Modal title="จัดการหมวดของผัง" onClose={onClose}>
       <ul className="mb-3 grid gap-1.5">
         {groups.map((g, i) => (
           <li key={g.id} className="flex flex-wrap items-center gap-2 rounded-xl bg-surface-overlay px-3 py-2">
@@ -142,6 +132,6 @@ export function DiagramGroups({
           เพิ่ม
         </button>
       </form>
-    </div>
+    </Modal>
   );
 }

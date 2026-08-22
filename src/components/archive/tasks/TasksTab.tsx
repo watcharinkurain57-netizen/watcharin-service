@@ -21,6 +21,7 @@ import {
   type TaskGroup,
 } from "@/lib/project-tasks";
 import { FILES_BUCKET, SIGNED_URL_SECONDS, fileErrorMessage, formatBytes } from "@/lib/project-files";
+import { Modal } from "../Modal";
 import { TaskDialog } from "./TaskDialog";
 import {
   BoardView,
@@ -520,9 +521,10 @@ export function TasksTab({ projectId, canEdit }: { projectId: string; canEdit: b
         )}
       </div>
 
-      {/* ---------- จัดการคอลัมน์ ---------- */}
+      {/* กล่องจัดการคอลัมน์และหมวด — ชั้นซ้อนหน้า ไม่ใช่แผงที่ดันเนื้อหาข้างล่างลงไป
+          คนที่กำลังดูงานอยู่จะได้ไม่เสียตำแหน่งที่มองอยู่ตอนเปิดแผง */}
       {managing && canEdit && (
-        <section className="mb-4 rounded-2xl border border-line bg-surface-raised p-4">
+        <Modal title="จัดการคอลัมน์และหมวด" onClose={() => setManaging(false)} wide>
           <h3 className="mb-3 text-[0.95rem] font-bold">คอลัมน์ของโปรเจกต์นี้</h3>
 
           <ul className="mb-4 grid gap-2">
@@ -707,7 +709,7 @@ export function TasksTab({ projectId, canEdit }: { projectId: string; canEdit: b
           <p className="mt-3 text-[0.8rem] text-ink-faint">
             ลบหมวดได้เลยแม้มีงานอยู่ — งานข้างในจะกลับไปเป็น “ยังไม่จัดหมวด” ไม่ถูกลบ
           </p>
-        </section>
+        </Modal>
       )}
 
       {/* ---------- เพิ่มงาน ---------- */}

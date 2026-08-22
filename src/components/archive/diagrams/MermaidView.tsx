@@ -142,6 +142,122 @@ export function MermaidView({ source, className = "" }: { source: string; classN
   );
 }
 
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+/**
+ * แปลง SVG ที่ mermaid ให้มา ให้เป็นไฟล์ที่เอาไปเปิดที่อื่นได้จริง
+ *
+ * ---------------------------------------------------------------------------
+ * ปัญหาที่ฟังก์ชันนี้แก้ (เจอจากของจริง 2026-08-23)
+ *
+ * mermaid วาด label ของ flowchart เป็น HTML ใน <foreignObject> ไม่ใช่ <text>
+ * ซึ่งบนหน้าเว็บไม่มีปัญหาเลย แต่พอบันทึกเป็นไฟล์ .svg แล้วเปิด:
+ *
+ *   1) **ไฟล์พังทั้งไฟล์** — ข้างในมี <br> กับ <p> แบบ HTML ที่ไม่ปิด tag
+ *      ซึ่งเป็น HTML ที่ถูก แต่ .svg ถูกอ่านแบบ XML ที่เข้มกว่า
+ *      เบราว์เซอร์ขึ้น "Opening and ending tag mismatch: br line 1 and p"
+ *      แล้วหยุดวาดตรงนั้น (นี่คืออาการที่เจ้าของรายงานมา)
+ *
+ *   2) **ต่อให้ XML ถูก ก็ยังเอาไปแปะที่อื่นไม่ได้** — SVG ที่มี foreignObject
+ *      ไม่ render ตอนอยู่ใน <img> ซึ่งเป็นบริบทที่ Word/PowerPoint/Illustrator ใช้
+ *      ตัวหนังสือจะหายหมดเหลือแต่กล่องเปล่า
+ *      วัดแล้ว: ไฟล์เดิมโหลดเข้า <img> ไม่ขึ้นเลย · หลังแปลงได้ขนาดจริงออกมา
+ *
+ * ลองปิด foreignObject ที่ต้นทางแล้วไม่ได้ผล — `htmlLabels: false` ทั้งระดับ
+ * config, ระดับ flowchart และผ่าน directive `%%{init}%%` ถูก mermaid 11.17
+ * เมินทั้งหมด (renderer ใหม่ของ flowchart ใช้ foreignObject เสมอ)
+ * จึงต้องแปลงเองหลังจากได้ผลลัพธ์มา
+ * ---------------------------------------------------------------------------
+ */
+function toPortableSvg(svg: string): string {
+  // ต้องแปะลง DOM จริงก่อน เพราะต้องถาม getComputedStyle ว่าตัวอักษรขนาดเท่าไหร่สีอะไร
+  // (ซ่อนไว้นอกจอแทนที่จะใช้ display:none เพราะ display:none ไม่มีการคำนวณ layout)
+  const stage = document.createElement("div");
+  stage.style.cssText = "position:fixed;left:-99999px;top:0;pointer-events:none;";
+  stage.innerHTML = svg;
+  document.body.appendChild(stage);
+
+  try {
+    const root = stage.querySelector("svg");
+    if (!root) return svg;
+
+    for (const fo of Array.from(root.querySelectorAll("foreignObject"))) {
+      const holder = fo.firstElementChild;
+      if (!holder) {
+        fo.remove();
+        continue;
+      }
+
+      // <br> คือตัวขึ้นบรรทัดใหม่ ต้องแปลงเป็นตัวขึ้นบรรทัดก่อนอ่าน textContent
+      // ไม่งั้นสองบรรทัดจะติดกันเป็นคำเดียว เช่น "SCADA / PLCKK1-6"
+      const clone = holder.cloneNode(true) as HTMLElement;
+      clone.querySelectorAll("br").forEach((b) => b.replaceWith(document.createTextNode("\n")));
+      const lines = clone.textContent?.split("\n").map((l) => l.trim()).filter(Boolean) ?? [];
+
+      if (lines.length === 0) {
+        fo.remove();
+        continue;
+      }
+
+      const probe = holder.querySelector("span, p, div") ?? holder;
+      const cs = getComputedStyle(probe);
+      const size = parseFloat(cs.fontSize) || 14;
+      const lineHeight = size * 1.25;
+
+      const box = holder.getBoundingClientRect();
+      const w = parseFloat(fo.getAttribute("width") ?? "") || box.width;
+      const h = parseFloat(fo.getAttribute("height") ?? "") || box.height;
+
+      const text = document.createElementNS(SVG_NS, "text");
+      text.setAttribute("x", String(w / 2));
+      // จัดกึ่งกลางแนวตั้ง: ยกขึ้นครึ่งหนึ่งของความสูงรวมทุกบรรทัด
+      text.setAttribute("y", String(h / 2 - ((lines.length - 1) * lineHeight) / 2));
+      text.setAttribute("text-anchor", "middle");
+      text.setAttribute("dominant-baseline", "central");
+      text.setAttribute("font-size", `${size}px`);
+      // ใส่สีตรง ๆ ไม่พึ่ง class เพราะ <style> ของ mermaid เล็ง .nodeLabel
+      // ซึ่งเป็นของ foreignObject ที่กำลังจะถูกลบไป
+      text.setAttribute("fill", cs.color || "#eef2f0");
+
+      lines.forEach((line, i) => {
+        const ts = document.createElementNS(SVG_NS, "tspan");
+        ts.setAttribute("x", String(w / 2));
+        if (i > 0) ts.setAttribute("dy", String(lineHeight));
+        ts.textContent = line;
+        text.appendChild(ts);
+      });
+
+      const g = document.createElementNS(SVG_NS, "g");
+      g.setAttribute("transform", `translate(${fo.getAttribute("x") ?? 0}, ${fo.getAttribute("y") ?? 0})`);
+      g.appendChild(text);
+      fo.replaceWith(g);
+    }
+
+    // ไฟล์เดี่ยวต้องบอกขนาดของตัวเอง — mermaid ตั้ง width เป็น 100%
+    // ซึ่งแปลว่า "เท่ากับกล่องที่ใส่อยู่" พอไม่มีกล่องก็ไม่รู้จะกว้างเท่าไหร่
+    const viewBox = (root.getAttribute("viewBox") ?? "").split(/[\s,]+/).map(Number);
+    if (viewBox.length === 4 && viewBox[2] > 0) {
+      root.setAttribute("width", String(Math.round(viewBox[2])));
+      root.setAttribute("height", String(Math.round(viewBox[3])));
+      root.removeAttribute("style");
+
+      // พื้นหลังทึบ ให้ไฟล์หน้าตาเหมือนตอนอยู่ในเว็บ ไม่ใช่โปร่งใสแล้วไปเจอ
+      // พื้นขาวของเอกสารจนตัวหนังสือสีอ่อนอ่านไม่ออก
+      const bg = document.createElementNS(SVG_NS, "rect");
+      bg.setAttribute("x", String(viewBox[0]));
+      bg.setAttribute("y", String(viewBox[1]));
+      bg.setAttribute("width", String(viewBox[2]));
+      bg.setAttribute("height", String(viewBox[3]));
+      bg.setAttribute("fill", THEME.background);
+      root.insertBefore(bg, root.firstChild);
+    }
+
+    return `<?xml version="1.0" encoding="UTF-8"?>\n${new XMLSerializer().serializeToString(root)}`;
+  } finally {
+    stage.remove();
+  }
+}
+
 /** ดึง SVG ที่ render แล้วออกมาเป็นไฟล์ — เอาไปแปะในข้อเสนอหรือเอกสารส่งมอบได้ */
 export async function renderToSvg(source: string): Promise<string> {
   const mermaid = (await import("mermaid")).default;
@@ -154,5 +270,5 @@ export async function renderToSvg(source: string): Promise<string> {
   });
   await mermaid.parse(source);
   const { svg } = await mermaid.render(`mmdexport${Date.now()}`, source);
-  return svg;
+  return toPortableSvg(svg);
 }
