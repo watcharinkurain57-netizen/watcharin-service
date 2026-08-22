@@ -13,9 +13,21 @@ import { diagramErrorMessage } from "@/lib/project-diagrams";
  * เป็น element ทีละชิ้นได้ จึงต้องยัดลง DOM ทั้งก้อน — ไม่มีทางอื่น
  *
  * ตัวที่กันคือ `securityLevel: "strict"` ซึ่งสั่งให้ mermaid ล้าง label
- * ด้วย DOMPurify ก่อนประกอบ SVG และปิดการผูก event ทั้งหมด
- * (ค่านี้ห้ามเปลี่ยนเป็น 'loose' เด็ดขาด — 'loose' ปล่อย HTML ใน label ผ่าน
- *  ซึ่งแปลว่าข้อความที่ลูกค้าพิมพ์กลายเป็น markup ที่ทำงานได้ทันที)
+ * ด้วย DOMPurify ก่อนประกอบ SVG และไม่รับคำสั่ง `click` ที่ผูก callback
+ *
+ * วัดจริงกับ mermaid 11.17.0 (2026-08-22) ป้อน label ที่มี
+ * `<img onerror>`, `<script>`, `<b onmouseover>`, `javascript:` เข้าไป:
+ *   - onerror / onmouseover / <script> / javascript: → **ถูกล้างทิ้งหมด**
+ *   - `<img src="x">` → เหลือรอด แต่ไม่มี event handler ติดมาด้วย
+ *
+ * ⚠️ ข้อควรรู้ที่ตามมาจากผลข้อสอง: label ใส่ `<img src="https://...">` ได้
+ * ซึ่งแปลว่าคนเขียนผังยิงคำขอออกนอกได้ตอนคนอื่นเปิดดู (แบบ tracking pixel)
+ * รับได้เพราะคนที่เขียนผังได้คือ **เจ้าของโปรเจกต์** เท่านั้น (policy ใน 0020)
+ * ไม่ใช่ลูกค้าหรือคนนอก ถ้าวันหนึ่งเปิดให้ลูกค้าเขียนผังด้วย ต้องกลับมาคิดข้อนี้ใหม่
+ *
+ * (เคยเขียนไว้ว่า 'loose' จะทำให้ข้อความกลายเป็น markup ที่ทำงานได้ทันที
+ *  — ลองแล้วไม่จริงในเวอร์ชันนี้ 'loose' ก็โดนล้างเหมือนกัน ยังตั้ง strict ต่อไป
+ *  เพราะเป็นค่าที่แคบที่สุดและไม่ต้องพึ่งว่า DOMPurify จะยังทำงานแบบนี้ตลอดไป)
  *
  * ต่างจากรายละเอียดงานตรงที่ตรงนั้นเรา *เขียนตัวแปลงเอง* จึงเลี่ยง innerHTML ได้
  * ส่วนตรงนี้เรารับผลจาก library ก้อนหนึ่งมาแสดง
@@ -70,7 +82,7 @@ export function MermaidView({ source, className = "" }: { source: string; classN
 
         mermaid.initialize({
           startOnLoad: false,
-          securityLevel: "strict", // ⚠️ ห้ามเปลี่ยน — อ่านคอมเมนต์หัวไฟล์
+          securityLevel: "strict", // ค่าที่แคบที่สุด — อ่านคอมเมนต์หัวไฟล์ก่อนเปลี่ยน
           theme: "base",
           themeVariables: THEME,
           fontFamily: "inherit",
