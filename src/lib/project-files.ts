@@ -94,21 +94,25 @@ function asciiSlug(s: string, max: number): string {
 }
 
 /**
- * path ของไฟล์ใน Storage — {project_id}/{unique}-{ชื่อ ascii}
+ * path ของไฟล์ใน Storage — {project_id}/{group?}/{unique}-{ชื่อ ascii}
  *
  * โฟลเดอร์แรกต้องเป็น project_id เสมอ เพราะ policy ใน 0009 อ่านสิทธิ์จากตรงนั้น
  * ส่วน unique กันสองคนอัปไฟล์ชื่อเดียวกันทับกัน และกันคนเดาชื่อไฟล์ของคนอื่น
  *
  * @param unique ส่งเข้ามาแทนที่จะสุ่มข้างใน เพื่อให้ทดสอบผลลัพธ์ที่แน่นอนได้
+ * @param group  ชั้นคั่นกลางแบบ ascii เช่น 'tasks' สำหรับไฟล์แนบในงาน (0019)
+ *               policy ดูแค่โฟลเดอร์แรก ชั้นนี้จึงมีไว้ให้คนเปิด dashboard
+ *               แยกออกว่าไฟล์ไหนเป็นของส่งมอบ ไฟล์ไหนเป็นของแนบระหว่างทาง
  */
-export function storageKey(projectId: string, fileName: string, unique: string): string {
+export function storageKey(projectId: string, fileName: string, unique: string, group = ""): string {
   const dot = fileName.lastIndexOf(".");
   const hasExt = dot > 0 && dot < fileName.length - 1;
 
   const base = asciiSlug(hasExt ? fileName.slice(0, dot) : fileName, 48) || "file";
   const ext = asciiSlug(hasExt ? fileName.slice(dot + 1) : "", 12).toLowerCase();
+  const mid = group ? `${asciiSlug(group, 24)}/` : "";
 
-  return `${projectId}/${unique}-${base}${ext ? `.${ext}` : ""}`;
+  return `${projectId}/${mid}${unique}-${base}${ext ? `.${ext}` : ""}`;
 }
 
 /** ไฟล์ที่ผู้ใช้เลือกมา พร้อมชื่อที่จะเอาไปแสดง (มีเส้นทางในโฟลเดอร์ติดมาถ้ามี) */
