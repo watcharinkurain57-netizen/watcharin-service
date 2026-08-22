@@ -36,6 +36,8 @@ export type Task = {
   /** null = ยังไม่จัดหมวด — แสดงรวมกันใต้ "ไม่มีหมวด" */
   group_id: string | null;
   title: string;
+  /** คำอธิบายยาว มี snippet โค้ดคั่นได้ · null = ยังไม่เขียน (ดู lib/task-notes.ts) */
+  description: string | null;
   due_label: string | null;
   due_on: string | null;
   started_on: string | null;
@@ -78,10 +80,38 @@ export function colorOf(c: ColumnColor) {
 
 /** คอลัมน์ที่ดึงจากตาราง — รวมไว้ที่เดียวกันลืมเวลาเพิ่มฟิลด์ */
 export const TASK_SELECT =
-  "id, project_id, column_id, group_id, title, due_label, due_on, started_on, assignee_id, sort";
+  "id, project_id, column_id, group_id, title, description, due_label, due_on, started_on, assignee_id, sort";
 export const COLUMN_SELECT = "id, project_id, name, color, is_done, sort";
 export const GROUP_SELECT = "id, project_id, name, color, sort";
 export const PROFILE_SELECT = "id, display_name, email, avatar_url";
+
+/**
+ * ไฟล์ที่แนบมากับงาน — คนละกองกับไฟล์ส่งมอบใน project_files
+ *
+ * ของแนบในงานคือของใช้ระหว่างทาง (ภาพหน้าจอตอนพัง ล็อก สเปกที่ลูกค้าส่งมา)
+ * ส่วน project_files คือสารบัญของที่ส่งมอบให้ลูกค้าจริง ๆ
+ * เหตุผลเต็ม ๆ อยู่หัวไฟล์ migration 0019
+ *
+ * ใช้ bucket เดียวกัน (FILES_BUCKET) จึงยืมตัวช่วยของ lib/project-files.ts ได้ทั้งชุด
+ */
+export type TaskFile = {
+  id: string;
+  /** null = งานที่แนบไว้ถูกลบไปแล้ว — ไฟล์เด้งมาโผล่ในแถบกู้คืน ไม่หายเงียบ */
+  task_id: string | null;
+  name: string;
+  storage_path: string;
+  size_bytes: number | null;
+  mime_type: string | null;
+  created_at: string;
+};
+
+export const TASK_FILE_SELECT = "id, task_id, name, storage_path, size_bytes, mime_type, created_at";
+
+/** ชั้นคั่นใน path ของ Storage ไว้แยกจากไฟล์ส่งมอบตอนเปิดดูใน dashboard */
+export const TASK_FILES_PREFIX = "tasks";
+
+/** แนบทีละกี่ไฟล์ — น้อยกว่าแท็บไฟล์เยอะ เพราะที่นี่คือของประกอบงานเดียว */
+export const MAX_TASK_FILES_PER_BATCH = 20;
 
 /**
  * จัดงานลงหมวด พร้อมถังท้ายสำหรับงานที่ยังไม่ได้จัด

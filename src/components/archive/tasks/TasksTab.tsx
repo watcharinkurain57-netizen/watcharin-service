@@ -7,6 +7,7 @@ import {
   COLUMN_SELECT,
   GROUP_SELECT,
   PROFILE_SELECT,
+  TASK_FILE_SELECT,
   TASK_SELECT,
   colorOf,
   isDone,
@@ -16,8 +17,11 @@ import {
   type Person,
   type Task,
   type TaskColumn,
+  type TaskFile,
   type TaskGroup,
 } from "@/lib/project-tasks";
+import { FILES_BUCKET, SIGNED_URL_SECONDS, fileErrorMessage, formatBytes } from "@/lib/project-files";
+import { TaskDialog } from "./TaskDialog";
 import {
   BoardView,
   CalendarView,
@@ -61,6 +65,9 @@ export function TasksTab({ projectId, canEdit }: { projectId: string; canEdit: b
   /** "all" | "none" | user_id */
   const [who, setWho] = useState("all");
   const [groups, setGroups] = useState<TaskGroup[]>([]);
+  /** ไฟล์แนบของทั้งโปรเจกต์ — โหลดทีเดียวแล้วแจกให้แต่ละงานเอง
+      เพราะทุกมุมมองต้องรู้ว่างานไหนมีไฟล์กี่ไฟล์ ไม่ใช่แค่งานที่เปิดกล่องอยู่ */
+  const [taskFiles, setTaskFiles] = useState<TaskFile[]>([]);
   /** "all" | "none" | group_id */
   const [whichGroup, setWhichGroup] = useState("all");
   /**
@@ -73,22 +80,26 @@ export function TasksTab({ projectId, canEdit }: { projectId: string; canEdit: b
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
 
   const fetchAll = useCallback(async () => {
-    const [t, c, g, m] = await Promise.all([
+    const [t, c, g, m, f] = await Promise.all([
       supabase.from("project_tasks").select(TASK_SELECT).eq("project_id", projectId).order("sort"),
       supabase.from("project_task_columns").select(COLUMN_SELECT).eq("project_id", projectId).order("sort"),
       supabase.from("project_task_groups").select(GROUP_SELECT).eq("project_id", projectId).order("sort"),
       // ดึงโปรไฟล์ผ่านความสัมพันธ์ของ project_members จะได้เฉพาะคนในโปรเจกต์นี้
       supabase.from("project_members").select(`profiles!inner(${PROFILE_SELECT})`).eq("project_id", projectId),
+      supabase.from("project_task_files").select(TASK_FILE_SELECT).eq("project_id", projectId).order("created_at"),
     ]);
     return {
       tasks: (t.data ?? []) as Task[],
       columns: (c.data ?? []) as TaskColumn[],
       groups: (g.data ?? []) as TaskGroup[],
       people: ((m.data ?? []) as unknown as { profiles: Person }[]).map((r) => r.profiles),
+      taskFiles: (f.data ?? []) as TaskFile[],
       // แยก error ของรายชื่อคนออกจากงาน เพราะระดับความร้ายแรงต่างกัน
       // งานโหลดไม่ได้ = แท็บใช้ไม่ได้เลย · รายชื่อโหลดไม่ได้ = แค่ไม่มีรูปกับชื่อ
       error: t.error ?? c.error ?? g.error,
       peopleError: m.error,
+      // ไฟล์แนบโหลดไม่ได้ = แค่ไม่เห็นคลิปหนีบ งานยังใช้ได้ครบ จึงไม่ปนกับ error ก้อนบน
+      filesError: f.error,
     };
   }, [supabase, projectId]);
 
@@ -100,10 +111,13 @@ export function TasksTab({ projectId, canEdit }: { projectId: string; canEdit: b
       if (r.error) setError(r.error.message);
       else if (r.peopleError)
         setError("โหลดรายชื่อคนในโปรเจกต์ไม่ได้ — ชื่อกับรูปผู้รับผิดชอบจะไม่ขึ้น แต่งานยังใช้ได้ตามปกติ");
+      else if (r.filesError)
+        setError("โหลดรายการไฟล์แนบไม่ได้ — งานจะขึ้นว่าไม่มีไฟล์แนบทั้งที่อาจมีอยู่ ลองรีเฟรชอีกครั้ง");
       setTasks(r.tasks);
       setColumns(r.columns);
       setGroups(r.groups);
       setPeople(r.people);
+      setTaskFiles(r.taskFiles);
       setMe(auth.data.user?.id ?? null);
       setLoading(false);
     })();
@@ -118,6 +132,7 @@ export function TasksTab({ projectId, canEdit }: { projectId: string; canEdit: b
     setColumns(r.columns);
     setGroups(r.groups);
     setPeople(r.people);
+    setTaskFiles(r.taskFiles);
   }
 
   /* ---------- งาน ---------- */
@@ -131,13 +146,44 @@ export function TasksTab({ projectId, canEdit }: { projectId: string; canEdit: b
     }
   }
 
-  async function removeTask(t: Task) {
+  /**
+   * ลบงาน — ถ้ามีไฟล์แนบต้องเก็บกวาด Storage เองก่อนเสมอ
+   *
+   * ⚠️ FK ของ task_id เป็น `on delete set null` ไม่ใช่ cascade โดยตั้งใจ (0019)
+   * Postgres ไม่รู้จัก Storage ถ้าปล่อยให้ DB จัดการ ไฟล์จริงจะค้างกินโควตา
+   * ตลอดกาลโดยไม่มีใครมองเห็น ลำดับที่ถูกคือ Storage → แถวไฟล์ → งาน
+   * (แถบ "ไฟล์แนบที่งานถูกลบไปแล้ว" ข้างล่างคือตาข่ายเผื่อมีทางลบที่ไม่ผ่านฟังก์ชันนี้)
+   */
+  /** @returns ลบไปจริงไหม — ฝั่งที่เรียกใช้ตัดสินใจต่อว่าจะปิดกล่องดีไหม */
+  async function removeTask(t: Task): Promise<boolean> {
+    const attached = taskFiles.filter((f) => f.task_id === t.id);
+
+    if (attached.length > 0) {
+      const size = formatBytes(attached.reduce((sum, f) => sum + (f.size_bytes ?? 0), 0));
+      if (!confirm(`ลบงาน “${t.title}”?
+ไฟล์แนบ ${attached.length} ไฟล์ (${size}) จะถูกลบถาวรไปด้วย`)) return false;
+
+      const { error: se } = await supabase.storage
+        .from(FILES_BUCKET)
+        .remove(attached.map((f) => f.storage_path));
+      if (se) {
+        setError(fileErrorMessage(se, "ลบไฟล์แนบออกจากที่เก็บไม่สำเร็จ — ยังไม่ได้ลบงาน"));
+        return false;
+      }
+
+      const { error: fe } = await supabase.from("project_task_files").delete().eq("task_id", t.id);
+      if (fe) {
+        setError(fileErrorMessage(fe, "ลบรายการไฟล์แนบไม่สำเร็จ — ยังไม่ได้ลบงาน"));
+        reload();
+        return false;
+      }
+    }
+
     setTasks((prev) => prev.filter((x) => x.id !== t.id));
     const { error: e } = await supabase.from("project_tasks").delete().eq("id", t.id);
-    if (e) {
-      setError(friendly(e.code, e.message, "ลบงาน"));
-      reload();
-    }
+    if (e) setError(friendly(e.code, e.message, "ลบงาน"));
+    reload();
+    return !e;
   }
 
   async function addTask(form: FormData) {
@@ -175,6 +221,36 @@ export function TasksTab({ projectId, canEdit }: { projectId: string; canEdit: b
       return;
     }
     patch(t, { column_id: isDone(t, columns) ? columns[0].id : doneCol.id });
+  }
+
+  /* ---------- ไฟล์แนบที่งานหายไปแล้ว ---------- */
+
+  async function downloadOrphan(f: TaskFile) {
+    const { data, error: e } = await supabase.storage
+      .from(FILES_BUCKET)
+      .createSignedUrl(f.storage_path, SIGNED_URL_SECONDS, { download: f.name });
+
+    if (e || !data?.signedUrl) {
+      setError(fileErrorMessage(e, "ขอลิงก์ดาวน์โหลดไม่สำเร็จ"));
+      return;
+    }
+    const a = document.createElement("a");
+    a.href = data.signedUrl;
+    a.rel = "noopener";
+    a.click();
+  }
+
+  async function removeOrphan(f: TaskFile) {
+    if (!confirm(`ลบไฟล์ "${f.name}" ถาวร?`)) return;
+
+    const { error: se } = await supabase.storage.from(FILES_BUCKET).remove([f.storage_path]);
+    if (se) {
+      setError(fileErrorMessage(se, "ลบไฟล์ออกจากที่เก็บไม่สำเร็จ"));
+      return;
+    }
+    const { error: e } = await supabase.from("project_task_files").delete().eq("id", f.id);
+    if (e) setError(fileErrorMessage(e, "ลบรายการไฟล์ไม่สำเร็จ"));
+    reload();
   }
 
   /* ---------- คอลัมน์ ---------- */
@@ -290,14 +366,26 @@ export function TasksTab({ projectId, canEdit }: { projectId: string; canEdit: b
   // ยังไม่ได้เลือกเอง = เดาจากว่าโปรเจกต์นี้ตั้งหมวดไว้หรือยัง
   const groupBy = listGroupBy ?? (groups.length > 0 ? "group" : "column");
 
+  /** จำนวนไฟล์แนบต่องาน — ทุกมุมมองใช้ตัวเดียวกัน คิดครั้งเดียวพอ */
+  const fileCounts = taskFiles.reduce<Record<string, number>>((acc, f) => {
+    if (f.task_id) acc[f.task_id] = (acc[f.task_id] ?? 0) + 1;
+    return acc;
+  }, {});
+
+  /** ไฟล์ที่งานเจ้าของเดิมหายไปแล้ว — ตาข่ายของ `on delete set null` ใน 0019 */
+  const orphanFiles = taskFiles.filter((f) => !f.task_id);
+
   const viewProps: ViewProps = {
     tasks: shown,
     columns,
     groups,
     people,
     canEdit,
+    fileCounts,
     onToggle: toggle,
     onMove: (t, columnId) => patch(t, { column_id: columnId }),
+    // เปิดกล่องได้ทุกคน ไม่ใช่เฉพาะคนที่แก้ได้ — คนที่แก้ไม่ได้จะได้หน้าอ่านอย่างเดียว
+    // รายละเอียดกับไฟล์แนบเขียนไว้ให้คนอื่นอ่าน ปิดไว้ก็ไม่มีประโยชน์
     onEdit: (t) => setEditing(t),
     onDelete: removeTask,
   };
@@ -668,123 +756,66 @@ export function TasksTab({ projectId, canEdit }: { projectId: string; canEdit: b
         <TimelineView {...viewProps} />
       )}
 
-      {/* ---------- กล่องแก้งาน ---------- */}
-      {editing && canEdit && (
-        <div
-          className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4"
-          role="dialog"
-          aria-modal="true"
-          aria-label={`แก้ไขงาน ${editing.title}`}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setEditing(null);
+      {/* ---------- กล่องรายละเอียดงาน ---------- */}
+      {editing && (
+        // key = ให้ React สร้างใหม่ทั้งกล่องตอนสลับไปงานอื่น
+        // ไม่งั้นข้อความในช่องรายละเอียดของงานเดิมจะค้างมาให้งานใหม่ (state ไม่ถูกล้าง)
+        <TaskDialog
+          key={editing.id}
+          task={editing}
+          columns={columns}
+          groups={groups}
+          people={people}
+          me={me}
+          canEdit={canEdit}
+          projectId={projectId}
+          files={taskFiles.filter((f) => f.task_id === editing.id)}
+          onSave={(changes) => patch(editing, changes)}
+          // ปิดกล่องเฉพาะตอนลบไปจริง — กด "ลบงานนี้" แล้วกดยกเลิกในกล่องยืนยัน
+          // ต้องได้กลับมาที่หน้าเดิม ไม่ใช่กล่องปิดไปเฉย ๆ ทั้งที่งานยังอยู่
+          onDelete={async () => {
+            if (await removeTask(editing)) setEditing(null);
           }}
-        >
-          <form
-            className="w-full max-w-md rounded-2xl border border-line bg-surface-raised p-5"
-            onSubmit={async (e) => {
-              e.preventDefault();
-              const f = new FormData(e.currentTarget);
-              await patch(editing, {
-                title: String(f.get("title") ?? "").trim() || editing.title,
-                column_id: String(f.get("column_id")),
-                group_id: String(f.get("group_id") ?? "") || null,
-                assignee_id: String(f.get("assignee_id") ?? "") || null,
-                due_on: String(f.get("due_on") ?? "") || null,
-                started_on: String(f.get("started_on") ?? "") || null,
-                due_label: String(f.get("due_label") ?? "").trim() || null,
-              });
-              setEditing(null);
-            }}
-          >
-            <h3 className="mb-4 text-base font-bold">แก้ไขงาน</h3>
+          onClose={() => setEditing(null)}
+          onFilesChanged={reload}
+        />
+      )}
 
-            <div className="grid gap-3">
-              <input name="title" defaultValue={editing.title} className={field} aria-label="ชื่องาน" />
-
-              <div className="grid grid-cols-2 gap-3">
-                <label className="grid gap-1 text-[0.8rem] text-ink-muted">
-                  คอลัมน์
-                  <select name="column_id" defaultValue={editing.column_id} className={field}>
-                    {columns.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="grid gap-1 text-[0.8rem] text-ink-muted">
-                  ผู้รับผิดชอบ
-                  <select name="assignee_id" defaultValue={editing.assignee_id ?? ""} className={field}>
-                    <option value="">ยังไม่มอบหมาย</option>
-                    {people.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {personName(p)}
-                        {p.id === me ? " (ฉัน)" : ""}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-
-              {groups.length > 0 && (
-                <label className="grid gap-1 text-[0.8rem] text-ink-muted">
-                  หมวด
-                  <select name="group_id" defaultValue={editing.group_id ?? ""} className={field}>
-                    <option value="">— ยังไม่จัดหมวด —</option>
-                    {groups.map((g) => (
-                      <option key={g.id} value={g.id}>
-                        {g.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              )}
-
-              <div className="grid grid-cols-2 gap-3">
-                <label className="grid gap-1 text-[0.8rem] text-ink-muted">
-                  วันเริ่ม
-                  <input name="started_on" type="date" defaultValue={editing.started_on ?? ""} className={field} />
-                </label>
-                <label className="grid gap-1 text-[0.8rem] text-ink-muted">
-                  กำหนดส่ง
-                  <input name="due_on" type="date" defaultValue={editing.due_on ?? ""} className={field} />
-                </label>
-              </div>
-
-              <label className="grid gap-1 text-[0.8rem] text-ink-muted">
-                หมายเหตุกำหนดส่ง
-                <input
-                  name="due_label"
-                  defaultValue={editing.due_label ?? ""}
-                  placeholder="เช่น รอลูกค้าตอบ — ใช้ตอนยังไม่มีวันแน่นอน"
-                  className={field}
-                />
-              </label>
-            </div>
-
-            <div className="mt-5 flex flex-wrap gap-2">
-              <button type="submit" className="rounded-full bg-brand-500 px-5 py-2.5 text-[0.9rem] font-bold text-brand-950">
-                บันทึก
-              </button>
-              <button
-                type="button"
-                onClick={() => setEditing(null)}
-                className="rounded-full bg-surface-overlay px-5 py-2.5 text-[0.9rem] font-bold text-ink"
-              >
-                ยกเลิก
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  removeTask(editing);
-                  setEditing(null);
-                }}
-                className="ml-auto rounded-full border border-red-500/40 px-4 py-2.5 text-[0.9rem] font-bold text-red-300 hover:bg-red-500/10"
-              >
-                ลบงานนี้
-              </button>
-            </div>
-          </form>
+      {/* ---------- ตาข่ายกันพลาด: ไฟล์แนบที่งานหายไปแล้ว ----------
+          ปกติต้องไม่มีอะไรตรงนี้เลย เพราะ removeTask เก็บกวาดให้ครบก่อนลบ
+          จะโผล่ก็ต่อเมื่อมีคนลบงานโดยไม่ผ่านหน้าเว็บ (เช่นจาก SQL editor)
+          แล้ว `on delete set null` ของ 0019 เด้งไฟล์ออกมาแทนที่จะปล่อยหายเงียบ
+          ให้เจ้าของโหลดเก็บหรือลบทิ้งได้ ไม่ใช่ทิ้งขยะไว้ใน Storage ตลอดกาล */}
+      {canEdit && orphanFiles.length > 0 && (
+        <div className="mt-5 rounded-xl border border-amber-400/30 bg-amber-400/5 p-4">
+          <p className="text-[0.85rem] font-bold text-amber-200">
+            ไฟล์แนบที่งานถูกลบไปแล้ว {orphanFiles.length} ไฟล์
+          </p>
+          <p className="mt-1 text-[0.78rem] text-ink-faint">
+            ไฟล์พวกนี้ยังกินพื้นที่อยู่ — โหลดเก็บไว้หรือลบทิ้งได้เลย
+          </p>
+          <ul className="mt-3 grid gap-1">
+            {orphanFiles.map((f) => (
+              <li key={f.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg bg-surface-overlay px-3 py-2 text-[0.84rem]">
+                <span className="min-w-0 flex-1 truncate text-ink-muted">{f.name}</span>
+                <span className="flex-none text-[0.74rem] text-ink-faint">{formatBytes(f.size_bytes)}</span>
+                <button
+                  type="button"
+                  onClick={() => downloadOrphan(f)}
+                  className="flex-none rounded px-1.5 py-0.5 text-[0.76rem] font-semibold text-ink-faint transition-colors hover:text-brand-400"
+                >
+                  ดาวน์โหลด
+                </button>
+                <button
+                  type="button"
+                  onClick={() => removeOrphan(f)}
+                  className="flex-none rounded px-1.5 py-0.5 text-[0.76rem] font-semibold text-ink-faint transition-colors hover:text-red-400"
+                >
+                  ลบ
+                </button>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 
