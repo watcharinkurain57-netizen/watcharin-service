@@ -62,13 +62,34 @@ export default async function MyProjectsPage() {
 
   const rows = (data ?? []) as unknown as Row[];
 
+  // หน้าลูกค้าเป็นของแอดมินเท่านั้น จึงโชว์ทางเข้าเฉพาะคนที่เข้าได้จริง
+  // ลิงก์ที่กดแล้วเจอ "หน้านี้สำหรับเจ้าของเว็บเท่านั้น" ไม่ได้ช่วยใครเลย
+  const { data: admin } = await supabase
+    .from("app_admins")
+    .select("user_id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-8">
-      <h1 className="text-3xl font-black tracking-tight">โปรเจกต์ของฉัน</h1>
-      <p className="mt-2 text-ink-muted">
-        เข้าระบบเป็น <span className="font-semibold text-ink">{user.email}</span> ·{" "}
-        {rows.length} โปรเจกต์
-      </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-3xl font-black tracking-tight">โปรเจกต์ของฉัน</h1>
+          <p className="mt-2 text-ink-muted">
+            เข้าระบบเป็น <span className="font-semibold text-ink">{user.email}</span> ·{" "}
+            {rows.length} โปรเจกต์
+          </p>
+        </div>
+
+        {admin && (
+          <Link
+            href="/clients"
+            className="rounded-full border border-line px-4 py-2 text-[0.9rem] font-bold text-ink-muted transition-colors hover:border-brand-500 hover:text-brand-300"
+          >
+            ลูกค้า
+          </Link>
+        )}
+      </div>
 
       {rows.length === 0 ? (
         <div className="mt-8 rounded-2xl border border-dashed border-line bg-surface-raised px-6 py-14 text-center">

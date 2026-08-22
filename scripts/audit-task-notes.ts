@@ -14,6 +14,7 @@
 import { storageKey } from "../src/lib/project-files.ts";
 import { bucketBy } from "../src/lib/grouping.ts";
 import { MAX_ZOOM, MIN_ZOOM, contentPointAt, fitView, zoomAt } from "../src/lib/pan-zoom.ts";
+import { groupProjectsByClient, type Client, type ClientProject } from "../src/lib/clients.ts";
 import {
   bulletLines,
   fenceBlock,
@@ -345,6 +346,40 @@ for (const [px, py] of [[0, 0], [120, 80], [640, 360]]) {
 
 check(fitView({ width: 400, height: 300 }, { w: 0, h: 0 }) === null, "ยังไม่รู้ขนาดผัง = ไม่คำนวณมั่ว");
 check(fitView({ width: 0, height: 0 }, { w: 800, h: 600 }) === null, "กรอบยังไม่มีขนาด = ไม่คำนวณมั่ว");
+
+/* ---------------- จัดโปรเจกต์เข้าลูกค้า ---------------- */
+
+section("จัดโปรเจกต์เข้าลูกค้า");
+
+{
+  const mk = (id: string, name: string) => ({ id, name }) as Client;
+  const pj = (id: string, name: string) => ({ id, slug: id, name, status: "building" }) as ClientProject;
+
+  const cs = [mk("c2", "เคมีแมน"), mk("c1", "กรีนเทค")];
+  const ps = [pj("p1", "WLOMS"), pj("p2", "CoreSync"), pj("p3", "ยังไม่จัด")];
+
+  const out = groupProjectsByClient(ps, cs, { p1: "c2", p2: "c1" });
+
+  same(out.map((b) => b.client?.name ?? "ยังไม่จัด"), ["กรีนเทค", "เคมีแมน", "ยังไม่จัด"], "เรียงชื่อลูกค้าแบบไทย แล้วปิดท้ายด้วยถังยังไม่จัด");
+  same(out.map((b) => b.items.map((p) => p.id)), [["p2"], ["p1"], ["p3"]], "โปรเจกต์เข้าเจ้าถูกคน");
+}
+
+{
+  // ⚠️ ถังยังไม่จัดต้องมีเสมอ ต่างจาก bucketBy ของงาน/ผัง
+  // หน้านี้ต้องตอบได้ว่า "จัดครบแล้ว" ไม่ใช่แค่ไม่มีถังให้ดู
+  const cs = [{ id: "c1", name: "ก" } as Client];
+  const out = groupProjectsByClient([{ id: "p1", slug: "p1", name: "x", status: "shipped" } as ClientProject], cs, { p1: "c1" });
+  check(out.at(-1)?.client === null, "ถังยังไม่จัดยังอยู่แม้จัดครบแล้ว");
+  check(out.at(-1)?.items.length === 0, "และเป็นถังเปล่า");
+}
+
+{
+  // โปรเจกต์ที่ชี้ลูกค้าซึ่งโหลดมาไม่เจอ ต้องไม่หายไปเฉย ๆ
+  const cs = [{ id: "c1", name: "ก" } as Client];
+  const ps = [{ id: "ผี", slug: "x", name: "x", status: "building" } as ClientProject];
+  const out = groupProjectsByClient(ps, cs, { ผี: "ลูกค้าที่ไม่มีจริง" });
+  check(out.flatMap((b) => b.items).some((p) => p.id === "ผี"), "โปรเจกต์ที่ชี้ลูกค้าแปลกปลอมตกลงถังท้าย ไม่หายเงียบ");
+}
 
 console.log(
   failures === 0
