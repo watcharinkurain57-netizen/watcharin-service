@@ -1,5 +1,7 @@
 /** ชนิดข้อมูลและตัวช่วยของงานในโปรเจกต์ — ใช้ร่วมกันทุกมุมมอง */
 
+import { bucketBy } from "./grouping";
+
 /** ชื่อสีแบบ token ไม่ใช่ค่าสีจริง เพื่อให้เปลี่ยนธีมทีเดียวได้ทั้งเว็บ */
 export type ColumnColor = "slate" | "amber" | "jade" | "sky" | "violet" | "coral";
 
@@ -114,36 +116,14 @@ export const TASK_FILES_PREFIX = "tasks";
 export const MAX_TASK_FILES_PER_BATCH = 20;
 
 /**
- * จัดงานลงหมวด พร้อมถังท้ายสำหรับงานที่ยังไม่ได้จัด
- *
- * คืนหมวดที่ไม่มีงานมาด้วย (`items` ว่าง) เพื่อให้ผู้ใช้เห็นว่าหมวดที่ตั้งไว้
- * ยังว่างอยู่ ไม่ใช่หายไปเฉย ๆ — ฝั่งที่เรียกเป็นคนตัดสินเองว่าจะซ่อนไหม
+ * จัดงานลงหมวด — ห่อ bucketBy ไว้อีกชั้นเพื่อให้ฝั่งที่เรียกไม่ต้องรู้เรื่อง group_id
+ * ตรรกะจริงกับกับดักเรื่องหมวดแปลกปลอมอยู่ใน lib/grouping.ts
  */
 export function groupTasks(
   tasks: Task[],
   groups: TaskGroup[]
 ): { group: TaskGroup | null; items: Task[] }[] {
-  const known = new Set(groups.map((g) => g.id));
-
-  const buckets = [...groups]
-    .sort((a, b) => a.sort - b.sort || a.name.localeCompare(b.name, "th"))
-    .map((group) => ({ group: group as TaskGroup | null, items: tasks.filter((t) => t.group_id === group.id) }));
-
-  /**
-   * ถังท้าย = งานที่ไม่มีหมวด **และ** งานที่ชี้หมวดซึ่งหาไม่เจอ
-   *
-   * ⚠️ เงื่อนไขที่สองสำคัญกว่าที่คิด ถ้าเช็คแค่ `!t.group_id`
-   * งานที่ชี้หมวดแปลกปลอมจะไม่เข้าถังไหนเลย = **หายไปจากทุกมุมมองแบบเงียบ ๆ**
-   * เกิดได้จริงตอนโหลดรายการหมวดไม่สำเร็จแต่โหลดงานสำเร็จ
-   * (เป็นอาการเดียวกับที่ 0005 เตือนไว้เรื่อง column_id — งานหลุดออกจากบอร์ด)
-   */
-  const loose = tasks.filter((t) => !t.group_id || !known.has(t.group_id));
-
-  // ไว้ท้ายสุดเสมอ ไม่ใช่บนสุด — ถ้าอยู่บนสุดจะบังหมวดที่ตั้งใจจัดไว้
-  // ซึ่งเป็นของที่ผู้ใช้อยากเห็นก่อน
-  if (loose.length > 0) buckets.push({ group: null, items: loose });
-
-  return buckets;
+  return bucketBy(tasks, groups, (t) => t.group_id);
 }
 
 const THAI_MONTH = [

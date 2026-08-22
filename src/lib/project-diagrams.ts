@@ -5,15 +5,43 @@
  * เหตุผลที่เลือกเก็บเป็นข้อความอยู่หัวไฟล์ migration 0020
  */
 
+import { bucketBy } from "./grouping";
+import type { ColumnColor } from "./project-tasks";
+
 export type ProjectDiagram = {
   id: string;
   title: string;
   source: string;
+  /** null = ยังไม่จัดหมวด — แสดงรวมกันใต้ "ไม่มีหมวด" */
+  group_id: string | null;
   sort: number;
   updated_at: string;
 };
 
-export const DIAGRAM_SELECT = "id, title, source, sort, updated_at";
+export const DIAGRAM_SELECT = "id, title, source, group_id, sort, updated_at";
+
+/**
+ * หมวดของผัง — แบนชั้นเดียว ไม่ใช่โฟลเดอร์ซ้อนแบบไฟล์ส่งมอบ
+ * เหตุผลอยู่หัวไฟล์ migration 0021 (ผังต่อโปรเจกต์อยู่หลักสิบ ชั้นเดียวพอ)
+ *
+ * ใช้ ColumnColor ร่วมกับคอลัมน์งานและหมวดงาน เพื่อให้ทั้งแอปพูดภาษาสีเดียวกัน
+ */
+export type DiagramGroup = {
+  id: string;
+  name: string;
+  color: ColumnColor;
+  sort: number;
+};
+
+export const DIAGRAM_GROUP_SELECT = "id, name, color, sort";
+
+/** จัดผังลงหมวด — ตรรกะกับกับดักเรื่องหมวดแปลกปลอมอยู่ใน lib/grouping.ts */
+export function groupDiagrams(
+  diagrams: ProjectDiagram[],
+  groups: DiagramGroup[]
+): { group: DiagramGroup | null; items: ProjectDiagram[] }[] {
+  return bucketBy(diagrams, groups, (d) => d.group_id);
+}
 
 /** ต้องตรงกับ CHECK project_diagrams_source_len ใน migration 0020 */
 export const MAX_DIAGRAM_CHARS = 20000;
