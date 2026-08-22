@@ -97,14 +97,15 @@ export function DiagramsTab({ projectId, canEdit }: { projectId: string; canEdit
 
   /* ---------- เพิ่ม / แก้ / ลบ ---------- */
 
-  async function add(template: (typeof DIAGRAM_TEMPLATES)[number]) {
+  /** `template` เป็น null = เริ่มจากผังเปล่า สำหรับคนที่เขียน mermaid เป็นอยู่แล้ว */
+  async function add(template: (typeof DIAGRAM_TEMPLATES)[number] | null) {
     setPicking(false);
     const { data, error: e } = await supabase
       .from("project_diagrams")
       .insert({
         project_id: projectId,
-        title: template.label,
-        source: template.source,
+        title: template?.label ?? "ผังใหม่",
+        source: template?.source ?? "",
         // ลงหมวดเดียวกับผังที่กำลังเปิดอยู่ — คนที่ดูหมวด "ฝั่งหน้างาน" อยู่
         // แล้วกดเพิ่มผัง ย่อมตั้งใจให้ผังใหม่อยู่หมวดนั้น ไม่ใช่หลุดไปกองนอกหมวด
         group_id: current?.group_id ?? null,
@@ -248,19 +249,6 @@ export function DiagramsTab({ projectId, canEdit }: { projectId: string; canEdit
         </p>
       )}
 
-      {/* ---------- จัดการหมวด ---------- */}
-      {canEdit && managing && (
-        <DiagramGroups
-          groups={groups}
-          countOf={(id) => items.filter((d) => d.group_id === id).length}
-          onAdd={addGroup}
-          onPatch={patchGroup}
-          onMove={moveGroup}
-          onRemove={removeGroup}
-          onClose={() => setManaging(false)}
-        />
-      )}
-
       {/* ---------- แถบเลือกผัง จัดตามหมวด ----------
           จัดเป็นแถวต่อหมวดแทนที่จะเรียงยาวแถวเดียว เพราะพอผังเกินสิบอัน
           แถวเดียวกลายเป็นการไล่อ่านชื่อทีละอันเพื่อหาของที่รู้อยู่แล้วว่าอยู่กองไหน */}
@@ -326,6 +314,18 @@ export function DiagramsTab({ projectId, canEdit }: { projectId: string; canEdit
                       <span className="block text-[0.76rem] text-ink-faint">{t.hint}</span>
                     </button>
                   ))}
+
+                  {/* ไว้ท้ายสุด ไม่ใช่บนสุด — แบบตั้งต้นคือทางที่อยากให้คนส่วนใหญ่เดิน
+                      ส่วนผังเปล่าไว้ให้คนที่เขียน mermaid เป็นอยู่แล้วและรู้ว่าจะเขียนอะไร */}
+                  <span className="my-1 block h-px bg-line" aria-hidden="true" />
+                  <button
+                    type="button"
+                    onClick={() => add(null)}
+                    className="block w-full rounded-lg px-3 py-2 text-left transition-colors hover:bg-surface-overlay"
+                  >
+                    <span className="block text-[0.85rem] font-bold text-ink">เริ่มจากผังเปล่า</span>
+                    <span className="block text-[0.76rem] text-ink-faint">เขียน mermaid เองตั้งแต่ต้น</span>
+                  </button>
                 </div>
               )}
             </div>
@@ -448,6 +448,20 @@ export function DiagramsTab({ projectId, canEdit }: { projectId: string; canEdit
             </span>
           </div>
         </div>
+      )}
+
+      {/* กล่องจัดการหมวด — วางไว้ท้ายสุดของ JSX เพราะเป็นชั้นซ้อนหน้า
+          ไม่ใช่ของที่อยู่ในลำดับการอ่านของหน้า */}
+      {canEdit && managing && (
+        <DiagramGroups
+          groups={groups}
+          countOf={(id) => items.filter((d) => d.group_id === id).length}
+          onAdd={addGroup}
+          onPatch={patchGroup}
+          onMove={moveGroup}
+          onRemove={removeGroup}
+          onClose={() => setManaging(false)}
+        />
       )}
     </div>
   );
