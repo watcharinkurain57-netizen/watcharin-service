@@ -11,6 +11,7 @@
  * ** ที่อยู่ในเครื่องหมาย backtick, และตำแหน่งเคอร์เซอร์หลังกดปุ่ม
  * ซึ่งไม่มีใครสังเกตจนกว่าจะพิมพ์อยู่แล้วรู้สึกว่ามันแปลก ๆ
  */
+import { storageKey } from "../src/lib/project-files.ts";
 import {
   bulletLines,
   fenceBlock,
@@ -205,6 +206,39 @@ section("รายการ");
   const r = apply(v, bulletLines(v, 0, v.length));
   check(r.next === "- หนึ่ง\n\n- สอง", "บรรทัดว่างไม่ได้จุดนำหน้า");
 }
+
+/* ---------------- path ของไฟล์แนบ ---------------- */
+
+/**
+ * ⚠️ ข้อที่ห้ามพังที่สุดในหมวดนี้: **โฟลเดอร์แรกต้องเป็น project_id เป๊ะ ๆ**
+ *
+ * policy ของ storage.objects ใน 0009 อ่านสิทธิ์จาก split_part(name, '/', 1)
+ * ถ้าวันหนึ่งมีใครแก้ storageKey แล้วโฟลเดอร์แรกเพี้ยนไป
+ * ผลไม่ใช่ "อัปไม่ได้" แต่เป็น **สิทธิ์ถูกอ่านผิด** ซึ่งร้ายแรงกว่ามาก
+ */
+section("path ของไฟล์แนบ");
+
+const PID = "123e4567-e89b-12d3-a456-426614174000";
+
+for (const name of ["คู่มือใช้งานหน้างาน.pdf", "screenshot 2026-08-22.PNG", "ไฟล์ไทยล้วน", "a.tar.gz"]) {
+  const key = storageKey(PID, name, "UNIQ", "tasks");
+  check(key.split("/")[0] === PID, `โฟลเดอร์แรกเป็น project_id — ${name}`);
+  check(key.split("/")[1] === "tasks", `ชั้นที่สองเป็น tasks แยกจากไฟล์ส่งมอบ — ${name}`);
+  check(/^[ -~]+$/.test(key), `key เป็น ascii ล้วน storage-api จึงไม่ปฏิเสธ — ${name}`);
+}
+
+// ชื่อไฟล์ที่พยายามไต่ออกจากโฟลเดอร์ตัวเองต้องกลายเป็นชื่อธรรมดา ไม่ใช่เส้นทางจริง
+{
+  const key = storageKey(PID, "../../etc/passwd", "UNIQ", "tasks");
+  check(key === `${PID}/tasks/UNIQ-file.etc-passwd`, "ชื่อไฟล์ที่มี ../ ถูกยุบเป็นชื่อธรรมดา ไต่ออกนอกโฟลเดอร์ไม่ได้");
+  check(key.split("/").length === 3, "ไม่มี slash เกินมาจากชื่อไฟล์");
+}
+
+// ของส่งมอบ (ไม่ส่ง group) ต้องได้ path ทรงเดิมเป๊ะ ๆ — ห้ามมี tasks/ โผล่มา
+check(
+  storageKey(PID, "doc.pdf", "UNIQ") === `${PID}/UNIQ-doc.pdf`,
+  "ไฟล์ส่งมอบยังได้ path ทรงเดิม การเพิ่ม group ไม่ไปกวนของเดิม",
+);
 
 console.log(
   failures === 0
