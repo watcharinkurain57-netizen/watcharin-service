@@ -176,7 +176,7 @@ export function PanZoom({
   }
 
   return (
-    <div className={`relative overflow-hidden rounded-xl border border-line bg-surface-raised ${className}`}>
+    <div className={`relative min-w-0 overflow-hidden rounded-xl border border-line bg-surface-raised ${className}`}>
       <div
         ref={wrap}
         onPointerDown={onPointerDown}
@@ -185,10 +185,19 @@ export function PanZoom({
         onPointerCancel={onPointerUp}
         onDoubleClick={() => zoomCenter(ZOOM_STEP)}
         // touch-action:none = ให้เราจัดการนิ้วเองทั้งหมด ไม่ให้เบราว์เซอร์แย่งไปเลื่อนหน้า
-        className={`size-full touch-none select-none ${grabbing ? "cursor-grabbing" : "cursor-grab"}`}
+        className={`relative size-full touch-none select-none ${grabbing ? "cursor-grabbing" : "cursor-grab"}`}
       >
+        {/*
+          ⚠️ ต้องเป็น absolute ห้ามเป็น block ธรรมดา
+          `width: max-content` ทำให้กล่องนี้กว้างเท่าผังจริง (หลักพันพิกเซล)
+          และ `overflow: hidden` ของกล่องแม่ **กันแค่การวาด ไม่ได้กันความกว้าง** —
+          ความกว้างขั้นต่ำยังไหลขึ้นไปถึง grid track ข้างบนจนดันการ์ดทั้งใบบานออก
+          (วัดแล้ว: การ์ดกว้าง 800 กลายเป็น 2402 เมื่อผังกว้าง 2400)
+          พอเป็น absolute ก็หลุดออกจากการคำนวณขนาด กล่องแม่จึงกว้างตามที่ควรเป็น
+        */}
         <div
           ref={holder}
+          className="absolute left-0 top-0"
           style={{
             transform: `translate(${view.x}px, ${view.y}px) scale(${view.k})`,
             transformOrigin: "0 0",
