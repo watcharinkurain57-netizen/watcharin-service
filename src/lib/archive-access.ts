@@ -34,6 +34,8 @@ export type Capability =
   /** ตัวเลขฝั่งเรา — ต้นทุน กำไร เรทที่คิดจริง คนละเรื่องกับ invoice */
   | "project.finance.view"
   | "project.files.view"
+  /** ผังของระบบที่วาดไว้ในโปรเจกต์ — ลูกค้าต้องอ่านได้ เพราะวาดไว้ให้เขาเข้าใจระบบตัวเอง */
+  | "project.diagrams.view"
   | "project.members.view"
   /**
    * ห้องคุยงาน — ต่างจาก capability อื่นตรงที่ `post` เปิดให้ลูกค้าด้วย
@@ -51,6 +53,7 @@ export type Capability =
    */
   | "project.tasks.manage"
   | "project.files.manage"
+  | "project.diagrams.manage"
   | "project.members.manage"
   /**
    * แก้ตารางงวดจ่าย — เจ้าของเท่านั้น
@@ -71,6 +74,7 @@ const CAPABILITIES: Record<ViewerRole, readonly Capability[]> = {
     "project.tasks.view",
     "project.invoice.view",
     "project.files.view",
+    "project.diagrams.view",
     "project.members.view",
     // ลูกค้าพิมพ์ได้ด้วย — ไม่ใช่แค่อ่าน
     "project.comments.view",
@@ -83,12 +87,14 @@ const CAPABILITIES: Record<ViewerRole, readonly Capability[]> = {
     "project.invoice.view",
     "project.finance.view",
     "project.files.view",
+    "project.diagrams.view",
     "project.members.view",
     "project.comments.view",
     "project.comments.post",
     "project.comments.moderate",
     "project.tasks.manage",
     "project.files.manage",
+    "project.diagrams.manage",
     "project.members.manage",
     "project.invoice.manage",
   ],
