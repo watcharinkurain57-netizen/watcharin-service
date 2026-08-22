@@ -154,27 +154,28 @@ export function TasksTab({ projectId, canEdit }: { projectId: string; canEdit: b
    * ตลอดกาลโดยไม่มีใครมองเห็น ลำดับที่ถูกคือ Storage → แถวไฟล์ → งาน
    * (แถบ "ไฟล์แนบที่งานถูกลบไปแล้ว" ข้างล่างคือตาข่ายเผื่อมีทางลบที่ไม่ผ่านฟังก์ชันนี้)
    */
-  async function removeTask(t: Task) {
+  /** @returns ลบไปจริงไหม — ฝั่งที่เรียกใช้ตัดสินใจต่อว่าจะปิดกล่องดีไหม */
+  async function removeTask(t: Task): Promise<boolean> {
     const attached = taskFiles.filter((f) => f.task_id === t.id);
 
     if (attached.length > 0) {
       const size = formatBytes(attached.reduce((sum, f) => sum + (f.size_bytes ?? 0), 0));
       if (!confirm(`ลบงาน “${t.title}”?
-ไฟล์แนบ ${attached.length} ไฟล์ (${size}) จะถูกลบถาวรไปด้วย`)) return;
+ไฟล์แนบ ${attached.length} ไฟล์ (${size}) จะถูกลบถาวรไปด้วย`)) return false;
 
       const { error: se } = await supabase.storage
         .from(FILES_BUCKET)
         .remove(attached.map((f) => f.storage_path));
       if (se) {
         setError(fileErrorMessage(se, "ลบไฟล์แนบออกจากที่เก็บไม่สำเร็จ — ยังไม่ได้ลบงาน"));
-        return;
+        return false;
       }
 
       const { error: fe } = await supabase.from("project_task_files").delete().eq("task_id", t.id);
       if (fe) {
         setError(fileErrorMessage(fe, "ลบรายการไฟล์แนบไม่สำเร็จ — ยังไม่ได้ลบงาน"));
         reload();
-        return;
+        return false;
       }
     }
 
@@ -182,6 +183,7 @@ export function TasksTab({ projectId, canEdit }: { projectId: string; canEdit: b
     const { error: e } = await supabase.from("project_tasks").delete().eq("id", t.id);
     if (e) setError(friendly(e.code, e.message, "ลบงาน"));
     reload();
+    return !e;
   }
 
   async function addTask(form: FormData) {
@@ -769,9 +771,10 @@ export function TasksTab({ projectId, canEdit }: { projectId: string; canEdit: b
           projectId={projectId}
           files={taskFiles.filter((f) => f.task_id === editing.id)}
           onSave={(changes) => patch(editing, changes)}
-          onDelete={() => {
-            removeTask(editing);
-            setEditing(null);
+          // ปิดกล่องเฉพาะตอนลบไปจริง — กด "ลบงานนี้" แล้วกดยกเลิกในกล่องยืนยัน
+          // ต้องได้กลับมาที่หน้าเดิม ไม่ใช่กล่องปิดไปเฉย ๆ ทั้งที่งานยังอยู่
+          onDelete={async () => {
+            if (await removeTask(editing)) setEditing(null);
           }}
           onClose={() => setEditing(null)}
           onFilesChanged={reload}
