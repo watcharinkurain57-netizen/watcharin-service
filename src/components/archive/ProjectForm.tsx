@@ -147,7 +147,14 @@ export function ProjectForm({ project }: { project?: ArchiveProject }) {
 
         <div>
           <label className={label} htmlFor="tagline">หนึ่งบรรทัดใต้ชื่อ</label>
-          <input id="tagline" name="tagline" required defaultValue={project?.tagline} className={field} />
+          <input
+            id="tagline"
+            name="tagline"
+            required
+            defaultValue={project?.tagline}
+            className={field}
+            placeholder="โปรเจกต์นี้คืออะไร สั้น ๆ หนึ่งบรรทัด"
+          />
         </div>
 
         <div>

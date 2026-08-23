@@ -147,7 +147,7 @@ export function ContactForm() {
           maxLength={4000}
           rows={5}
           disabled={status === "submitting"}
-          placeholder="เล่าเกี่ยวกับโปรเจคที่คุณอยากให้ช่วย — requirement งบประมาณ ไอเดียคร่าวๆ"
+          placeholder="เล่าเกี่ยวกับโปรเจกต์ที่คุณอยากให้ช่วย — requirement งบประมาณ ไอเดียคร่าวๆ"
           className={inputClass + " resize-none"}
         />
       </div>

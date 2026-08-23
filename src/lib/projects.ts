@@ -34,7 +34,7 @@ export const projects: Record<string, Project> = {
     category: "Portfolio + Service Hub",
     status: "ACTIVE",
     statusLabel: "🟢 LIVE",
-    tagline: "ศูนย์รวมโปรเจคและบริการทั้งหมดของผม",
+    tagline: "ศูนย์รวมโปรเจกต์และบริการทั้งหมดของผม",
     description:
       "เว็บไซต์หลักที่นำเสนอบริการ 'ออกแบบและสร้างระบบครบวงจร' ของ Watcharin พร้อมโชว์ผลงาน Ecosystem 5 ระบบ และเป็นจุดเริ่มต้นในการติดต่อสำหรับลูกค้าใหม่",
     features: [
@@ -92,7 +92,7 @@ export const projects: Record<string, Project> = {
     statusLabel: "🔒 STEALTH",
     tagline: "ขายสินค้าสุขภาพ จัดกลุ่มตามส่วนของร่างกาย",
     description:
-      "โปรเจค E-commerce สายสุขภาพและความงาม จัดสินค้าตามส่วนของร่างกาย รายละเอียดเฉพาะถูกซ่อนไว้เพื่อป้องกัน competition และ domain squatting",
+      "โปรเจกต์ E-commerce สายสุขภาพและความงาม จัดสินค้าตามส่วนของร่างกาย รายละเอียดเฉพาะถูกซ่อนไว้เพื่อป้องกัน competition และ domain squatting",
     features: [
       "🔒 รายละเอียดถูกซ่อน — เปิดเผยเฉพาะ partner ที่ลงนาม NDA",
       "📞 ติดต่อ Watcharin โดยตรงสำหรับการพูดคุยเชิงลึก",
