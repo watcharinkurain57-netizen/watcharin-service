@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import {
   type WoCard,
@@ -12,6 +12,9 @@ import {
   sensorStatusLabel,
   viewTitles,
 } from "@/lib/coresync-data";
+import { WATCH_PARAM } from "@/lib/demo/contract";
+import { LiveTagsView } from "./LiveTagsView";
+import { PlantDemo } from "./PlantDemo";
 import {
   AiView,
   DigitalTwinView,
@@ -25,8 +28,26 @@ import {
 
 type ModalTarget = { line: number; machineKey: string };
 
+/**
+ * มุมมองเริ่มต้น — เปิดมาจากลิงก์ดูอย่างเดียวให้ไปที่ข้อมูลเลย ไม่ใช่หน้าแรก
+ *
+ * ⚠️ ทำไมใช้ useSyncExternalStore แทนการ setState ใน effect หรือ useState ธรรมดา
+ * ฝั่งเซิร์ฟเวอร์ไม่มี URL ให้อ่าน ถ้าอ่านตอน render แรกฝั่งเบราว์เซอร์จะ hydrate ไม่ตรงกัน
+ * ส่วนการ setState ใน effect ก็ทำให้ผู้ใช้เห็นหน้าแรกแวบหนึ่งก่อนเด้ง — ตัวนี้แก้ทั้งสองอย่าง
+ * โดยให้ React รู้เองว่าค่าฝั่งเซิร์ฟเวอร์กับฝั่งเบราว์เซอร์ต่างกันได้
+ */
+function subscribeUrl(onChange: () => void) {
+  window.addEventListener("popstate", onChange);
+  return () => window.removeEventListener("popstate", onChange);
+}
+const viewFromUrl = () =>
+  new URLSearchParams(window.location.search).has(WATCH_PARAM) ? "mydata" : "overview";
+const viewOnServer = () => "overview";
+
 const BUILT_VIEWS = [
   "overview",
+  "live",
+  "mydata",
   "digital",
   "ai",
   "quality",
@@ -36,7 +57,10 @@ const BUILT_VIEWS = [
 ];
 
 export function FactoryOS() {
-  const [view, setView] = useState("overview");
+  // มุมมองที่ผู้ใช้กดเอง ทับค่าเริ่มต้นที่มาจาก URL — null คือยังไม่ได้กดอะไร
+  const urlView = useSyncExternalStore(subscribeUrl, viewFromUrl, viewOnServer);
+  const [picked, setView] = useState<string | null>(null);
+  const view = picked ?? urlView;
   const [selectedLine, setSelectedLine] = useState(2);
   const [dtFilter, setDtFilter] = useState("all");
   const [dimmed, setDimmed] = useState(false);
@@ -170,6 +194,8 @@ export function FactoryOS() {
               onOpenAi={() => setView("ai")}
             />
           )}
+          {view === "live" && <PlantDemo />}
+          {view === "mydata" && <LiveTagsView />}
           {view === "digital" && (
             <DigitalTwinView
               filter={dtFilter}

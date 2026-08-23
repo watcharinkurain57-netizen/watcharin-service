@@ -532,3 +532,164 @@
   .coresync-root .wo-card.fresh { animation: none; }
   .coresync-root .b-track i { transition: none; }
 }
+
+/* =====================================================================
+   เดโมระบบจัดการงานรถตัก (แท็บ Loader Ops)
+
+   เขียนสไตล์ของตัวเองทั้งชุดแทนการยืมคลาสจากส่วนอื่น เพราะคลาสเดิมอย่าง
+   .alert-row เป็นกริด 24px|1fr|auto ที่ออกแบบไว้ใส่ไอคอนนำหน้า พอเอามาใช้
+   กับเนื้อหาที่ไม่มีไอคอน ข้อความจะถูกบีบลงคอลัมน์ 24px แล้วแตกทีละคำ
+   ===================================================================== */
+
+.coresync-root .wl-panel {
+  background: linear-gradient(180deg, rgba(12, 27, 44, 0.96), rgba(7, 18, 30, 0.96));
+  border: 1px solid #142c43;
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  padding: 14px 16px 16px;
+  margin-bottom: 14px;
+}
+
+.coresync-root .wl-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.coresync-root .wl-title { font-size: 14px; font-weight: 700; color: #eaf6ff; letter-spacing: 0.2px; }
+.coresync-root .wl-note { font-size: 12px; line-height: 1.6; color: #9db4c8; margin-top: 6px; }
+.coresync-root .wl-fine { font-size: 11px; line-height: 1.6; color: #6f8ba3; margin-top: 6px; }
+.coresync-root .wl-sect { font-size: 11px; font-weight: 700; letter-spacing: 0.4px; color: #bad0e3; margin: 0 0 8px; }
+
+/* ── ปุ่ม ── */
+.coresync-root .wl-tools { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.coresync-root .wl-btn {
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #cfe6f7;
+  background: #0e2439;
+  border: 1px solid #1e435f;
+  border-radius: 8px;
+  padding: 7px 13px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.coresync-root .wl-btn:hover:not(:disabled) { border-color: var(--cyan); color: #eaf6ff; }
+.coresync-root .wl-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.coresync-root .wl-btn.primary { background: rgba(26, 167, 255, 0.14); border-color: #2f7fb8; color: #d6efff; }
+.coresync-root .wl-btn.primary:hover { background: rgba(26, 167, 255, 0.24); }
+.coresync-root .wl-select {
+  font: inherit;
+  font-size: 12px;
+  color: #cfe6f7;
+  background: #0e2439;
+  border: 1px solid #1e435f;
+  border-radius: 8px;
+  padding: 6px 10px;
+}
+
+/* ── แถบตัวเลขสรุป ── */
+.coresync-root .wl-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+.coresync-root .wl-stat { background: #0a1a2b; border: 1px solid #14304a; border-radius: 9px; padding: 10px 12px; }
+.coresync-root .wl-stat span { display: block; font-size: 11px; color: #8fa8bd; }
+.coresync-root .wl-stat b { display: block; font-size: 20px; margin-top: 3px; color: #eaf6ff; font-weight: 700; }
+
+/* ── การ์ดไซโล ── */
+.coresync-root .wl-silos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.coresync-root .wl-silo {
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  background: linear-gradient(180deg, rgba(12, 27, 44, 0.96), rgba(7, 18, 30, 0.96));
+  border: 1px solid #142c43;
+  border-radius: 10px;
+  padding: 12px 13px;
+  transition: border-color 0.15s;
+}
+.coresync-root .wl-silo:hover { border-color: #2f6f9e; }
+.coresync-root .wl-silo.sel { border-color: var(--cyan); box-shadow: 0 0 0 1px rgba(26, 167, 255, 0.35); }
+.coresync-root .wl-silo-top { display: flex; align-items: baseline; gap: 7px; }
+.coresync-root .wl-silo-id { font-size: 15px; font-weight: 700; color: #eaf6ff; letter-spacing: 0.3px; }
+.coresync-root .wl-silo-ch { font-size: 10px; color: #7c96ac; }
+.coresync-root .wl-silo-pct { margin-left: auto; font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.coresync-root .wl-bar { position: relative; height: 7px; border-radius: 4px; background: #0b1d2f; margin-top: 9px; overflow: hidden; }
+.coresync-root .wl-bar i { display: block; height: 100%; transition: width 0.7s linear; }
+.coresync-root .wl-bar u { position: absolute; top: -2px; bottom: -2px; width: 2px; background: #5b7a92; }
+.coresync-root .wl-silo-meta { font-size: 11px; color: #7c96ac; margin-top: 7px; line-height: 1.5; }
+.coresync-root .wl-silo-state { font-size: 11px; margin-top: 4px; font-weight: 600; }
+
+/* ── แถวเตา / รถตัก ── */
+.coresync-root .wl-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; }
+.coresync-root .wl-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #15283b;
+}
+.coresync-root .wl-item:last-child { border-bottom: 0; padding-bottom: 0; }
+.coresync-root .wl-item-main { flex: 1 1 auto; min-width: 0; }
+.coresync-root .wl-item-top { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.coresync-root .wl-item-id { font-size: 13px; font-weight: 700; color: #eaf6ff; letter-spacing: 0.3px; }
+.coresync-root .wl-item-sub { font-size: 11px; color: #7c96ac; margin-top: 4px; line-height: 1.5; }
+.coresync-root .wl-tag { padding: 2px 8px; border-radius: 99px; font-size: 10px; font-weight: 600; white-space: nowrap; }
+.coresync-root .wl-tag.on { background: rgba(50, 229, 139, 0.14); color: var(--green); }
+.coresync-root .wl-tag.off { background: rgba(255, 82, 82, 0.14); color: #ff7b7b; }
+.coresync-root .wl-tag.wait { background: rgba(255, 191, 54, 0.14); color: var(--yellow); }
+
+/* ── กล่องผลลัพธ์ล่าสุด ── */
+.coresync-root .wl-result {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 9px;
+  background: rgba(26, 167, 255, 0.07);
+  border: 1px solid #1e4c70;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #d6ecfb;
+}
+.coresync-root .wl-result b { color: #7fd0ff; display: block; font-size: 11px; margin-bottom: 3px; }
+
+/* ── รายการอธิบายกติกา ── */
+.coresync-root .wl-rules { margin: 12px 0 0; padding-left: 18px; }
+/* reset ของโปรเจกต์ตั้ง list-style: none ไว้ ต้องเปิดจุดคืนเองที่นี่ */
+.coresync-root .wl-rules li { list-style: disc; font-size: 11px; line-height: 1.7; color: #8ba5ba; margin-bottom: 5px; }
+.coresync-root .wl-rules b { color: #cfe6f7; }
+
+/* ── บันทึก ── */
+.coresync-root .wl-log { margin-top: 10px; max-height: 300px; overflow-y: auto; }
+.coresync-root .wl-log-row { display: flex; gap: 12px; padding: 7px 0; border-bottom: 1px solid #14283a; }
+.coresync-root .wl-log-row:last-child { border-bottom: 0; }
+.coresync-root .wl-log-time { flex: 0 0 58px; font-size: 11px; color: #647f95; font-variant-numeric: tabular-nums; }
+.coresync-root .wl-log-body { flex: 1 1 auto; min-width: 0; }
+.coresync-root .wl-log-text { font-size: 12px; line-height: 1.5; }
+.coresync-root .wl-log-detail { font-size: 11px; color: #7c96ac; margin-top: 2px; line-height: 1.5; }
+
+/* ── การกระพริบ ──
+   กระพริบที่ตัวปุ่มเท่านั้น ไม่มีหน้าต่างเด้งกลางจอ เพราะระบบจริงออกแบบไว้แบบนี้
+   ผู้ขับกำลังบังคับเครื่องจักรอยู่ หน้าต่างที่บังคับให้กดรับทราบคือการดึงสายตา
+   ออกจากงานในจังหวะที่อันตรายที่สุด */
+.coresync-root .wl-silo.blink { animation: cs-wl-blink 1s steps(1, end) infinite; }
+
+@keyframes cs-wl-blink {
+  0%, 49% { border-color: var(--red); box-shadow: 0 0 16px rgba(255, 82, 82, 0.3); }
+  50%, 100% { border-color: #142c43; box-shadow: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* ผู้ใช้ที่ตั้งค่าลดการเคลื่อนไหว ยังต้องเห็นว่ากำลังเตือน จึงคงสีไว้แต่ไม่กระพริบ */
+  .coresync-root .wl-silo.blink { animation: none; border-color: var(--red); }
+}

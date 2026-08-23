@@ -1,0 +1,43 @@
+import QRCode from "qrcode";
+import { WATCH_PARAM } from "@/lib/demo/contract";
+
+export const runtime = "nodejs";
+
+/**
+ * QR ของลิงก์ดูอย่างเดียว — ให้คนในห้องประชุมสแกนแล้วเห็นข้อมูลบนเครื่องตัวเอง
+ *
+ * ทำฝั่งเซิร์ฟเวอร์เพราะไม่อยากลากไลบรารีวาด QR ลงไปอยู่ใน bundle ของเบราว์เซอร์
+ * ทั้งที่ใช้แค่หน้าเดียว — คืนเป็น SVG ให้ <img> เรียกตรง ๆ
+ *
+ * ⚠️ ประกอบ URL จาก header ไม่ใช่รับมาจากผู้เรียก
+ * ถ้าให้ผู้เรียกส่ง URL เต็มมาได้ ใครก็ทำ QR ที่หน้าตาเหมือนของเราแต่ชี้ไปที่อื่นได้
+ */
+export async function GET(req: Request) {
+  const sessionId = new URL(req.url).searchParams.get(WATCH_PARAM)?.trim() ?? "";
+  if (!/^[A-Za-z0-9_-]{1,32}$/.test(sessionId)) {
+    return new Response("session id ไม่ถูกต้อง", { status: 400 });
+  }
+
+  const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? "";
+  if (!host) return new Response("ไม่รู้จักโดเมนของตัวเอง", { status: 400 });
+  const proto = req.headers.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+
+  const svg = await QRCode.toString(
+    `${proto}://${host}/coresync?${WATCH_PARAM}=${encodeURIComponent(sessionId)}`,
+    {
+      type: "svg",
+      margin: 1,
+      errorCorrectionLevel: "M",
+      // พื้นขาวเสมอแม้เว็บเป็นธีมมืด — QR บนพื้นเข้มกล้องมือถืออ่านพลาดบ่อย
+      color: { dark: "#0b1220", light: "#ffffff" },
+    }
+  );
+
+  return new Response(svg, {
+    headers: {
+      "Content-Type": "image/svg+xml; charset=utf-8",
+      // ผูกกับ sessionId ที่สุ่มมาอยู่แล้ว จึงแคชได้ยาว ๆ โดยไม่ปนกัน
+      "Cache-Control": "public, max-age=3600, immutable",
+    },
+  });
+}

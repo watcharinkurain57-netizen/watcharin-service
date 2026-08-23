@@ -1,0 +1,147 @@
+"use client";
+
+import { useEffect, useRef } from "react";
+import type { Reading } from "./contract";
+
+/**
+ * ตัวจำลองข้อมูลของโหมดทดลอง
+ *
+ * ⚠️ ยิงเข้าเส้น /api/demo/ingest เส้นเดียวกับที่ตัวเชื่อมต่อจริงใช้
+ * ไม่ได้ลัดวงจรใส่หน้าจอตรง ๆ — สิ่งที่ผู้ใช้เห็นตอนกดเล่นจึงเป็นเส้นทางเดียว
+ * กับของจริงทุกขั้นตอน รวมถึงการตรวจ payload และการกระจายผ่าน Realtime
+ *
+ * ⚠️ คำสั้นอย่าง BAR / ON / OK ต้องจับแบบมีขอบเขตคำ ไม่ใช่ substring ล้วน
+ * ไม่งั้น BARMAC_FLAP_OPEN จะกลายเป็นค่าความดันเพราะมี "BAR" อยู่ข้างใน
+ * — เจอจริงตอนทดสอบด้วยชื่อ tag แบบโรงงานปูน
+ */
+type Kind = "bool" | "status" | "temp" | "pressure" | "percent" | "count" | "number";
+
+function kindOf(tag: string): Kind {
+  const t = tag.toUpperCase();
+  const has = (...words: string[]) =>
+    words.some((w) => new RegExp(`(^|[^A-Z])${w}([^A-Z]|$)`).test(t));
+
+  if (has("OPEN", "CLOSED", "RUN", "RUNNING", "ENABLED", "OK", "ALARM", "FAULT", "ON", "OFF"))
+    return "bool";
+  if (/STATUS|STATE|MODE/.test(t)) return "status";
+  if (/TEMP/.test(t)) return "temp";
+  if (/PRESSURE/.test(t) || has("PRESS", "BAR", "PSI", "KPA")) return "pressure";
+  if (/LEVEL|PERCENT|YIELD|HUMID/.test(t) || has("OEE", "PCT", "RATE")) return "percent";
+  if (/OUTPUT|COUNT|SPEED/.test(t) || has("QTY", "TOTAL")) return "count";
+  return "number";
+}
+
+/** เลื่อนเฟสของแต่ละ tag ให้ต่างกันจริง — ใช้ความยาวชื่อไม่พอ ชื่อยาวเท่ากันจะได้ค่าเท่ากันเป๊ะ */
+function phase(tag: string) {
+  let h = 0;
+  for (let i = 0; i < tag.length; i += 1) h = (h * 31 + tag.charCodeAt(i)) | 0;
+  return (Math.abs(h) % 628) / 100; // 0..2π
+}
+
+export function fakeValue(tag: string, step: number): Reading["value"] {
+  const wave = Math.sin(step / 6 + phase(tag)) * 0.5 + 0.5; // 0..1 เดินนุ่ม ๆ
+  switch (kindOf(tag)) {
+    case "bool":
+      return wave > 0.35;
+    case "status":
+      return wave > 0.2 ? "running" : "stopped";
+    case "temp":
+      return Math.round((820 + wave * 240) * 10) / 10;
+    case "pressure":
+      return Math.round((2 + wave * 6) * 100) / 100;
+    // ค่าที่เป็นเปอร์เซ็นต์ให้อยู่ในย่านที่ดูเป็นการผลิตจริง ไม่ใช่ไต่จาก 0
+    case "percent":
+      return Math.round((30 + wave * 65) * 10) / 10;
+    case "count":
+      return Math.round(400 + wave * 900);
+    default:
+      return Math.round(wave * 10000) / 100;
+  }
+}
+
+export function unitFor(tag: string): string | undefined {
+  switch (kindOf(tag)) {
+    case "temp":
+      return "°C";
+    case "pressure":
+      return "bar";
+    case "percent":
+      return "%";
+    case "count":
+      return "ชิ้น/ชม.";
+    default:
+      return undefined;
+  }
+}
+
+export const SIM_EVERY_MS = 5000;
+export const DEFAULT_TAGS = ["LINE1_OEE", "LINE1_OUTPUT", "LINE2_TEMP", "LINE2_STATUS", "TANK_LEVEL"];
+
+/**
+ * เดินตัวจำลองตราบใดที่ `enabled` เป็นจริง
+ *
+ * ใช้ได้ทั้งหน้าเชื่อมต่อและหน้าแดชบอร์ด เพราะถ้ามีแต่หน้าเชื่อมต่อ
+ * พอผู้ใช้กดไปดูแดชบอร์ด ข้อมูลจะหยุดพอดีตอนที่เขาอยากเห็นมันวิ่ง
+ */
+export function useDemoSimulator({
+  token,
+  tags,
+  enabled,
+  onError,
+}: {
+  token: string | null;
+  tags: string[];
+  enabled: boolean;
+  onError?: (message: string) => void;
+}) {
+  const step = useRef(0);
+  // เก็บ callback ตัวล่าสุดไว้ใน ref เพื่อไม่ให้ตัวจับเวลาถูกตั้งใหม่ทุกครั้งที่ parent
+  // เรนเดอร์ด้วย callback ตัวใหม่ — เขียน ref ต้องทำใน effect ไม่ใช่ระหว่าง render
+  const errorRef = useRef(onError);
+  useEffect(() => {
+    errorRef.current = onError;
+  }, [onError]);
+
+  // ใช้ JSON เป็นกุญแจเทียบ dependency แทนการต่อสตริงด้วยตัวคั่น
+  // เพราะชื่อ tag ที่ผู้ใช้พิมพ์เองอาจมีช่องว่างอยู่ข้างใน แล้วจะแยกกลับผิด
+  const key = JSON.stringify(tags);
+
+  useEffect(() => {
+    if (!enabled || !token) return;
+    const list = (JSON.parse(key) as string[]).filter(Boolean);
+    if (list.length === 0) return;
+
+    let alive = true;
+
+    const send = async () => {
+      const now = new Date().toISOString();
+      step.current += 1;
+      const readings: Reading[] = list.map((tag) => {
+        const unit = unitFor(tag);
+        return { tag, value: fakeValue(tag, step.current), ts: now, ...(unit ? { unit } : {}) };
+      });
+
+      try {
+        const res = await fetch("/api/demo/ingest", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token, sentAt: now, readings }),
+        });
+        if (!alive) return;
+        if (!res.ok) {
+          const data = await res.json().catch(() => null);
+          errorRef.current?.(data?.error ?? `ส่งไม่สำเร็จ (${res.status})`);
+        }
+      } catch {
+        if (alive) errorRef.current?.("ส่งข้อมูลไม่ได้ — ตรวจการเชื่อมต่ออินเทอร์เน็ต");
+      }
+    };
+
+    void send();
+    const timer = window.setInterval(send, SIM_EVERY_MS);
+    return () => {
+      alive = false;
+      window.clearInterval(timer);
+    };
+  }, [enabled, token, key]);
+}
