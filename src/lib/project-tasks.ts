@@ -1,5 +1,7 @@
 /** ชนิดข้อมูลและตัวช่วยของงานในโปรเจกต์ — ใช้ร่วมกันทุกมุมมอง */
 
+import { bucketBy } from "./grouping";
+
 /** ชื่อสีแบบ token ไม่ใช่ค่าสีจริง เพื่อให้เปลี่ยนธีมทีเดียวได้ทั้งเว็บ */
 export type ColumnColor = "slate" | "amber" | "jade" | "sky" | "violet" | "coral";
 
@@ -36,6 +38,8 @@ export type Task = {
   /** null = ยังไม่จัดหมวด — แสดงรวมกันใต้ "ไม่มีหมวด" */
   group_id: string | null;
   title: string;
+  /** คำอธิบายยาว มี snippet โค้ดคั่นได้ · null = ยังไม่เขียน (ดู lib/task-notes.ts) */
+  description: string | null;
   due_label: string | null;
   due_on: string | null;
   started_on: string | null;
@@ -78,42 +82,48 @@ export function colorOf(c: ColumnColor) {
 
 /** คอลัมน์ที่ดึงจากตาราง — รวมไว้ที่เดียวกันลืมเวลาเพิ่มฟิลด์ */
 export const TASK_SELECT =
-  "id, project_id, column_id, group_id, title, due_label, due_on, started_on, assignee_id, sort";
+  "id, project_id, column_id, group_id, title, description, due_label, due_on, started_on, assignee_id, sort";
 export const COLUMN_SELECT = "id, project_id, name, color, is_done, sort";
 export const GROUP_SELECT = "id, project_id, name, color, sort";
 export const PROFILE_SELECT = "id, display_name, email, avatar_url";
 
 /**
- * จัดงานลงหมวด พร้อมถังท้ายสำหรับงานที่ยังไม่ได้จัด
+ * ไฟล์ที่แนบมากับงาน — คนละกองกับไฟล์ส่งมอบใน project_files
  *
- * คืนหมวดที่ไม่มีงานมาด้วย (`items` ว่าง) เพื่อให้ผู้ใช้เห็นว่าหมวดที่ตั้งไว้
- * ยังว่างอยู่ ไม่ใช่หายไปเฉย ๆ — ฝั่งที่เรียกเป็นคนตัดสินเองว่าจะซ่อนไหม
+ * ของแนบในงานคือของใช้ระหว่างทาง (ภาพหน้าจอตอนพัง ล็อก สเปกที่ลูกค้าส่งมา)
+ * ส่วน project_files คือสารบัญของที่ส่งมอบให้ลูกค้าจริง ๆ
+ * เหตุผลเต็ม ๆ อยู่หัวไฟล์ migration 0019
+ *
+ * ใช้ bucket เดียวกัน (FILES_BUCKET) จึงยืมตัวช่วยของ lib/project-files.ts ได้ทั้งชุด
+ */
+export type TaskFile = {
+  id: string;
+  /** null = งานที่แนบไว้ถูกลบไปแล้ว — ไฟล์เด้งมาโผล่ในแถบกู้คืน ไม่หายเงียบ */
+  task_id: string | null;
+  name: string;
+  storage_path: string;
+  size_bytes: number | null;
+  mime_type: string | null;
+  created_at: string;
+};
+
+export const TASK_FILE_SELECT = "id, task_id, name, storage_path, size_bytes, mime_type, created_at";
+
+/** ชั้นคั่นใน path ของ Storage ไว้แยกจากไฟล์ส่งมอบตอนเปิดดูใน dashboard */
+export const TASK_FILES_PREFIX = "tasks";
+
+/** แนบทีละกี่ไฟล์ — น้อยกว่าแท็บไฟล์เยอะ เพราะที่นี่คือของประกอบงานเดียว */
+export const MAX_TASK_FILES_PER_BATCH = 20;
+
+/**
+ * จัดงานลงหมวด — ห่อ bucketBy ไว้อีกชั้นเพื่อให้ฝั่งที่เรียกไม่ต้องรู้เรื่อง group_id
+ * ตรรกะจริงกับกับดักเรื่องหมวดแปลกปลอมอยู่ใน lib/grouping.ts
  */
 export function groupTasks(
   tasks: Task[],
   groups: TaskGroup[]
 ): { group: TaskGroup | null; items: Task[] }[] {
-  const known = new Set(groups.map((g) => g.id));
-
-  const buckets = [...groups]
-    .sort((a, b) => a.sort - b.sort || a.name.localeCompare(b.name, "th"))
-    .map((group) => ({ group: group as TaskGroup | null, items: tasks.filter((t) => t.group_id === group.id) }));
-
-  /**
-   * ถังท้าย = งานที่ไม่มีหมวด **และ** งานที่ชี้หมวดซึ่งหาไม่เจอ
-   *
-   * ⚠️ เงื่อนไขที่สองสำคัญกว่าที่คิด ถ้าเช็คแค่ `!t.group_id`
-   * งานที่ชี้หมวดแปลกปลอมจะไม่เข้าถังไหนเลย = **หายไปจากทุกมุมมองแบบเงียบ ๆ**
-   * เกิดได้จริงตอนโหลดรายการหมวดไม่สำเร็จแต่โหลดงานสำเร็จ
-   * (เป็นอาการเดียวกับที่ 0005 เตือนไว้เรื่อง column_id — งานหลุดออกจากบอร์ด)
-   */
-  const loose = tasks.filter((t) => !t.group_id || !known.has(t.group_id));
-
-  // ไว้ท้ายสุดเสมอ ไม่ใช่บนสุด — ถ้าอยู่บนสุดจะบังหมวดที่ตั้งใจจัดไว้
-  // ซึ่งเป็นของที่ผู้ใช้อยากเห็นก่อน
-  if (loose.length > 0) buckets.push({ group: null, items: loose });
-
-  return buckets;
+  return bucketBy(tasks, groups, (t) => t.group_id);
 }
 
 const THAI_MONTH = [

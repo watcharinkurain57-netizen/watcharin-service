@@ -43,12 +43,19 @@ export function ChatTab({
   canPost,
   canModerate,
   unread,
+  draft,
 }: {
   projectId: string;
   canPost: boolean;
   canModerate: boolean;
   /** มาจาก ProjectTabs — ตัวนับอยู่ที่นั่นที่เดียว ที่นี่แค่แสดงกับเคลียร์ */
   unread: Unread;
+  /**
+   * ข้อความตั้งต้นที่ยกมาจากที่อื่น เช่นกดถามเรื่องไฟล์จากกล่องดูไฟล์
+   * `at` คือตัวแยกครั้ง — ถ้าใช้แค่ข้อความ การถามไฟล์เดิมซ้ำจะไม่เกิดอะไรขึ้น
+   * เพราะค่าไม่เปลี่ยน
+   */
+  draft?: { text: string; at: number } | null;
 }) {
   /** ปฏิทินมาก่อน เพราะเจ้าของบอกว่างานจริงคุยผ่าน Meet มากกว่าพิมพ์ */
   const [sub, setSub] = useState<SubTab>("calendar");
@@ -60,6 +67,31 @@ export function ChatTab({
   const [busy, setBusy] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
+  const [seenDraft, setSeenDraft] = useState(0);
+  const composer = useRef<HTMLTextAreaElement>(null);
+
+  /**
+   * ปรับ state ตอน props เปลี่ยน — ทำระหว่าง render ไม่ใช่ใน effect
+   * (เป็นท่าที่ React แนะนำเองสำหรับเคสนี้ และเลี่ยงการ setState ใน effect
+   *  ซึ่งทำให้ต้อง render สองรอบและโดน lint ทัก)
+   *
+   * ต่อท้ายถ้ามีข้อความค้างอยู่ ไม่ทับทิ้ง — คนที่พิมพ์ค้างไว้ครึ่งประโยค
+   * แล้วเผลอกดถามเรื่องไฟล์ ต้องไม่เสียสิ่งที่พิมพ์ไป
+   */
+  if (draft && draft.at !== seenDraft) {
+    setSeenDraft(draft.at);
+    setSub("chat");
+    setText((cur) => (cur.trim() ? `${cur.trimEnd()}\n${draft.text}` : draft.text));
+  }
+
+  useEffect(() => {
+    if (!draft) return;
+    const el = composer.current;
+    if (!el) return;
+    el.focus();
+    // วางเคอร์เซอร์ท้ายสุด ไม่ใช่หน้าสุด — คนจะได้พิมพ์ต่อได้เลย
+    el.setSelectionRange(el.value.length, el.value.length);
+  }, [draft]);
 
   const listRef = useRef<HTMLDivElement>(null);
   /** ถ้าผู้ใช้เลื่อนขึ้นไปอ่านของเก่าอยู่ อย่าดึงเขากลับลงล่างตอนมีข้อความใหม่ */
@@ -366,6 +398,7 @@ export function ChatTab({
           className="mt-3"
         >
           <textarea
+            ref={composer}
             rows={2}
             value={text}
             onChange={(e) => setText(e.target.value)}

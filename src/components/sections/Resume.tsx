@@ -71,7 +71,7 @@ export function Resume() {
                     <span className="text-sm text-ink-faint">Jul 2023 – Sep 2025</span>
                   </div>
                   <div className="text-cyan-400 font-medium mb-2">MFEC Public Company Limited</div>
-                  <p className="text-ink-muted text-sm leading-relaxed">พัฒนาโปรเจค ServiceNow แบบ end-to-end ครอบคลุม <strong>ITSM</strong> และ <strong>CRM</strong> พัฒนา API ด้วย Python สำหรับดึงข้อมูลส่งเข้า ServiceNow ตั้งค่า Mid Server วาง path การดึงข้อมูล รวมถึงงาน Opentext ITSM</p>
+                  <p className="text-ink-muted text-sm leading-relaxed">พัฒนาโปรเจกต์ ServiceNow แบบ end-to-end ครอบคลุม <strong>ITSM</strong> และ <strong>CRM</strong> พัฒนา API ด้วย Python สำหรับดึงข้อมูลส่งเข้า ServiceNow ตั้งค่า Mid Server วาง path การดึงข้อมูล รวมถึงงาน Opentext ITSM</p>
                 </div>
               </div>
               <div className="bg-surface-raised border border-line rounded-2xl p-6 flex gap-4 card-hover">

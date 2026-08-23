@@ -31,9 +31,17 @@ export type ViewProps = {
   /** คนในโปรเจกต์ ใช้แปลง assignee_id เป็นชื่อกับรูป */
   people: Person[];
   canEdit: boolean;
+  /** จำนวนไฟล์แนบต่องาน — คิดมาจาก TasksTab ที่เดียว ทุกมุมมองใช้ค่าเดียวกัน */
+  fileCounts: Record<string, number>;
   /** ติ๊กเสร็จ = ย้ายไปคอลัมน์ที่ is_done ตัวแรก หรือย้ายกลับคอลัมน์แรก */
   onToggle: (t: Task) => void;
   onMove: (t: Task, columnId: string) => void;
+  /**
+   * เปิดกล่องรายละเอียดของงาน
+   *
+   * ⚠️ เรียกได้ทุกคน ไม่ใช่เฉพาะคนที่แก้ได้ — คนที่แก้ไม่ได้จะได้หน้าอ่านอย่างเดียว
+   * เพราะรายละเอียดกับไฟล์แนบเขียนไว้ให้อีกฝ่ายอ่าน ไม่ใช่โน้ตส่วนตัวของเจ้าของ
+   */
   onEdit: (t: Task) => void;
   onDelete: (t: Task) => void;
 };
@@ -89,9 +97,67 @@ function Assignee({ t, people, size = 22 }: { t: Task; people: Person[]; size?: 
   return <Avatar person={p} size={size} />;
 }
 
-function Title({ t, columns }: { t: Task; columns: TaskColumn[] }) {
+/**
+ * ชื่องาน — กดแล้วเปิดกล่องรายละเอียด
+ *
+ * เป็นปุ่มสำหรับทุกคน ไม่ใช่เฉพาะเจ้าของ เพราะตั้งแต่มีรายละเอียดกับไฟล์แนบ (0019)
+ * ตัวชื่องานไม่ได้เล่าทั้งเรื่องอีกต่อไป ของที่เหลืออยู่ข้างในและต้องมีทางเข้าไป
+ */
+function Title({ t, columns, onEdit }: { t: Task; columns: TaskColumn[]; onEdit: (t: Task) => void }) {
   return (
-    <span className={isDone(t, columns) ? "text-ink-faint line-through" : "text-ink-muted"}>{t.title}</span>
+    <button
+      type="button"
+      onClick={() => onEdit(t)}
+      className={`text-left transition-colors hover:text-brand-400 ${
+        isDone(t, columns) ? "text-ink-faint line-through" : "text-ink-muted"
+      }`}
+    >
+      {t.title}
+    </button>
+  );
+}
+
+/** คลิปหนีบ — ใช้ SVG ไม่ใช่อีโมจิ เพราะอีโมจิเปลี่ยนหน้าตาไปตามระบบปฏิบัติการ */
+function ClipIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="size-3" aria-hidden="true">
+      <path d="M21.4 11.05 12.25 20.2a5.5 5.5 0 0 1-7.78-7.78l9.19-9.19a3.67 3.67 0 1 1 5.18 5.19l-9.2 9.19a1.83 1.83 0 1 1-2.59-2.6l8.49-8.48" />
+    </svg>
+  );
+}
+
+function LinesIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="size-3" aria-hidden="true">
+      <path d="M4 6h16M4 12h16M4 18h10" />
+    </svg>
+  );
+}
+
+/**
+ * ป้ายบอกว่างานนี้มีของอยู่ข้างใน — ไม่ได้แสดงตัวเนื้อหา แค่บอกว่ามี
+ * ถ้าไม่มีอะไรเลยก็ไม่แสดงอะไรเลย แถวงานสั้น ๆ จะได้ไม่รกด้วยไอคอนเปล่า
+ */
+function Marks({ t, fileCounts }: { t: Task; fileCounts: Record<string, number> }) {
+  const hasNote = !!t.description?.trim();
+  const files = fileCounts[t.id] ?? 0;
+  if (!hasNote && files === 0) return null;
+
+  return (
+    <span className="flex flex-none items-center gap-2 text-ink-faint">
+      {hasNote && (
+        <span title="มีรายละเอียด">
+          <LinesIcon />
+          <span className="sr-only">มีรายละเอียด</span>
+        </span>
+      )}
+      {files > 0 && (
+        <span className="inline-flex items-center gap-0.5 text-[0.72rem]" title={`ไฟล์แนบ ${files} ไฟล์`}>
+          <ClipIcon />
+          {files}
+        </span>
+      )}
+    </span>
   );
 }
 
@@ -130,6 +196,7 @@ export function ListView({
   groups,
   people,
   canEdit,
+  fileCounts,
   onToggle,
   onEdit,
   onDelete,
@@ -165,7 +232,8 @@ export function ListView({
               {s.items.map((t) => (
                 <li key={t.id} className={`flex flex-wrap items-center gap-x-3 gap-y-1 ${rowBase}`}>
                   <Check t={t} columns={columns} canEdit={canEdit} onToggle={onToggle} />
-                  <Title t={t} columns={columns} />
+                  <Title t={t} columns={columns} onEdit={onEdit} />
+                  <Marks t={t} fileCounts={fileCounts} />
                   <span className="ml-auto flex items-center gap-2">
                     {groupBy === "group" ? (
                       <ColumnChip t={t} columns={columns} />
@@ -187,7 +255,7 @@ export function ListView({
 }
 
 /* ---------------- 2. บอร์ด ---------------- */
-export function BoardView({ tasks, columns, groups, people, canEdit, onToggle, onMove, onEdit, onDelete }: ViewProps) {
+export function BoardView({ tasks, columns, groups, people, canEdit, fileCounts, onToggle, onMove, onEdit, onDelete }: ViewProps) {
   return (
     <div className="flex gap-3 overflow-x-auto pb-2">
       {columns.map((col) => {
@@ -223,12 +291,17 @@ export function BoardView({ tasks, columns, groups, people, canEdit, onToggle, o
                 >
                   <div className="flex items-start gap-2.5">
                     <Check t={t} columns={columns} canEdit={canEdit} onToggle={onToggle} />
-                    <span className={`leading-snug ${isDone(t, columns) ? "text-ink-faint line-through" : "text-ink"}`}>
+                    <button
+                      type="button"
+                      onClick={() => onEdit(t)}
+                      className={`text-left leading-snug transition-colors hover:text-brand-400 ${isDone(t, columns) ? "text-ink-faint line-through" : "text-ink"}`}
+                    >
                       {t.title}
-                    </span>
+                    </button>
                   </div>
                   {/* หัวคอลัมน์บอกสถานะอยู่แล้ว การ์ดจึงบอกหมวดแทน ไม่ซ้ำกัน */}
                   <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <Marks t={t} fileCounts={fileCounts} />
                     <GroupChip t={t} groups={groups} />
                     <DueBadge t={t} columns={columns} />
                     <Assignee t={t} people={people} size={20} />
@@ -251,7 +324,7 @@ export function BoardView({ tasks, columns, groups, people, canEdit, onToggle, o
 }
 
 /* ---------------- 3. ตาราง ---------------- */
-export function TableView({ tasks, columns, groups, people, canEdit, onToggle, onEdit, onDelete }: ViewProps) {
+export function TableView({ tasks, columns, groups, people, canEdit, fileCounts, onToggle, onEdit, onDelete }: ViewProps) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[40rem] text-sm">
@@ -275,7 +348,10 @@ export function TableView({ tasks, columns, groups, people, canEdit, onToggle, o
                   <Check t={t} columns={columns} canEdit={canEdit} onToggle={onToggle} />
                 </td>
                 <td className="py-2.5 pr-3">
-                  <Title t={t} columns={columns} />
+                  <span className="flex items-center gap-2">
+                    <Title t={t} columns={columns} onEdit={onEdit} />
+                    <Marks t={t} fileCounts={fileCounts} />
+                  </span>
                 </td>
                 <td className="py-2.5 pr-3">
                   {t.group_id ? (
@@ -320,7 +396,7 @@ export function TableView({ tasks, columns, groups, people, canEdit, onToggle, o
 }
 
 /* ---------------- 4. ปฏิทิน ---------------- */
-export function CalendarView({ tasks, columns, people, canEdit, onEdit, month }: ViewProps & { month: Date }) {
+export function CalendarView({ tasks, columns, people, onEdit, month }: ViewProps & { month: Date }) {
   const year = month.getFullYear();
   const m = month.getMonth();
   const daysInMonth = new Date(year, m + 1, 0).getDate();
@@ -370,7 +446,6 @@ export function CalendarView({ tasks, columns, people, canEdit, onEdit, month }:
                     <button
                       key={t.id}
                       type="button"
-                      disabled={!canEdit}
                       onClick={() => onEdit(t)}
                       title={`${t.title} · ${col?.name ?? ""}${t.assignee_id ? ` · ${personName(people.find((p) => p.id === t.assignee_id))}` : ""}`}
                       className={`truncate rounded px-1.5 py-0.5 text-left text-[0.7rem] leading-snug ${
@@ -399,7 +474,7 @@ export function CalendarView({ tasks, columns, people, canEdit, onEdit, month }:
 }
 
 /* ---------------- 5. ไทม์ไลน์ ---------------- */
-export function TimelineView({ tasks, columns, people, canEdit, onEdit }: ViewProps) {
+export function TimelineView({ tasks, columns, people, onEdit }: ViewProps) {
   const dated = tasks.filter((t) => t.due_on);
   if (dated.length === 0) {
     return (
@@ -437,10 +512,9 @@ export function TimelineView({ tasks, columns, people, canEdit, onEdit }: ViewPr
             <div key={t.id} className="grid grid-cols-[9rem_1fr] items-center gap-3">
               <button
                 type="button"
-                disabled={!canEdit}
                 onClick={() => onEdit(t)}
                 title={`${t.title} · ${col?.name ?? ""}`}
-                className={`flex items-center gap-1.5 overflow-hidden text-left text-[0.8rem] ${isDone(t, columns) ? "text-ink-faint line-through" : "text-ink-muted"} ${canEdit ? "hover:text-brand-400" : ""}`}
+                className={`flex items-center gap-1.5 overflow-hidden text-left text-[0.8rem] transition-colors hover:text-brand-400 ${isDone(t, columns) ? "text-ink-faint line-through" : "text-ink-muted"}`}
               >
                 <Assignee t={t} people={people} size={18} />
                 <span className="truncate">{t.title}</span>

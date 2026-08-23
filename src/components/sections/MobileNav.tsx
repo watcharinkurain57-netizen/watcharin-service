@@ -104,7 +104,7 @@ export function MobileNav({ links }: { links: readonly NavLink[] }) {
               onClick={close}
               className="gradient-btn mt-2 block rounded-xl px-4 py-3 text-center text-base font-semibold text-white"
             >
-              ปรึกษาโปรเจค →
+              ปรึกษาโปรเจกต์ →
             </a>
           </div>
         </>

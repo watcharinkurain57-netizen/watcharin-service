@@ -154,7 +154,7 @@ export function ProjectModal({ project, onClose }: Props) {
               onClick={onClose}
               className="gradient-btn text-white font-semibold px-6 py-3 rounded-full inline-flex items-center gap-2"
             >
-              ปรึกษาเกี่ยวกับโปรเจคนี้ →
+              ปรึกษาเกี่ยวกับโปรเจกต์นี้ →
             </a>
           </div>
         </div>

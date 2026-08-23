@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { thaiDate, todayIso } from "@/lib/project-tasks";
+import { PREVIEW_URL_SECONDS, previewKind, type PreviewItem } from "@/lib/file-preview";
+import { FileViewer } from "./FileViewer";
 import {
   FILES_BUCKET,
   FILE_SELECT,
@@ -39,7 +41,16 @@ import {
 
 type Pending = { key: string; name: string; size: number; error: string | null };
 
-export function FilesTab({ projectId, canManage }: { projectId: string; canManage: boolean }) {
+export function FilesTab({
+  projectId,
+  canManage,
+  onAskAbout,
+}: {
+  projectId: string;
+  canManage: boolean;
+  /** ยกชื่อไฟล์ไปตั้งต้นข้อความในแท็บคุยงาน — ไม่ส่งมาก็ไม่มีปุ่ม (คนที่โพสต์ไม่ได้) */
+  onAskAbout?: (fileName: string) => void;
+}) {
   const [files, setFiles] = useState<ProjectFile[] | null>(null);
   const [folders, setFolders] = useState<ProjectFolder[]>([]);
   const [cwd, setCwd] = useState<string | null>(null);
@@ -48,6 +59,8 @@ export function FilesTab({ projectId, canManage }: { projectId: string; canManag
   const [busy, setBusy] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const [newFolder, setNewFolder] = useState("");
+  /** ไฟล์ที่กำลังเปิดดูอยู่ · null = ไม่ได้เปิดกล่อง */
+  const [viewing, setViewing] = useState<{ items: PreviewItem[]; index: number } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
 
@@ -360,6 +373,49 @@ export function FilesTab({ projectId, canManage }: { projectId: string; canManag
 
   /** ---------- โหลด / ลบ / สถานะ ---------- */
 
+  /**
+   * เปิดกล่องดูไฟล์
+   *
+   * ขอลิงก์ให้ไฟล์ที่ดูได้ **ทั้งชั้นนี้ในคำขอเดียว** ไม่ใช่เฉพาะตัวที่กด
+   * เพราะกล่องมีปุ่มเลื่อนไปไฟล์ถัดไป ถ้าขอทีละใบตอนกดลูกศรจะค้างทุกครั้ง
+   * และคนที่เปิดดูภาพหน้าจอชุดหนึ่งมักกดลูกศรรัวจนจบชุด
+   */
+  async function openViewer(target: ProjectFile) {
+    const candidates = shown
+      .filter((f) => f.storage_path && previewKind(f.mime_type, f.name))
+      .map((f) => ({ file: f, kind: previewKind(f.mime_type, f.name) as "image" | "pdf" }));
+
+    setBusy(target.id);
+    const { data, error: e } = await supabase.storage
+      .from(FILES_BUCKET)
+      .createSignedUrls(candidates.map((c) => c.file.storage_path as string), PREVIEW_URL_SECONDS);
+    setBusy(null);
+
+    if (e || !data) {
+      setError(fileErrorMessage(e, "ขอลิงก์เปิดดูไฟล์ไม่สำเร็จ"));
+      return;
+    }
+
+    const urlOf = new Map(data.filter((r) => r.signedUrl && r.path).map((r) => [r.path as string, r.signedUrl]));
+
+    // ตัวที่ขอลิงก์ไม่สำเร็จต้องหลุดออกจากรายการ ไม่ใช่ค้างเป็นกรอบเปล่า
+    const items: PreviewItem[] = candidates
+      .filter((c) => urlOf.has(c.file.storage_path as string))
+      .map((c) => ({
+        id: c.file.id,
+        name: c.file.name,
+        kind: c.kind,
+        url: urlOf.get(c.file.storage_path as string) as string,
+      }));
+
+    const index = items.findIndex((i) => i.id === target.id);
+    if (index === -1) {
+      setError("เปิดดูไฟล์นี้ไม่ได้ — ลองดาวน์โหลดแทน");
+      return;
+    }
+    setViewing({ items, index });
+  }
+
   async function download(f: ProjectFile) {
     if (!f.storage_path) return;
     setBusy(f.id);
@@ -565,6 +621,16 @@ export function FilesTab({ projectId, canManage }: { projectId: string; canManag
                   </select>
                 )}
 
+                {f.storage_path && previewKind(f.mime_type, f.name) && (
+                  <button
+                    type="button"
+                    onClick={() => openViewer(f)}
+                    disabled={busy === f.id}
+                    className="rounded-lg border border-line px-2.5 py-1.5 text-[0.8rem] font-bold text-ink-muted transition-colors hover:border-brand-500 hover:text-brand-300 disabled:opacity-50"
+                  >
+                    ดู
+                  </button>
+                )}
                 {f.storage_path && (
                   <button
                     type="button"
@@ -723,6 +789,30 @@ export function FilesTab({ projectId, canManage }: { projectId: string; canManag
         ไฟล์เก็บแบบไม่เปิดสาธารณะ คนนอกโปรเจกต์เปิดไม่ได้แม้จะรู้ลิงก์
         {canManage && " — ลิงก์ดาวน์โหลดมีอายุ 1 นาที ส่งต่อให้คนอื่นใช้ไม่ได้ · ลบโฟลเดอร์คือลบไฟล์ข้างในทั้งหมดถาวร"}
       </p>
+
+      {viewing && (
+        <FileViewer
+          items={viewing.items}
+          index={viewing.index}
+          onIndex={(index) => setViewing((v) => (v ? { ...v, index } : v))}
+          onClose={() => setViewing(null)}
+          onAsk={
+            onAskAbout
+              ? (item) => {
+                  // ปิดกล่องก่อน ไม่งั้นสลับไปแท็บคุยงานแล้วยังมีชั้นดำทับอยู่
+                  setViewing(null);
+                  onAskAbout(item.name);
+                }
+              : undefined
+          }
+          onDownload={(item) => {
+            // กล่องดูไฟล์รู้จักแค่ id กับ url — ตัวโหลดต้องใช้แถวจริงเพื่อขอลิงก์
+            // แบบ attachment (ลิงก์ที่กล่องถืออยู่เป็นแบบเปิดอ่าน ไม่ได้สั่งบันทึก)
+            const row = (files ?? []).find((f) => f.id === item.id);
+            if (row) download(row);
+          }}
+        />
+      )}
     </section>
   );
 }
