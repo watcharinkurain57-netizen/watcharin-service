@@ -124,7 +124,7 @@ export function ProjectForm({ project }: { project?: ArchiveProject }) {
         <div className="grid gap-5 sm:grid-cols-2">
           <div>
             <label className={label} htmlFor="name">ชื่อโปรเจกต์</label>
-            <input id="name" name="name" required defaultValue={project?.name} className={field} placeholder="CoreSync" />
+            <input id="name" name="name" required defaultValue={project?.name} className={field} placeholder="ชื่อโปรเจกต์ของคุณ" />
           </div>
           <div>
             <label className={label} htmlFor="slug">slug (ใช้ใน URL)</label>
@@ -135,7 +135,7 @@ export function ProjectForm({ project }: { project?: ArchiveProject }) {
               pattern="[a-z0-9\-]+"
               defaultValue={project?.slug}
               className={`${field} font-mono`}
-              placeholder="coresync"
+              placeholder="ตัวพิมพ์เล็ก คั่นคำด้วยขีด"
             />
             {editing && (
               <p className="mt-1.5 text-[0.8rem] text-ink-faint">
@@ -180,7 +180,7 @@ export function ProjectForm({ project }: { project?: ArchiveProject }) {
         <div className="grid gap-5 sm:grid-cols-3">
           <div>
             <label className={label} htmlFor="started_label">เริ่มเมื่อ</label>
-            <input id="started_label" name="started_label" required defaultValue={project?.startedAt} className={field} placeholder="ส.ค. 2026" />
+            <input id="started_label" name="started_label" required defaultValue={project?.startedAt} className={field} placeholder="เดือน ปี ที่เริ่ม" />
           </div>
           <div>
             <label className={label} htmlFor="ended_label">จบเมื่อ <span className="font-normal text-ink-faint">— ถ้ามี</span></label>
@@ -195,11 +195,11 @@ export function ProjectForm({ project }: { project?: ArchiveProject }) {
         <div className="grid gap-5 sm:grid-cols-2">
           <div>
             <label className={label} htmlFor="tags">แท็ก <span className="font-normal text-ink-faint">— คั่นด้วย ,</span></label>
-            <input id="tags" name="tags" defaultValue={project?.tags.join(", ")} className={field} placeholder="PLC, SCADA, MES" />
+            <input id="tags" name="tags" defaultValue={project?.tags.join(", ")} className={field} placeholder="หัวข้อที่เกี่ยวข้อง" />
           </div>
           <div>
             <label className={label} htmlFor="tech">เทคโนโลยี <span className="font-normal text-ink-faint">— คั่นด้วย ,</span></label>
-            <input id="tech" name="tech" defaultValue={project?.tech.join(", ")} className={field} placeholder="Next.js, Supabase" />
+            <input id="tech" name="tech" defaultValue={project?.tech.join(", ")} className={field} placeholder="เครื่องมือที่ใช้ทำ" />
           </div>
         </div>
 
