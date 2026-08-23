@@ -77,7 +77,7 @@ export function DecisionMakers() {
           </div>
 
           <div className="text-center mt-14 scroll-fade">
-            <a href="#contact" className="gradient-btn text-white font-semibold px-7 py-3.5 rounded-full text-base inline-flex items-center gap-2">คุยเรื่องโปรเจคของคุณ →</a>
+            <a href="#contact" className="gradient-btn text-white font-semibold px-7 py-3.5 rounded-full text-base inline-flex items-center gap-2">คุยเรื่องโปรเจกต์ของคุณ →</a>
           </div>
         </div>
       </section>

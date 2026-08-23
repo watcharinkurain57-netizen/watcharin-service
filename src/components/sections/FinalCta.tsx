@@ -13,12 +13,12 @@ export function FinalCta() {
             <div className="inline-block px-3 py-1 rounded-full bg-white/10 backdrop-blur border border-white/20 text-brand-200 text-sm font-medium">Let&apos;s work together</div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/15 backdrop-blur border border-emerald-400/30 text-emerald-200 text-sm font-medium">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 pulse-dot" />
-              เปิดรับ 1–2 โปรเจค/เดือน
+              เปิดรับ 1–2 โปรเจกต์/เดือน
             </div>
           </div>
           <h2 className="text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight mb-6 leading-tight">
             พร้อมเริ่ม<br />
-            <span className="bg-gradient-to-r from-brand-300 via-cyan-300 to-brand-200 bg-clip-text text-transparent">โปรเจคของคุณ?</span>
+            <span className="bg-gradient-to-r from-brand-300 via-cyan-300 to-brand-200 bg-clip-text text-transparent">โปรเจกต์ของคุณ?</span>
           </h2>
           <p className="text-lg md:text-xl text-ink-muted mb-10 max-w-2xl mx-auto leading-relaxed">ปรึกษาฟรี ไม่มีค่าใช้จ่าย คุยเรื่อง requirement งบประมาณ และไอเดียก่อนตัดสินใจ</p>
           <ContactForm />

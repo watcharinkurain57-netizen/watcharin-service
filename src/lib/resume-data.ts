@@ -188,7 +188,7 @@ const th: ResumeData = {
       company: "MFEC Public Company Limited",
       period: "ก.ค. 2023 – ก.ย. 2025",
       bullets: [
-        "พัฒนาโปรเจค ServiceNow แบบ end-to-end ครอบคลุม ITSM และ CRM",
+        "พัฒนาโปรเจกต์ ServiceNow แบบ end-to-end ครอบคลุม ITSM และ CRM",
         "พัฒนา API ด้วย Python และตั้งค่า Mid Server สำหรับดึงข้อมูลเข้าระบบ",
         "ดูแลงาน integration กับ Opentext ITSM และออกแบบ workflow",
       ],

@@ -15,7 +15,7 @@ export function Hero() {
                 </div>
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-500/10 border border-brand-500/30 text-brand-300 text-sm font-medium">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 pulse-dot" />
-                  เปิดรับ 1–2 โปรเจค/เดือน
+                  เปิดรับ 1–2 โปรเจกต์/เดือน
                 </div>
               </div>
               <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold leading-[1.05] tracking-tight mb-6">
@@ -26,7 +26,7 @@ export function Hero() {
                 รับออกแบบและพัฒนาระบบ <strong className="text-ink">Web และ Mobile</strong> สำหรับ <strong className="text-ink">ธุรกิจและอุตสาหกรรม</strong> โดย Software Architect ที่ผ่านงานองค์กรใหญ่
               </p>
               <div className="flex flex-wrap gap-4 mb-12">
-                <a href="#contact" className="gradient-btn text-white font-semibold px-7 py-3.5 rounded-full text-base">ปรึกษาโปรเจค →</a>
+                <a href="#contact" className="gradient-btn text-white font-semibold px-7 py-3.5 rounded-full text-base">ปรึกษาโปรเจกต์ →</a>
                 <a href="#work" className="bg-surface-raised border border-line text-ink font-semibold px-7 py-3.5 rounded-full hover:bg-surface-overlay hover:border-line-strong transition text-base">ดูผลงานของเรา</a>
               </div>
               <div className="flex items-center gap-8 text-sm">
