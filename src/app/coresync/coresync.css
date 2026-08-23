@@ -693,3 +693,17 @@
   /* ผู้ใช้ที่ตั้งค่าลดการเคลื่อนไหว ยังต้องเห็นว่ากำลังเตือน จึงคงสีไว้แต่ไม่กระพริบ */
   .coresync-root .wl-silo.blink { animation: none; border-color: var(--red); }
 }
+
+/* ───── เหตุการณ์จากแท็บเล็ตคนขับ (มุมมอง Your Data) ─────
+   คลาสของตัวเอง ไม่ยืมจากที่อื่น — บทเรียนเดียวกับ Loader Ops */
+.ev-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  align-items: baseline;
+  padding: 7px 0;
+  border-top: 1px solid var(--line, rgba(148, 163, 184, 0.18));
+  font-size: 14px;
+}
+.ev-row:first-child { border-top: none; }
+.ev-row .mono { color: var(--muted, #94a3b8); font-size: 13px; }

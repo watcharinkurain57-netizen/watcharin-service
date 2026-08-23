@@ -2,7 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { READINGS_EVENT, channelFor, type Reading, type ReadingsEvent } from "./contract";
+import {
+  OPERATOR_EVENT,
+  READINGS_EVENT,
+  channelFor,
+  type OperatorEvent,
+  type Reading,
+  type ReadingsEvent,
+} from "./contract";
 
 export type ChannelStatus = "idle" | "connecting" | "listening" | "error";
 
@@ -22,6 +29,8 @@ export type DemoChannelState = {
   history: Record<string, number[]>;
   /** ไม่กี่ค่าล่าสุดตามลำดับเวลา ใช้โชว์ให้เห็นว่าเราตีความข้อมูลถูก */
   recent: Reading[];
+  /** เหตุการณ์จากแท็บเล็ตคนขับ ใหม่สุดอยู่บน — จอ CCR ใช้ดูว่าใครรับงานไหน */
+  events: OperatorEvent[];
   error: string | null;
 };
 
@@ -35,11 +44,14 @@ const EMPTY: DemoChannelState = {
   latest: {},
   history: {},
   recent: [],
+  events: [],
   error: null,
 };
 
 const CONNECTING: DemoChannelState = { ...EMPTY, status: "connecting" };
 const RECENT_KEPT = 8;
+/** เหตุการณ์จากแท็บเล็ตที่เก็บไว้แสดง */
+const EVENTS_KEPT = 12;
 /** จำนวนจุดต่อ tag ที่เก็บไว้วาดกราฟ — พอให้เห็นแนวโน้ม โดยไม่ให้หน่วยความจำโตเรื่อย ๆ */
 const HISTORY_KEPT = 30;
 
@@ -96,9 +108,19 @@ export function useDemoChannel(sessionId: string | null): DemoChannelState {
           latest,
           history,
           recent: [...incoming, ...prev.recent].slice(0, RECENT_KEPT),
+          events: prev.events,
           error: null,
         };
       });
+    });
+
+    // เหตุการณ์จากแท็บเล็ตคนขับมาคนละ event เพราะเป็นการกระทำของคน ไม่ใช่ค่าที่วัดได้
+    // ⚠️ ต้องไม่ไปแตะ lastAt/totalReadings ไม่งั้นตัวเลข "รับข้อมูลล่าสุดเมื่อไหร่"
+    // จะดูเหมือนโรงงานยังส่งอยู่ทั้งที่หยุดไปแล้ว เหลือแค่คนกดบนแท็บเล็ต
+    channel.on("broadcast", { event: OPERATOR_EVENT }, ({ payload }) => {
+      const event = payload as OperatorEvent | undefined;
+      if (!event?.kind || !event.vehicle) return;
+      setState((prev) => ({ ...prev, events: [event, ...prev.events].slice(0, EVENTS_KEPT) }));
     });
 
     channel.subscribe((status) => {

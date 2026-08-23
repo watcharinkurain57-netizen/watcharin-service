@@ -1,6 +1,12 @@
 import "server-only";
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/lib/supabase/env";
-import { READINGS_EVENT, channelFor, type ReadingsEvent } from "./contract";
+import {
+  OPERATOR_EVENT,
+  READINGS_EVENT,
+  channelFor,
+  type OperatorEvent,
+  type ReadingsEvent,
+} from "./contract";
 
 /**
  * ส่งข้อมูลออกไปหาเบราว์เซอร์ผ่าน Supabase Realtime Broadcast
@@ -14,9 +20,19 @@ import { READINGS_EVENT, channelFor, type ReadingsEvent } from "./contract";
  * โหมดทดลองประกาศว่าไม่เก็บข้อมูล — broadcast คือข้อความที่ผ่านไปเฉย ๆ
  * ไม่มีตารางรองรับ ไม่มีอะไรค้าง ตรงกับที่บอกผู้ใช้ไว้จริง ๆ
  */
-export async function broadcastReadings(
+export async function broadcastReadings(sessionId: string, payload: ReadingsEvent) {
+  return post(sessionId, READINGS_EVENT, payload);
+}
+
+/** เหตุการณ์จากแท็บเล็ตคนขับ — ใช้เส้นเดียวกับค่าที่อ่านได้ แค่คนละ event */
+export async function broadcastOperator(sessionId: string, payload: OperatorEvent) {
+  return post(sessionId, OPERATOR_EVENT, payload);
+}
+
+async function post(
   sessionId: string,
-  payload: ReadingsEvent
+  event: string,
+  payload: ReadingsEvent | OperatorEvent
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const res = await fetch(`${SUPABASE_URL}/realtime/v1/api/broadcast`, {
     method: "POST",
@@ -29,7 +45,7 @@ export async function broadcastReadings(
       messages: [
         {
           topic: channelFor(sessionId),
-          event: READINGS_EVENT,
+          event,
           payload,
         },
       ],

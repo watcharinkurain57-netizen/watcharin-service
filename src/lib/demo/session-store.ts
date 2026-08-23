@@ -123,6 +123,17 @@ export function watchUrl(origin: string, sessionId: string) {
   return `${origin}/coresync?${WATCH_PARAM}=${encodeURIComponent(sessionId)}`;
 }
 
+/**
+ * ลิงก์แท็บเล็ตคนขับ — พกโทเคนไปด้วยเพื่อให้ส่งเหตุการณ์กลับมาให้จออื่นเห็นได้
+ *
+ * ⚠️ โทเคนอยู่หลัง # ไม่ใช่ใน query
+ * ส่วนที่อยู่หลัง # เบราว์เซอร์ไม่ส่งไปกับ request จึงไม่ไปโผล่ใน log ของเซิร์ฟเวอร์
+ * หรือใน referrer ที่เว็บอื่นเห็น — เป็นที่ที่ปลอดภัยที่สุดที่ยังใส่ใน URL ได้
+ */
+export function operatorUrl(origin: string, sessionId: string, token: string) {
+  return `${origin}/coresync/operator?${WATCH_PARAM}=${encodeURIComponent(sessionId)}#t=${encodeURIComponent(token)}`;
+}
+
 function readWatchParam(): string | null {
   try {
     const raw = new URLSearchParams(window.location.search).get(WATCH_PARAM);
@@ -176,4 +187,48 @@ function subscribeViewer(onChange: () => void) {
  */
 export function useViewerSession(): ViewerSession | null {
   return useSyncExternalStore(subscribeViewer, getViewerSnapshot, getServerSnapshot);
+}
+
+/**
+ * โทเคนที่พ่วงมาหลัง # ของลิงก์แท็บเล็ตคนขับ
+ *
+ * ⚠️ ใช้ useSyncExternalStore ด้วยเหตุผลเดียวกับ useViewerSession
+ * ฝั่งเซิร์ฟเวอร์ไม่มี URL ให้อ่าน ถ้าอ่านตอน render แรกจะ hydrate ไม่ตรงกัน
+ * และการ setState ใน effect ก็ทำให้เรนเดอร์ซ้ำโดยไม่จำเป็น
+ */
+let cachedHash: string | null = null;
+let cachedToken: string | null = null;
+
+function hashTokenSnapshot(): string | null {
+  let raw = "";
+  try {
+    raw = window.location.hash;
+  } catch {
+    raw = "";
+  }
+  if (raw !== cachedHash) {
+    cachedHash = raw;
+    let token: string | null = null;
+    try {
+      const value = new URLSearchParams(raw.replace(/^#/, "")).get("t");
+      // โทเคนของเรามีจุดคั่น payload กับลายเซ็นเสมอ — กันค่าขยะไปยิง API เปล่า ๆ
+      token = value && value.includes(".") ? value : null;
+    } catch {
+      token = null;
+    }
+    cachedToken = token;
+  }
+  return cachedToken;
+}
+
+function subscribeHash(onChange: () => void) {
+  window.addEventListener("hashchange", onChange);
+  return () => window.removeEventListener("hashchange", onChange);
+}
+
+/** ฝั่งเซิร์ฟเวอร์ไม่มี URL — คืน null แล้วให้ React เรนเดอร์ซ้ำหลัง hydrate */
+const noTokenOnServer = () => null;
+
+export function useHashToken(): string | null {
+  return useSyncExternalStore(subscribeHash, hashTokenSnapshot, noTokenOnServer);
 }

@@ -146,3 +146,96 @@ export function validateReadings(input: unknown): Valid | Invalid {
 
   return { ok: true, readings };
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// เหตุการณ์จากแท็บเล็ตคนขับ
+//
+// ⚠️ แยก event ออกจาก readings เพราะทิศทางข้อมูลคนละแบบ
+// readings มาจากโรงงานและเป็นการรายงานค่า ส่วนอันนี้มาจากคนและเป็นการกระทำ
+// ถ้ายัดรวมกัน ฝั่งรับต้องเดาเองว่าอะไรเป็นอะไร และจอที่สนใจแค่ค่าจะถูกปลุกโดยไม่จำเป็น
+//
+// ⚠️ โหมดทดลองไม่มีตัวตัดสินกลาง — การจองไซโลที่นี่คือ "ประกาศให้จออื่นรู้"
+// ไม่ใช่การแย่งสิทธิ์ที่มีผู้ชนะแน่นอนแบบระบบจริง (ระบบจริงตัดสินใน transaction เดียว)
+// หน้าจอต้องเขียนกำกับไว้ ไม่ใช่ปล่อยให้เข้าใจว่าเดโมพิสูจน์เรื่องนี้แล้ว
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const OPERATOR_EVENT = "operator";
+
+export type OperatorKind = "login" | "shift_start" | "job_start" | "job_end" | "shift_end";
+
+export type OperatorEvent = {
+  kind: OperatorKind;
+  /** รหัสรถที่คนขับเลือก */
+  vehicle: string;
+  operator: string;
+  /** ไซโลที่เกี่ยวข้อง — มีเฉพาะ job_start / job_end */
+  silo?: string;
+  /** เวลาที่กดบนแท็บเล็ต (ISO 8601) */
+  at: string;
+};
+
+const OPERATOR_KINDS = new Set<string>([
+  "login",
+  "shift_start",
+  "job_start",
+  "job_end",
+  "shift_end",
+]);
+
+/** ความยาวสูงสุดของข้อความที่มาจากแท็บเล็ต — กันคนยัดของยาวเข้ามาผ่าน channel */
+const NAME_MAX = 48;
+
+type ValidEvent = { ok: true; event: OperatorEvent };
+
+export function validateOperatorEvent(input: unknown): ValidEvent | Invalid {
+  if (!input || typeof input !== "object") {
+    return { ok: false, error: "ต้องส่งฟิลด์ event เป็น object" };
+  }
+  const raw = input as Record<string, unknown>;
+
+  const kind = typeof raw.kind === "string" ? raw.kind : "";
+  if (!OPERATOR_KINDS.has(kind)) {
+    return { ok: false, error: `event.kind ต้องเป็นหนึ่งใน ${[...OPERATOR_KINDS].join(", ")}` };
+  }
+
+  /** คืนข้อความที่ตัดช่องว่างแล้ว หรือ null ถ้าว่างหรือยาวเกิน */
+  const textOf = (value: unknown): string | null => {
+    const s = typeof value === "string" ? value.trim() : "";
+    return s && s.length <= NAME_MAX ? s : null;
+  };
+  const reject = (field: string) => ({
+    ok: false as const,
+    error: `event.${field} ว่าง หรือยาวเกิน ${NAME_MAX} ตัวอักษร`,
+  });
+
+  const vehicle = textOf(raw.vehicle);
+  if (!vehicle) return reject("vehicle");
+  const operator = textOf(raw.operator);
+  if (!operator) return reject("operator");
+
+  const at = typeof raw.at === "string" ? raw.at : "";
+  if (!at || Number.isNaN(Date.parse(at))) {
+    return { ok: false, error: "event.at ต้องเป็นเวลาแบบ ISO 8601" };
+  }
+
+  let silo: string | undefined;
+  if (raw.silo !== undefined) {
+    const checked = textOf(raw.silo);
+    if (!checked) return reject("silo");
+    silo = checked;
+  }
+  if ((kind === "job_start" || kind === "job_end") && !silo) {
+    return { ok: false, error: `event.silo จำเป็นสำหรับ ${kind}` };
+  }
+
+  return {
+    ok: true,
+    event: {
+      kind: kind as OperatorKind,
+      vehicle,
+      operator,
+      at,
+      ...(silo ? { silo } : {}),
+    },
+  };
+}

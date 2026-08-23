@@ -1,0 +1,280 @@
+/*
+  หน้าจอคนขับ — ออกแบบสำหรับแท็บเล็ตที่ถืออยู่ในรถ ไม่ใช่จอคอมบนโต๊ะ
+  ปุ่มใหญ่ ตัวเลขใหญ่ คอนทราสต์สูง เพราะใช้กลางแดดและสวมถุงมือ
+
+  ⚠️ ใช้คลาส .op-* ของตัวเองทั้งหมด ไม่ยืมคลาสจากมุมมองอื่นของ /coresync
+  บทเรียนเดียวกับตอนทำ Loader Ops — คลาสที่ออกแบบมาเพื่อ layout อื่น
+  พอเอามาใช้กับ markup ที่ไม่เหมือนกันจะพังแบบหาสาเหตุยาก
+*/
+
+.op-shell {
+  --op-navy: #16233d;
+  --op-blue: #2f5fe0;
+  --op-green: #16a34a;
+  --op-red: #dc2626;
+  --op-amber: #f59e0b;
+  --op-bg: #f1f5f9;
+  --op-line: #d8e0ea;
+  --op-ink: #16233d;
+  --op-muted: #5b6b82;
+
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  background: var(--op-bg);
+  color: var(--op-ink);
+  font-family: "Sarabun", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ───── แถบบน ───── */
+.op-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: var(--op-navy);
+  color: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+.op-brand { font-weight: 700; letter-spacing: 0.2px; }
+.op-who { color: #4ade80; font-weight: 700; font-size: 14px; }
+.op-sp { flex: 1; }
+.op-pill {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+}
+.op-pill.ok { background: rgba(22, 163, 74, 0.25); color: #86efac; }
+.op-pill.wait { background: rgba(245, 158, 11, 0.2); color: #fcd34d; }
+
+/* ───── ตัวหน้า ───── */
+.op-body { flex: 1; padding: 20px 16px 28px; }
+.op-center { display: flex; align-items: center; justify-content: center; min-height: 60vh; }
+
+.op-card {
+  background: #fff;
+  border: 1px solid var(--op-line);
+  border-radius: 18px;
+  padding: 28px 24px;
+  text-align: center;
+  max-width: 480px;
+  width: 100%;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+}
+.op-card.wide { max-width: 640px; }
+.op-h1 { font-size: 24px; font-weight: 700; margin: 0 0 10px; }
+.op-muted { color: var(--op-muted); font-size: 15px; line-height: 1.7; margin: 0 0 8px; }
+.op-muted.sm { font-size: 13px; }
+.op-mono { font-family: ui-monospace, "SFMono-Regular", Menlo, monospace; }
+
+.op-tapicon {
+  font-size: 56px;
+  line-height: 1;
+  color: var(--op-blue);
+  margin-bottom: 10px;
+  animation: op-pulse 1.8s ease-in-out infinite;
+}
+@keyframes op-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.55; transform: scale(0.94); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .op-tapicon { animation: none; }
+}
+
+.op-readerstate {
+  margin: 14px 0 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--op-muted);
+}
+.op-readerstate.ok { color: var(--op-green); }
+
+.op-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 22px 0 10px;
+  color: var(--op-muted);
+  font-size: 12px;
+}
+.op-divider::before, .op-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--op-line);
+}
+.op-simrow { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 10px; }
+
+/* ───── ปุ่ม ───── */
+.op-btn {
+  display: inline-block;
+  border: none;
+  border-radius: 12px;
+  padding: 14px 20px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  text-decoration: none;
+  margin-top: 12px;
+}
+.op-btn.sm { padding: 8px 14px; font-size: 14px; margin-top: 0; }
+.op-btn.primary { background: var(--op-blue); color: #fff; }
+.op-btn.danger { background: var(--op-red); color: #fff; }
+.op-btn.ghost { background: #fff; color: var(--op-ink); border: 1.5px solid var(--op-line); }
+.op-btn:active { transform: translateY(1px); }
+
+/* ───── เลือกคน / เลือกรถ ───── */
+.op-pickgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+  margin: 18px 0 6px;
+}
+.op-pick {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: #fff;
+  border: 1.5px solid var(--op-line);
+  border-radius: 14px;
+  padding: 16px 12px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 15px;
+  color: inherit;
+}
+.op-pick:hover { border-color: var(--op-blue); }
+.op-pick small { color: var(--op-muted); font-size: 12px; }
+.op-vbadge { color: #fff; font-weight: 700; border-radius: 9px; padding: 6px 14px; font-size: 15px; }
+
+/* ───── คีย์แพดมิเตอร์ ───── */
+.op-display {
+  background: #f8fafc;
+  border: 1.5px solid var(--op-line);
+  border-radius: 12px;
+  font-size: 34px;
+  font-weight: 700;
+  padding: 14px;
+  margin: 14px 0;
+  font-variant-numeric: tabular-nums;
+}
+.op-keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.op-key {
+  background: #fff;
+  border: 1px solid var(--op-line);
+  border-radius: 12px;
+  padding: 18px;
+  font-size: 22px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  color: inherit;
+}
+.op-key:active { background: #eef2f7; }
+
+/* ───── แดชบอร์ด ───── */
+.op-dash { display: grid; grid-template-columns: 220px 1fr; gap: 16px; align-items: start; }
+@media (max-width: 720px) {
+  .op-dash { grid-template-columns: 1fr; }
+}
+
+.op-side {
+  background: var(--op-navy);
+  color: #fff;
+  border-radius: 16px;
+  padding: 16px;
+  min-height: 220px;
+}
+.op-lbl { font-size: 12px; text-transform: uppercase; letter-spacing: 0.6px; opacity: 0.7; }
+.op-job { font-size: 30px; font-weight: 700; margin: 4px 0 10px; }
+.op-timer { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; margin-bottom: 12px; }
+.op-side .op-muted { color: #cbd5e1; }
+.op-feed { margin-top: 16px; border-top: 1px solid rgba(255, 255, 255, 0.15); padding-top: 12px; }
+.op-feedline { font-size: 13px; color: #cbd5e1; padding: 3px 0; }
+
+.op-main { min-width: 0; }
+.op-kilns { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+.op-kiln {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  background: #fff;
+  border: 1px solid var(--op-line);
+  border-radius: 12px;
+  padding: 10px 16px;
+  font-size: 15px;
+}
+.op-kiln span { color: var(--op-muted); font-variant-numeric: tabular-nums; }
+
+.op-silos { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.op-silo {
+  background: #fff;
+  border: 1.5px solid var(--op-line);
+  border-radius: 14px;
+  padding: 14px 12px;
+  cursor: pointer;
+  font-family: inherit;
+  color: inherit;
+  text-align: center;
+}
+.op-silo:hover { border-color: var(--op-blue); }
+.op-silo.low { border-color: #fca5a5; background: #fff5f5; }
+.op-silo.mine { border-color: var(--op-green); box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15); }
+.op-siloid { font-weight: 700; font-size: 17px; overflow-wrap: anywhere; }
+.op-silopct { font-size: 26px; font-weight: 700; margin: 4px 0; font-variant-numeric: tabular-nums; }
+.op-silo.low .op-silopct { color: var(--op-red); }
+.op-silobar { height: 8px; border-radius: 999px; background: #e8eef5; overflow: hidden; }
+.op-silobar span { display: block; height: 100%; background: var(--op-green); }
+.op-silo.low .op-silobar span { background: var(--op-amber); }
+.op-silost { font-size: 12px; color: var(--op-muted); margin-top: 6px; }
+
+.op-empty {
+  background: #fff;
+  border: 1px dashed var(--op-line);
+  border-radius: 14px;
+  padding: 24px;
+  text-align: center;
+}
+.op-note {
+  margin-top: 16px;
+  font-size: 12px;
+  color: var(--op-muted);
+  line-height: 1.7;
+}
+.op-note a { color: var(--op-blue); }
+
+/* ───── แถบล่างและข้อความแจ้ง ───── */
+.op-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 16px;
+  background: #e7edf4;
+  border-top: 1px solid var(--op-line);
+  font-size: 12px;
+  color: var(--op-muted);
+}
+.op-warn { color: #92400e; font-weight: 700; }
+
+.op-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 26px;
+  transform: translateX(-50%);
+  background: var(--op-navy);
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 15px;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.3);
+  z-index: 20;
+}
