@@ -19,12 +19,15 @@ export function FileViewer({
   onIndex,
   onClose,
   onDownload,
+  onAsk,
 }: {
   items: PreviewItem[];
   index: number;
   onIndex: (next: number) => void;
   onClose: () => void;
   onDownload?: (item: PreviewItem) => void;
+  /** ยกเรื่องไฟล์นี้ไปคุยต่อในแท็บคุยงาน — ไม่ส่งมาก็ไม่มีปุ่ม */
+  onAsk?: (item: PreviewItem) => void;
 }) {
   const current = items[index];
   const many = items.length > 1;
@@ -87,6 +90,17 @@ export function FileViewer({
           </span>
         )}
 
+        {/* ปุ่มถามอยู่ก่อนดาวน์โหลด เพราะตอนกำลังดูแบบอยู่ สิ่งที่คนอยากทำต่อ
+            คือทักถาม ไม่ใช่โหลดเก็บ */}
+        {onAsk && (
+          <button
+            type="button"
+            onClick={() => onAsk(current)}
+            className="flex-none rounded-lg border border-brand-500/60 px-3 py-1.5 text-[0.8rem] font-bold text-brand-300 transition-colors hover:bg-brand-500/10"
+          >
+            ถามเรื่องไฟล์นี้
+          </button>
+        )}
         {onDownload && (
           <button
             type="button"
