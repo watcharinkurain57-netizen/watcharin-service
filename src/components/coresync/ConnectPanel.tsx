@@ -266,6 +266,19 @@ export function ConnectPanel() {
               ถ้า Windows ไม่ยอมรันสคริปต์ที่ดาวน์โหลดมา ให้เปิดด้วย{" "}
               <span className="font-mono">powershell -ExecutionPolicy Bypass -File .\coresync-connector.ps1 …</span>
             </p>
+            {/* ยังไม่ได้ต่อของจริงก็สาธิตได้ — ตัวจำลองทำหน้าที่แทนระบบเดิมที่ export ไฟล์ */}
+            <p className="mt-4 border-t border-line pt-4 text-xs text-ink-faint">
+              ยังไม่มีไฟล์จากระบบจริงให้ลอง?{" "}
+              <a
+                href="/coresync-mock-scada.ps1"
+                download
+                className="text-brand-400 underline underline-offset-4"
+              >
+                ดาวน์โหลดตัวจำลองระบบ SCADA
+              </a>{" "}
+              — เขียนไฟล์ CSV ที่ค่าขยับตลอดเวลาให้ (ระดับไซโลลดลง เตาเดิน/หยุด)
+              แล้วชี้ตัวเชื่อมต่อมาที่ไฟล์เดียวกัน · ตัวจำลองไม่ส่งอะไรออกจากเครื่องคุณเลย เขียนไฟล์อย่างเดียว
+            </p>
           </section>
 
           {/* ───────── ให้เห็นว่าเราตีความข้อมูลเขาถูก ───────── */}
