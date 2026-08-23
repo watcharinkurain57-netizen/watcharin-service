@@ -3,7 +3,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { thaiDate, todayIso } from "@/lib/project-tasks";
-import { PREVIEW_URL_SECONDS, previewKind, type PreviewItem } from "@/lib/file-preview";
+import {
+  PREVIEW_URL_SECONDS,
+  previewKind,
+  type PreviewItem,
+  type PreviewKind,
+} from "@/lib/file-preview";
 import { FileViewer } from "./FileViewer";
 import {
   FILES_BUCKET,
@@ -383,7 +388,7 @@ export function FilesTab({
   async function openViewer(target: ProjectFile) {
     const candidates = shown
       .filter((f) => f.storage_path && previewKind(f.mime_type, f.name))
-      .map((f) => ({ file: f, kind: previewKind(f.mime_type, f.name) as "image" | "pdf" }));
+      .map((f) => ({ file: f, kind: previewKind(f.mime_type, f.name) as PreviewKind }));
 
     setBusy(target.id);
     const { data, error: e } = await supabase.storage

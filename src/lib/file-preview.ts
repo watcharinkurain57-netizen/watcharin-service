@@ -2,9 +2,9 @@
  * ไฟล์ไหนเปิดดูในเว็บได้ — กติกาชุดเดียวที่ทั้งแท็บไฟล์และไฟล์แนบในงานใช้ร่วมกัน
  *
  * ---------------------------------------------------------------------------
- * ทำไมรองรับแค่รูปกับ PDF
+ * ทำไมรองรับแค่รูป PDF และ HTML
  *
- * สองอย่างนี้เบราว์เซอร์ render ได้เองอยู่แล้ว เราแค่ชี้ URL ให้ถูก
+ * สามอย่างนี้เบราว์เซอร์ render ได้เองอยู่แล้ว เราแค่ชี้ URL ให้ถูก
  * ไม่ต้องพึ่ง library ตัวไหนเลย และไม่มีอะไรต้องดูแลเวลาเบราว์เซอร์อัปเดต
  *
  * ส่วน xlsx / docx / dwg ต้องแปลงก่อนถึงจะดูได้ ซึ่งมีแค่สองทาง:
@@ -14,7 +14,7 @@
  * ---------------------------------------------------------------------------
  */
 
-export type PreviewKind = "image" | "pdf";
+export type PreviewKind = "image" | "pdf" | "html";
 
 /** ไฟล์ที่พร้อมเอาไปแสดงในกล่องดูไฟล์ — url เป็น signed URL ที่ขอมาแล้ว */
 export type PreviewItem = {
@@ -34,6 +34,16 @@ export type PreviewItem = {
 export const PREVIEW_URL_SECONDS = 600;
 
 const IMAGE_EXT = ["png", "jpg", "jpeg", "gif", "webp", "avif", "svg", "bmp"];
+const HTML_EXT = ["html", "htm"];
+
+/**
+ * เพดานขนาดไฟล์ HTML ที่ยอมเปิดดู
+ *
+ * กล่องดูไฟล์ต้องโหลดเนื้อไฟล์ทั้งก้อนมาก่อนถึงจะแสดงได้ (ดูเหตุผลใน FileViewer)
+ * ไฟล์ใหญ่กว่านี้จะค้างอยู่นานจนคนกดคิดว่าเว็บพัง — ให้ดาวน์โหลดไปเปิดเองดีกว่า
+ * เอกสารที่ตั้งใจให้อ่านบนเว็บแทบไม่มีที่เกินหลักไม่กี่ร้อย KB
+ */
+export const PREVIEW_HTML_MAX_BYTES = 2 * 1024 * 1024;
 
 /**
  * ไฟล์นี้เปิดดูได้ไหม และเป็นชนิดไหน
@@ -46,10 +56,12 @@ export function previewKind(mime: string | null, name: string): PreviewKind | nu
   const m = (mime ?? "").toLowerCase();
   if (m.startsWith("image/")) return "image";
   if (m === "application/pdf") return "pdf";
+  if (m === "text/html") return "html";
 
   const ext = name.toLowerCase().split(".").pop() ?? "";
   if (IMAGE_EXT.includes(ext)) return "image";
   if (ext === "pdf") return "pdf";
+  if (HTML_EXT.includes(ext)) return "html";
 
   return null;
 }
