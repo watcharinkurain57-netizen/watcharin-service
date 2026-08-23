@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { SPARK, seriesToPath } from "@/lib/coresync-data";
 import type { Reading } from "@/lib/demo/contract";
-import { useStoredSession } from "@/lib/demo/session-store";
+import { useViewerSession } from "@/lib/demo/session-store";
 import { DEFAULT_TAGS, useDemoSimulator } from "@/lib/demo/simulate";
 import { ExperimentSummary } from "./ExperimentSummary";
 import { useDemoChannel, useSecondsSince } from "@/lib/demo/useDemoChannel";
@@ -19,7 +19,9 @@ import { useDemoChannel, useSecondsSince } from "@/lib/demo/useDemoChannel";
  * ไม่ใช่เห็นตัวเลขของเราที่ถูกแทนที่ด้วยของเขา
  */
 export function LiveTagsView() {
-  const session = useStoredSession();
+  // ใช้ viewer ไม่ใช่ stored — หน้านี้ต้องเปิดจากลิงก์ที่คนอื่นส่งมาได้ด้วย
+  const session = useViewerSession();
+  const watching = session !== null && session.token === null;
   const live = useDemoChannel(session?.sessionId ?? null);
   const since = useSecondsSince(live.lastAt);
   const [simOn, setSimOn] = useState(false);
@@ -62,7 +64,10 @@ export function LiveTagsView() {
     <section className="view">
       <div className="card" style={{ marginBottom: 14 }}>
         <div className="chart-head">
-          <div className="section-title">สถานะการรับข้อมูล</div>
+          <div className="section-title">
+            สถานะการรับข้อมูล
+            {watching ? <span className="pill" style={{ marginLeft: 8 }}>ดูอย่างเดียว</span> : null}
+          </div>
           <span className={`pill ${waiting ? "warn" : "ok"}`}>
             {live.status === "error" ? "เชื่อมต่อไม่ได้" : waiting ? "รอข้อมูลชุดแรก" : "กำลังรับข้อมูล"}
           </span>
@@ -71,7 +76,11 @@ export function LiveTagsView() {
           {live.status === "error" ? (
             live.error
           ) : waiting ? (
-            <>เปิดช่องรับข้อมูลแล้ว — ส่งข้อมูลเข้ามาได้จากหน้าเชื่อมต่อ หรือจากเครื่องของคุณเอง</>
+            watching ? (
+              <>กำลังฟังช่องของเครื่องที่ส่งลิงก์นี้มา — จะขึ้นเองทันทีที่เขาเริ่มส่งข้อมูล</>
+            ) : (
+              <>เปิดช่องรับข้อมูลแล้ว — ส่งข้อมูลเข้ามาได้จากหน้าเชื่อมต่อ หรือจากเครื่องของคุณเอง</>
+            )
           ) : (
             <>
               ล่าสุดเมื่อ {since === 0 ? "ไม่กี่วินาที" : `${since} วินาที`}ที่แล้ว ·{" "}
@@ -80,12 +89,15 @@ export function LiveTagsView() {
             </>
           )}
         </p>
+        {/* คนที่เปิดจากลิงก์ไม่มีโทเคน จึงเดินข้อมูลจำลองไม่ได้ — ซ่อนปุ่มดีกว่าให้กดแล้วพัง */}
         <div className="dt-toolbar" style={{ marginTop: 12 }}>
-          <button type="button" className={simOn ? "active" : ""} onClick={() => setSimOn((v) => !v)}>
-            {simOn ? "◼ หยุดข้อมูลจำลอง" : "▶ เดินข้อมูลจำลอง"}
-          </button>
+          {watching ? null : (
+            <button type="button" className={simOn ? "active" : ""} onClick={() => setSimOn((v) => !v)}>
+              {simOn ? "◼ หยุดข้อมูลจำลอง" : "▶ เดินข้อมูลจำลอง"}
+            </button>
+          )}
           <Link className="home-link" href="/coresync/connect" style={{ display: "inline" }}>
-            จัดการการเชื่อมต่อ
+            {watching ? "เปิดช่องของตัวเอง" : "จัดการการเชื่อมต่อ"}
           </Link>
         </div>
         {simError ? (

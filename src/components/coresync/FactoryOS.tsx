@@ -12,6 +12,7 @@ import {
   sensorStatusLabel,
   viewTitles,
 } from "@/lib/coresync-data";
+import { WATCH_PARAM } from "@/lib/demo/contract";
 import { LiveTagsView } from "./LiveTagsView";
 import { PlantDemo } from "./PlantDemo";
 import {
@@ -56,6 +57,13 @@ export function FactoryOS() {
   // Work orders raised by clicking around the demo. They land on the board, so
   // "the AI told me to do this" and "here is the job" are visibly one thing.
   const [raised, setRaised] = useState<WoCard[]>([]);
+
+  // เปิดมาจากลิงก์ดูอย่างเดียว = เขามาดูข้อมูล ไม่ได้มาดูหน้าแรก — พาไปที่มุมมองนั้นเลย
+  // ทำใน effect ไม่ใช่ค่าเริ่มต้นของ state เพราะฝั่งเซิร์ฟเวอร์ไม่มี URL ให้อ่าน
+  // ถ้าตั้งตอน render แรกจะ hydrate ไม่ตรงกัน
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).has(WATCH_PARAM)) setView("mydata");
+  }, []);
 
   useEffect(() => {
     if (!toast) return;

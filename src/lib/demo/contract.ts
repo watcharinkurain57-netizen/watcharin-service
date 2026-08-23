@@ -52,6 +52,9 @@ export type ReadingsEvent = {
   receivedAt: string;
 };
 
+/** ชื่อพารามิเตอร์ใน URL ที่พา sessionId ไปให้เครื่องอื่นเปิดดู — ใช้ร่วมกันทั้งฝั่งเซิร์ฟเวอร์และเบราว์เซอร์ */
+export const WATCH_PARAM = "s";
+
 export const CHANNEL_PREFIX = "demo:";
 export const READINGS_EVENT = "readings";
 

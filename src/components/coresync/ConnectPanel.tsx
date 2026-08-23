@@ -3,7 +3,8 @@
 import { useCallback, useState } from "react";
 import Link from "next/link";
 import { LIMITS, type Reading } from "@/lib/demo/contract";
-import { saveSession, saveTags } from "@/lib/demo/session-store";
+import { WATCH_PARAM } from "@/lib/demo/contract";
+import { saveSession, saveTags, watchUrl } from "@/lib/demo/session-store";
 import { DEFAULT_TAGS, SIM_EVERY_MS, useDemoSimulator } from "@/lib/demo/simulate";
 import { useDemoChannel, useSecondsSince } from "@/lib/demo/useDemoChannel";
 
@@ -80,6 +81,10 @@ export function ConnectPanel() {
   -H "Content-Type: application/json" \\
   -d '{"token":"${session.token}","readings":[{"tag":"KK1_LEVEL","value":68.4,"unit":"%","ts":"${new Date().toISOString()}"}]}'`
     : "";
+
+  // ลิงก์ดูอย่างเดียว — ไม่มีโทเคนอยู่ในนั้น ส่งต่อได้โดยไม่เสียการควบคุมช่องรับข้อมูล
+  const watch =
+    session && typeof window !== "undefined" ? watchUrl(window.location.origin, session.sessionId) : "";
 
   const connectorCmd = session
     ? `.\\coresync-connector.ps1 \`
@@ -295,6 +300,47 @@ export function ConnectPanel() {
                 ถ้าเครือข่ายหน้างานหลุดแล้วส่งย้อนหลัง ลำดับเวลาจะยังถูกต้อง
               </p>
             ) : null}
+          </section>
+
+          {/* ───────── ให้เครื่องอื่นเข้ามาดู — ฉากที่ใช้จริงตอนนำเสนอ ───────── */}
+          <section className="rounded-2xl border border-line bg-surface-raised p-5 sm:p-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-lg font-semibold">ให้แท็บเล็ตหรือจออื่นเข้ามาดู</h2>
+              <button
+                type="button"
+                onClick={() => copy("watch", watch)}
+                className="rounded-lg border border-line-strong px-3 py-1.5 text-xs font-semibold transition hover:border-brand-500"
+              >
+                {copied === "watch" ? "คัดลอกแล้ว" : "คัดลอกลิงก์"}
+              </button>
+            </div>
+            <p className="mt-1 text-sm text-ink-muted">
+              ตัวเชื่อมต่อรันอยู่ที่เครื่องเดียว แต่เปิดดูได้หลายจอพร้อมกัน — ส่งลิงก์นี้ให้แท็บเล็ต
+              จอในห้องควบคุม หรือมือถือของคนอื่น ทุกเครื่องจะเห็นค่าเดียวกันในเวลาเดียวกัน
+            </p>
+
+            <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center">
+              <div className="shrink-0 self-start rounded-xl bg-white p-2">
+                {/* eslint-disable-next-line @next/next/no-img-element -- SVG จาก route ของเราเอง ไม่ต้องผ่านตัวปรับขนาดรูป */}
+                <img
+                  src={`/api/demo/qr?${WATCH_PARAM}=${encodeURIComponent(session.sessionId)}`}
+                  alt={`QR สำหรับเปิดดู session ${session.sessionId}`}
+                  width={132}
+                  height={132}
+                  className="block h-[132px] w-[132px]"
+                />
+              </div>
+              <div className="min-w-0 flex-1">
+                <pre className="overflow-x-auto rounded-xl border border-line bg-surface p-3 text-xs leading-relaxed">
+                  <code>{watch}</code>
+                </pre>
+                <ul className="mt-3 space-y-1 text-xs text-ink-faint">
+                  <li>· ลิงก์นี้ <span className="text-ink">ดูได้อย่างเดียว</span> — คนที่ได้ไปส่งข้อมูลปนเข้ามาไม่ได้ เพราะโทเคนไม่ได้อยู่ในลิงก์</li>
+                  <li>· เปิดพร้อมกันกี่เครื่องก็ได้ ทุกเครื่องเข้าหน้า Your Data ให้เอง</li>
+                  <li>· หมดอายุพร้อมกับช่องรับข้อมูล กดสร้างช่องใหม่แล้วลิงก์เดิมจะใช้ไม่ได้</li>
+                </ul>
+              </div>
+            </div>
           </section>
 
           <p className="text-center text-sm">
