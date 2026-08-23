@@ -120,7 +120,7 @@ export default async function Home() {
 
                 <div className="mt-8 flex flex-wrap items-center gap-3">
                   <Link
-                    href="#talk"
+                    href="/start"
                     className="rounded-full bg-brand-600 px-6 py-3 font-bold text-white shadow-md shadow-brand-600/25 transition-transform duration-300 hover:-translate-y-0.5 motion-reduce:transform-none"
                   >
                     เล่าโปรเจกต์ให้ฟัง

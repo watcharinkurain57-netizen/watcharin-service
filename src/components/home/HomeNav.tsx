@@ -26,8 +26,10 @@ export function HomeNav() {
 
         <div className="ml-auto flex flex-none items-center gap-2.5">
           <AccountButton />
+          {/* พาไปหน้าเล่าโปรเจกต์ (ล็อกอินแล้วกรอกสองช่อง) ไม่ใช่เลื่อนลงไปฟอร์มอีเมล
+              ฟอร์มอีเมลยังอยู่ท้ายหน้าสำหรับคนที่ไม่อยากล็อกอิน */}
           <Link
-            href="#talk"
+            href="/start"
             className="rounded-full bg-brand-600 px-5 py-2.5 text-[0.9rem] font-bold text-white shadow-sm shadow-brand-600/25 transition-transform duration-300 hover:-translate-y-0.5 motion-reduce:transform-none"
           >
             เล่าโปรเจกต์ให้ฟัง
