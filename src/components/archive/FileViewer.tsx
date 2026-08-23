@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useEffect } from "react";
-import type { PreviewItem } from "@/lib/file-preview";
+import { useCallback, useEffect, useState } from "react";
+import { PREVIEW_HTML_MAX_BYTES, type PreviewItem } from "@/lib/file-preview";
 
 /**
- * กล่องดูไฟล์ — รูปกับ PDF
+ * กล่องดูไฟล์ — รูป PDF และ HTML
  *
  * ใช้ร่วมกันทั้งแท็บไฟล์ส่งมอบและไฟล์แนบในงาน สองที่นั้นเก็บไฟล์คนละตาราง
  * แต่พอขอ signed URL มาแล้วก็ไม่ต่างกัน กล่องนี้จึงรับแค่รายการที่พร้อมแสดง
@@ -13,6 +13,69 @@ import type { PreviewItem } from "@/lib/file-preview";
  * เลื่อนดูไฟล์ถัดไปได้ด้วยลูกศรซ้าย/ขวา เพราะเวลาดูภาพหน้าจอชุดหนึ่ง
  * การต้องปิดกล่องแล้วกดไฟล์ถัดไปทีละอันเป็นเรื่องน่ารำคาญที่เลี่ยงได้ง่าย
  */
+/**
+ * โหลดเนื้อไฟล์ HTML มาเป็นข้อความ เพื่อเอาไปใส่ใน srcdoc
+ *
+ * ⚠️ ทำไมไม่ชี้ iframe ไปที่ signed URL ตรง ๆ เหมือน PDF
+ * เพราะที่เก็บไฟล์อาจส่ง header ที่สั่งให้ "บันทึกลงเครื่อง" แทนที่จะแสดงผล
+ * ซึ่งจะได้กรอบว่างเปล่าโดยไม่มีข้อความบอกสาเหตุ — อ่านเนื้อมาเองแล้วใส่ srcdoc
+ * ทำให้ผลลัพธ์ไม่ขึ้นกับ header ของที่เก็บไฟล์เลย
+ *
+ * ⚠️ และเป็นการปิดกั้นชั้นสำคัญด้วย: srcdoc + sandbox ทำให้หน้าที่โหลดมา
+ * อยู่คนละ origin กับทุกอย่าง เข้าถึงข้อมูลของเว็บเราหรือของที่เก็บไฟล์ไม่ได้เลย
+ */
+function useHtmlContent(item: PreviewItem | undefined) {
+  const [state, setState] = useState<{ html: string | null; error: string | null }>({
+    html: null,
+    error: null,
+  });
+
+  const url = item?.kind === "html" ? item.url : null;
+
+  // ล้างของไฟล์เก่าตอนเปลี่ยนไฟล์ — ทำระหว่าง render ตามรูปแบบที่ React แนะนำ
+  // ถ้าไปสั่งใน effect จะได้เรนเดอร์รอบพิเศษที่คนเห็นเนื้อไฟล์เก่าแวบหนึ่งก่อน
+  const [tracked, setTracked] = useState(url);
+  if (tracked !== url) {
+    setTracked(url);
+    setState({ html: null, error: null });
+  }
+
+  useEffect(() => {
+    if (!url) return;
+
+    // ยกเลิกเมื่อเลื่อนไปไฟล์อื่นก่อนโหลดเสร็จ ไม่งั้นของไฟล์เก่ามาทับของใหม่
+    const stop = new AbortController();
+
+    (async () => {
+      try {
+        const res = await fetch(url, { signal: stop.signal });
+        if (!res.ok) throw new Error(`โหลดไฟล์ไม่สำเร็จ (${res.status})`);
+
+        const size = Number(res.headers.get("content-length") ?? 0);
+        if (size > PREVIEW_HTML_MAX_BYTES) {
+          throw new Error("ไฟล์ใหญ่เกินกว่าจะเปิดดูในเว็บ — ดาวน์โหลดไปเปิดเองได้");
+        }
+
+        const text = await res.text();
+        if (text.length > PREVIEW_HTML_MAX_BYTES) {
+          throw new Error("ไฟล์ใหญ่เกินกว่าจะเปิดดูในเว็บ — ดาวน์โหลดไปเปิดเองได้");
+        }
+        setState({ html: text, error: null });
+      } catch (err) {
+        if (stop.signal.aborted) return;
+        setState({
+          html: null,
+          error: err instanceof Error ? err.message : "เปิดไฟล์นี้ไม่สำเร็จ",
+        });
+      }
+    })();
+
+    return () => stop.abort();
+  }, [url]);
+
+  return state;
+}
+
 export function FileViewer({
   items,
   index,
@@ -31,6 +94,7 @@ export function FileViewer({
 }) {
   const current = items[index];
   const many = items.length > 1;
+  const doc = useHtmlContent(current);
 
   const step = useCallback(
     (dir: -1 | 1) => {
@@ -140,6 +204,28 @@ export function FileViewer({
             alt={current.name}
             className="max-h-full max-w-full object-contain"
           />
+        ) : current.kind === "html" ? (
+          doc.error ? (
+            <p className="max-w-md text-center text-[0.9rem] text-ink-muted">{doc.error}</p>
+          ) : doc.html === null ? (
+            <p className="text-[0.9rem] text-ink-faint">กำลังเปิดไฟล์…</p>
+          ) : (
+            /*
+              sandbox ไม่ใส่ allow-same-origin โดยตั้งใจ
+              หน้าที่โหลดมาจึงได้ origin ของตัวเองที่ไม่ตรงกับใครเลย อ่าน cookie
+              หรือ storage ของเว็บเราไม่ได้ พาหน้าหลักเปลี่ยนที่อยู่ไม่ได้
+              และเปิดหน้าต่างใหม่ไม่ได้ — เปิดไฟล์ที่คนอื่นอัปมาได้อย่างปลอดภัย
+              (allow-scripts ให้ไว้เพราะเอกสารบางฉบับมีส่วนโต้ตอบ และการให้
+               อย่างเดียวโดยไม่มี allow-same-origin ยังถอด sandbox ตัวเองไม่ได้)
+            */
+            <iframe
+              srcDoc={doc.html}
+              title={current.name}
+              sandbox="allow-scripts"
+              referrerPolicy="no-referrer"
+              className="size-full rounded-lg border border-line-strong bg-white"
+            />
+          )
         ) : (
           /*
             PDF ปล่อยให้ตัวอ่านในตัวเบราว์เซอร์จัดการ — มีแถบเลื่อนหน้า ซูม ค้นหา

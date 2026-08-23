@@ -12,7 +12,12 @@ import {
   storageKey,
 } from "@/lib/project-files";
 import { MAX_TASK_FILES_PER_BATCH, TASK_FILES_PREFIX, type TaskFile } from "@/lib/project-tasks";
-import { PREVIEW_URL_SECONDS, previewKind, type PreviewItem } from "@/lib/file-preview";
+import {
+  PREVIEW_URL_SECONDS,
+  previewKind,
+  type PreviewItem,
+  type PreviewKind,
+} from "@/lib/file-preview";
 import { FileViewer } from "../FileViewer";
 
 /**
@@ -99,7 +104,7 @@ export function TaskAttachments({
     .map((f) => ({
       id: f.id,
       name: f.name,
-      kind: previewKind(f.mime_type, f.name) as "image" | "pdf",
+      kind: previewKind(f.mime_type, f.name) as PreviewKind,
       url: previews[f.storage_path],
     }));
 
