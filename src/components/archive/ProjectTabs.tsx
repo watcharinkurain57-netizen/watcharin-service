@@ -71,6 +71,11 @@ export function ProjectTabs({
 }) {
   const [viewer, setViewer] = useState<Viewer>({ role: "public" });
   const [active, setActive] = useState("overview");
+  /**
+   * ข้อความตั้งต้นที่ยกไปให้แท็บคุยงาน ตอนกด "ถามเรื่องไฟล์นี้"
+   * เก็บ `at` ไว้ด้วยเพื่อให้ถามไฟล์เดิมซ้ำได้ — ถ้าเทียบแค่ข้อความ ครั้งที่สองจะเงียบ
+   */
+  const [chatDraft, setChatDraft] = useState<{ text: string; at: number } | null>(null);
   const [members, setMembers] = useState<Member[] | null>(null);
 
   useEffect(() => {
@@ -167,7 +172,20 @@ export function ProjectTabs({
       )}
 
       {active === "files" && (
-        <FilesTab projectId={projectId} canManage={can(viewer, "project.files.manage")} />
+        <FilesTab
+          projectId={projectId}
+          canManage={can(viewer, "project.files.manage")}
+          // ปุ่มโผล่เฉพาะคนที่โพสต์ในห้องคุยงานได้จริง
+          // ปุ่มที่พาไปเจอช่องพิมพ์ที่พิมพ์ไม่ได้ แย่กว่าไม่มีปุ่ม
+          onAskAbout={
+            can(viewer, "project.comments.post")
+              ? (name) => {
+                  setChatDraft({ text: `เรื่อง ${name} — `, at: Date.now() });
+                  setActive("chat");
+                }
+              : undefined
+          }
+        />
       )}
 
       {active === "diagrams" && (
@@ -183,6 +201,7 @@ export function ProjectTabs({
           canPost={can(viewer, "project.comments.post")}
           canModerate={can(viewer, "project.comments.moderate")}
           unread={unread}
+          draft={chatDraft}
         />
       )}
 

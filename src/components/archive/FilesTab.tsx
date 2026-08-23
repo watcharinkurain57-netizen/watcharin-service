@@ -41,7 +41,16 @@ import {
 
 type Pending = { key: string; name: string; size: number; error: string | null };
 
-export function FilesTab({ projectId, canManage }: { projectId: string; canManage: boolean }) {
+export function FilesTab({
+  projectId,
+  canManage,
+  onAskAbout,
+}: {
+  projectId: string;
+  canManage: boolean;
+  /** ยกชื่อไฟล์ไปตั้งต้นข้อความในแท็บคุยงาน — ไม่ส่งมาก็ไม่มีปุ่ม (คนที่โพสต์ไม่ได้) */
+  onAskAbout?: (fileName: string) => void;
+}) {
   const [files, setFiles] = useState<ProjectFile[] | null>(null);
   const [folders, setFolders] = useState<ProjectFolder[]>([]);
   const [cwd, setCwd] = useState<string | null>(null);
@@ -787,6 +796,15 @@ export function FilesTab({ projectId, canManage }: { projectId: string; canManag
           index={viewing.index}
           onIndex={(index) => setViewing((v) => (v ? { ...v, index } : v))}
           onClose={() => setViewing(null)}
+          onAsk={
+            onAskAbout
+              ? (item) => {
+                  // ปิดกล่องก่อน ไม่งั้นสลับไปแท็บคุยงานแล้วยังมีชั้นดำทับอยู่
+                  setViewing(null);
+                  onAskAbout(item.name);
+                }
+              : undefined
+          }
           onDownload={(item) => {
             // กล่องดูไฟล์รู้จักแค่ id กับ url — ตัวโหลดต้องใช้แถวจริงเพื่อขอลิงก์
             // แบบ attachment (ลิงก์ที่กล่องถืออยู่เป็นแบบเปิดอ่าน ไม่ได้สั่งบันทึก)
