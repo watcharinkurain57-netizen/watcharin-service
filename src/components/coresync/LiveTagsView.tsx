@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { SPARK, seriesToPath } from "@/lib/coresync-data";
-import type { Reading } from "@/lib/demo/contract";
+import type { OperatorEvent, Reading } from "@/lib/demo/contract";
 import { useViewerSession } from "@/lib/demo/session-store";
 import { DEFAULT_TAGS, useDemoSimulator } from "@/lib/demo/simulate";
 import { ExperimentSummary } from "./ExperimentSummary";
@@ -127,6 +127,25 @@ export function LiveTagsView() {
         </div>
       )}
 
+      {/* เหตุการณ์จากแท็บเล็ตคนขับ — จอนี้ทำหน้าที่เป็นจอ CCR ให้เห็นว่าใครรับงานไหน */}
+      {live.events.length > 0 ? (
+        <div className="card" style={{ marginTop: 14 }}>
+          <div className="section-title">จากแท็บเล็ตคนขับ</div>
+          <div style={{ marginTop: 10 }}>
+            {live.events.map((event, i) => (
+              <div key={`${event.at}-${i}`} className="ev-row">
+                <span className="mono">{timeOfDay(event.at)}</span>
+                <span>{eventText(event)}</span>
+              </div>
+            ))}
+          </div>
+          <p className="hint" style={{ marginTop: 10 }}>
+            การจองงานในโหมดทดลองคือการประกาศให้จออื่นเห็น ไม่ใช่การแย่งสิทธิ์ที่มีผู้ชนะแน่นอน —
+            กลไกตัดสินจริงอยู่ที่มุมมอง Loader Ops
+          </p>
+        </div>
+      ) : null}
+
       {/* ปิดท้ายด้วยตัวเลขของผู้ใช้เอง — เปลี่ยนเดโมให้เป็นข้อมูลที่คุยขอบเขตงานต่อได้ */}
       {waiting ? null : (
         <ExperimentSummary
@@ -219,4 +238,26 @@ function TagCard({
       </div>
     </div>
   );
+}
+
+function timeOfDay(iso: string) {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? "--:--" : d.toLocaleTimeString("th-TH", { hour12: false });
+}
+
+/** อ่านเหตุการณ์เป็นภาษาคน — จอ CCR ไม่ควรต้องแปลรหัสเอง */
+function eventText(event: OperatorEvent) {
+  const who = `${event.operator} (${event.vehicle})`;
+  switch (event.kind) {
+    case "login":
+      return `${who} ยืนยันตัวตนและเลือกรถแล้ว`;
+    case "shift_start":
+      return `${who} เริ่มกะ`;
+    case "job_start":
+      return `${who} รับงานที่ ${event.silo}`;
+    case "job_end":
+      return `${who} จบงานที่ ${event.silo}`;
+    case "shift_end":
+      return `${who} จบกะ`;
+  }
 }

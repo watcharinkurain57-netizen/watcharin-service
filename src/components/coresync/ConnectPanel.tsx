@@ -4,7 +4,7 @@ import { useCallback, useState } from "react";
 import Link from "next/link";
 import { LIMITS, type Reading } from "@/lib/demo/contract";
 import { WATCH_PARAM } from "@/lib/demo/contract";
-import { saveSession, saveTags, watchUrl } from "@/lib/demo/session-store";
+import { operatorUrl, saveSession, saveTags, watchUrl } from "@/lib/demo/session-store";
 import { DEFAULT_TAGS, SIM_EVERY_MS, useDemoSimulator } from "@/lib/demo/simulate";
 import { useDemoChannel, useSecondsSince } from "@/lib/demo/useDemoChannel";
 
@@ -85,6 +85,12 @@ export function ConnectPanel() {
   // ลิงก์ดูอย่างเดียว — ไม่มีโทเคนอยู่ในนั้น ส่งต่อได้โดยไม่เสียการควบคุมช่องรับข้อมูล
   const watch =
     session && typeof window !== "undefined" ? watchUrl(window.location.origin, session.sessionId) : "";
+
+  // ลิงก์แท็บเล็ตคนขับ — พกโทเคนไปด้วย จึงส่งเหตุการณ์กลับมาให้จออื่นเห็นได้
+  const operator =
+    session && typeof window !== "undefined"
+      ? operatorUrl(window.location.origin, session.sessionId, session.token)
+      : "";
 
   const connectorCmd = session
     ? `.\\coresync-connector.ps1 \`
@@ -339,6 +345,50 @@ export function ConnectPanel() {
                   <li>· เปิดพร้อมกันกี่เครื่องก็ได้ ทุกเครื่องเข้าหน้า Your Data ให้เอง</li>
                   <li>· หมดอายุพร้อมกับช่องรับข้อมูล กดสร้างช่องใหม่แล้วลิงก์เดิมจะใช้ไม่ได้</li>
                 </ul>
+              </div>
+            </div>
+          </section>
+
+          {/* ───────── แท็บเล็ตคนขับ + เครื่องอ่านบัตร ───────── */}
+          <section className="rounded-2xl border border-line bg-surface-raised p-5 sm:p-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-lg font-semibold">เปิดหน้าจอคนขับบนแท็บเล็ต</h2>
+              <button
+                type="button"
+                onClick={() => copy("op", operator)}
+                className="rounded-lg border border-line-strong px-3 py-1.5 text-xs font-semibold transition hover:border-brand-500"
+              >
+                {copied === "op" ? "คัดลอกแล้ว" : "คัดลอกลิงก์"}
+              </button>
+            </div>
+            <p className="mt-1 text-sm text-ink-muted">
+              เสียบเครื่องอ่าน RFID เข้าพอร์ต USB ของแท็บเล็ตหรือโน้ตบุ๊ก แล้วแตะบัตรได้เลย —
+              ไม่ต้องติดตั้งโปรแกรมหรือ driver เพราะเครื่องอ่านแบบ keyboard-wedge
+              ทำตัวเป็นคีย์บอร์ดอยู่แล้ว
+            </p>
+
+            <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center">
+              <div className="shrink-0 self-start rounded-xl bg-white p-2">
+                {/* eslint-disable-next-line @next/next/no-img-element -- SVG จาก route ของเราเอง */}
+                <img
+                  src={`/api/demo/qr?${WATCH_PARAM}=${encodeURIComponent(session.sessionId)}&m=op&t=${encodeURIComponent(session.token)}`}
+                  alt="QR สำหรับเปิดหน้าจอคนขับบนแท็บเล็ต"
+                  width={132}
+                  height={132}
+                  className="block h-[132px] w-[132px]"
+                />
+              </div>
+              <div className="min-w-0 flex-1">
+                <ol className="space-y-1.5 text-sm text-ink-muted">
+                  <li>1. สแกน QR นี้ด้วยแท็บเล็ตที่จะใช้เป็นหน้าจอคนขับ</li>
+                  <li>2. เสียบเครื่องอ่าน RFID แล้วแตะบัตรใบไหนก็ได้ที่มีอยู่</li>
+                  <li>3. บัตรใบแรกที่แตะจะให้เลือกว่าเป็นของคนขับคนไหน ครั้งต่อไปแตะแล้วเข้าเลย</li>
+                </ol>
+                <p className="mt-3 text-xs text-ink-faint">
+                  ⚠️ ลิงก์นี้ <span className="text-ink">มีสิทธิ์ส่งข้อมูลเข้ามา</span> ต่างจากลิงก์ดูอย่างเดียวด้านบน —
+                  ให้เฉพาะเครื่องที่จะใช้จริง · เลขบัตรไม่ถูกส่งมาที่เรา
+                  การผูกบัตรอยู่ในเบราว์เซอร์ของแท็บเล็ตเท่านั้น
+                </p>
               </div>
             </div>
           </section>
