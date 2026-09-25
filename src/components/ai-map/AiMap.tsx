@@ -307,6 +307,10 @@ function Overview({ next }: { next: TopicId | null }) {
           </span>
           คำที่เพิ่งเกิดหรือเพิ่งเปลี่ยนในปี 2026
         </li>
+        <li className="flex items-center gap-3">
+          <span className="h-7 w-11 flex-none rounded-lg border border-brand-200 bg-brand-50/60" />
+          กล่อง “ล่าสุด” ในแต่ละหัวข้อ — มีวันที่ และลิงก์ “อ่านต่อ” ไปแหล่งต้นทาง
+        </li>
       </ul>
 
       <div className="mt-5 rounded-2xl bg-surface-overlay px-4 py-3 text-[0.9rem]">
