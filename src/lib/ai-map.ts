@@ -5,6 +5,9 @@
  * อ่านจากตรงนี้ชุดเดียว เวลาแก้คำอธิบายจะได้ไม่ต้องไล่แก้หลายไฟล์
  *
  * ข้อความในเครื่องหมาย `...` จะแสดงเป็นโค้ด (ดู RichText ในคอมโพเนนต์)
+ *
+ * ⚠️ วงการนี้เปลี่ยนเร็ว — ทุกข้อใน `latest` ต้องมีวันที่กำกับ และมีแหล่งอยู่ใน `refs`
+ * ของหัวข้อเดียวกัน เวลากลับมาอัปเดตจะได้รู้ว่าข้อไหนเก่าแล้ว และเช็กย้อนได้ว่ามาจากไหน
  */
 
 export const UPDATED = "ก.ย. 2026";
@@ -54,6 +57,8 @@ export type Layer = {
   rows: { label?: string; topics: TopicId[] }[];
 };
 
+export type Ref = { label: string; href: string };
+
 export type Topic = {
   id: TopicId;
   name: string;
@@ -68,11 +73,15 @@ export type Topic = {
   extra?: { title: string; items: string[] };
   pros: string[];
   cons: string[];
+  /** เรื่องล่าสุด (2025–2026) — ทุกข้อมีวันที่ และมีแหล่งใน refs */
+  latest?: string[];
   /** เทียบกับพนักงานใหม่ในบริษัท */
   analogy: string;
   note?: string;
   examples?: string;
   links: { to: TopicId; why: string }[];
+  /** อ่านต่อ — แหล่งต้นทางของหัวข้อนี้ */
+  refs?: Ref[];
 };
 
 /**
@@ -139,6 +148,20 @@ export const LAYER_BY_ID: Record<LayerId, Layer> = Object.fromEntries(
 /** ลำดับเดียวกับที่เห็นบนแผนที่ — ใช้กับปุ่ม ก่อนหน้า / ถัดไป */
 export const TOPIC_ORDER: TopicId[] = LAYERS.flatMap((l) => l.rows.flatMap((r) => r.topics));
 
+// แหล่งที่หลายหัวข้อใช้ร่วมกัน
+const LANGCHAIN_REPORT: Ref = {
+  label: "LangChain — State of Agent Engineering",
+  href: "https://www.langchain.com/state-of-agent-engineering",
+};
+const OWASP_AGENTIC: Ref = {
+  label: "OWASP — Top 10 for Agentic Applications 2026",
+  href: "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/",
+};
+const MCP_2026_07_28: Ref = {
+  label: "MCP Blog — The 2026-07-28 Specification",
+  href: "https://blog.modelcontextprotocol.io/posts/2026-07-28/",
+};
+
 const TOPIC_LIST: Topic[] = [
   // ---------- ชั้น 5 · Production ----------
   {
@@ -146,8 +169,8 @@ const TOPIC_LIST: Topic[] = [
     name: "AI Gateway",
     layer: "production",
     tagline: "ประตูกลางที่คุมการเรียกโมเดลทุกค่าย",
-    what: "Proxy กลางระหว่างแอปกับผู้ให้บริการโมเดลทุกค่าย ใช้ API เดียวเรียกได้หลายค่าย และสลับไปค่ายสำรองอัตโนมัติเมื่อค่ายหนึ่งล่ม",
-    use: "องค์กรที่ใช้หลายโมเดลหรือหลายทีม และระบบที่ต้องการ uptime สูง",
+    what: "Proxy กลางระหว่างแอปกับผู้ให้บริการโมเดลทุกค่าย ใช้ API เดียวเรียกได้หลายค่าย และสลับไปค่ายสำรองอัตโนมัติเมื่อค่ายหนึ่งล่ม — ปี 2026 ขยายไปคุมการเรียก MCP server และการคุยกันระหว่าง agent ด้วย",
+    use: "องค์กรที่ใช้หลายโมเดลหรือหลายทีม ระบบที่ต้องการ uptime สูง และทีมที่ต้องคุมความปลอดภัยของ agent จากจุดเดียว",
     extra: {
       title: "ทำอะไรได้บ้าง",
       items: [
@@ -155,7 +178,7 @@ const TOPIC_LIST: Topic[] = [
         "rate limit, เก็บ API key ไว้ที่เดียว และตั้งงบรายทีม",
         "cache และ log ทุก request",
         "ใส่ guardrails ไว้จุดเดียว ใช้ได้กับทุกแอป",
-        "MCP gateway — คุมว่าใครใช้ MCP server ไหนได้",
+        "MCP / agent gateway — คุมว่าใครใช้ MCP server ไหนได้ และตรวจทราฟฟิกระหว่าง agent",
       ],
     },
     pros: [
@@ -165,11 +188,19 @@ const TOPIC_LIST: Topic[] = [
     ],
     cons: [
       "เพิ่ม latency อีกหนึ่งทอด และกลายเป็นจุดตายจุดเดียว",
+      "ถือ API key ทุกค่ายไว้ที่เดียว — ถ้าโดนเจาะหรือโดนฝังโค้ดผ่าน supply chain คือเสียหมด ต้อง pin เวอร์ชันและแยกสิทธิ์ key",
       "API กลางอาจเข้าไม่ถึงฟีเจอร์เฉพาะค่าย เช่น prompt caching แบบละเอียด ระดับการคิด หรือ tools พิเศษ",
       "ถ้าใช้แบบ SaaS ข้อมูลต้องผ่านบุคคลที่สาม",
     ],
+    latest: [
+      "ก.ค. 2026 — MCP spec ใหม่เพิ่ม header `Mcp-Method` / `Mcp-Name` ให้ gateway route และคิดเงินได้โดยไม่ต้องแกะ JSON",
+      "พ.ค. 2026 — Palo Alto Networks ปิดดีลซื้อ Portkey (117 ล้านดอลลาร์) มาเป็น gateway หลักของแพลตฟอร์มความปลอดภัย AI — gateway กลายเป็นจุดคุมความปลอดภัยของ agent ไม่ใช่แค่ proxy",
+      "มี.ค. 2026 — LiteLLM เวอร์ชัน 1.82.7 และ 1.82.8 บน PyPI ถูกฝังโค้ดขโมย credential (ขึ้นอยู่ราว 40 นาทีก่อนถูกถอด) — บทเรียนว่าตัว gateway เองคือเป้าหมายใหญ่",
+      "ส.ค. 2025 — agentgateway (จาก Solo.io) เข้า Linux Foundation เป็น gateway ที่รองรับทั้ง MCP และ A2A",
+    ],
     analogy: "ประตูหน้าบริษัทที่คุมการใช้โมเดลทุกค่าย",
-    examples: "LiteLLM, Portkey, OpenRouter, Cloudflare AI Gateway, Vercel AI Gateway",
+    examples:
+      "LiteLLM, Portkey, OpenRouter, Kong AI Gateway, Cloudflare AI Gateway, Vercel AI Gateway, agentgateway, Envoy AI Gateway",
     links: [
       { to: "guardrails", why: "วาง guardrails ไว้ที่ gateway จุดเดียว ครอบได้ทุกแอป" },
       { to: "cost-optimization", why: "ตั้งงบ ทำ cache และเลือกโมเดลตามราคาได้ที่นี่" },
@@ -177,6 +208,20 @@ const TOPIC_LIST: Topic[] = [
       {
         to: "stateless-mcp",
         why: "header ใหม่ของ MCP (`Mcp-Method` / `Mcp-Name`) ทำมาให้ gateway route ได้โดยไม่ต้องแกะ JSON",
+      },
+    ],
+    refs: [
+      {
+        label: "Palo Alto Networks — Completes acquisition of Portkey",
+        href: "https://www.paloaltonetworks.com/company/press/2026/palo-alto-networks-completes-acquisition-of-portkey-to-secure-ai-agents",
+      },
+      {
+        label: "LiteLLM — Security update (มี.ค. 2026)",
+        href: "https://docs.litellm.ai/blog/security-update-march-2026",
+      },
+      {
+        label: "Linux Foundation — Welcomes the agentgateway project",
+        href: "https://www.linuxfoundation.org/press/linux-foundation-welcomes-agentgateway-project-to-accelerate-ai-agent-adoption-while-maintaining-security-observability-and-governance",
       },
     ],
   },
@@ -199,10 +244,15 @@ const TOPIC_LIST: Topic[] = [
     cons: [
       "บล็อกผิด (false positive) จนผู้ใช้หงุดหงิดได้",
       "เพิ่ม latency และค่าใช้จ่าย",
-      "ไม่มีอะไรกัน prompt injection ได้ 100% จึงต้องวางหลายชั้น",
+      "ไม่มีอะไรกัน prompt injection ได้ 100% จึงต้องวางหลายชั้น และออกแบบให้ “โดนหลอกแล้วเสียหายน้อย”",
+    ],
+    latest: [
+      "ธ.ค. 2025 — OWASP ออก Top 10 for Agentic Applications 2026: ความเสี่ยงเฉพาะของ agent 10 ข้อ เช่น ASI01 Agent Goal Hijack, ASI02 Tool Misuse, ASI03 Identity & Privilege Abuse, ASI06 Memory & Context Poisoning, ASI08 Cascading Failures",
+      "ต.ค. 2025 — Meta เสนอ “Agents Rule of Two”: ยอมรับว่า prompt injection กันไม่ได้ทั้งหมด จึงจำกัดว่า agent ที่โดนหลอกแล้วจะทำความเสียหายได้แค่ไหน (ดูหมายเหตุข้างล่าง)",
+      "ตัวอย่างจริง: EchoLeak — อีเมลที่ซ่อนคำสั่งทำให้ Microsoft 365 Copilot ส่งข้อมูลลับออกไปโดยผู้ใช้ไม่ต้องคลิกอะไรเลย (OWASP ยกเป็นตัวอย่างของ ASI01)",
     ],
     analogy: "กฎระเบียบ ขั้นตอนอนุมัติ และรั้วกันตก",
-    note: "กฎจำง่าย “Lethal Trifecta” — ถ้า agent (1) เข้าถึงข้อมูลลับ (2) อ่านเนื้อหาจากคนนอก และ (3) ส่งข้อมูลออกไปข้างนอกได้ ครบ 3 ข้อเมื่อไหร่ ความเสี่ยงข้อมูลรั่วจะสูงมาก ให้ตัดข้อใดข้อหนึ่งออก",
+    note: "กฎจำง่าย 2 ข้อ — “Lethal Trifecta”: ถ้า agent (1) เข้าถึงข้อมูลลับ (2) อ่านเนื้อหาจากคนนอก และ (3) ส่งข้อมูลออกไปข้างนอกได้ ครบ 3 ข้อเมื่อไหร่ข้อมูลรั่วได้ · “Agents Rule of Two” ของ Meta: ใน session เดียวให้มีได้ไม่เกิน 2 ใน 3 อย่าง — รับ input ที่ไม่น่าไว้ใจ / เข้าถึงระบบหรือข้อมูลสำคัญ / เปลี่ยนสถานะหรือส่งข้อมูลออก",
     examples: "NeMo Guardrails, Guardrails AI, Llama Guard, Bedrock Guardrails",
     links: [
       { to: "tool-use", why: "ยิ่ง tool ทำได้มาก ยิ่งต้องมีรั้วด้านการกระทำ" },
@@ -210,6 +260,17 @@ const TOPIC_LIST: Topic[] = [
       { to: "rag", why: "เอกสารที่ดึงมาอาจแฝง prompt injection" },
       { to: "memory", why: "กัน memory poisoning และข้อมูลส่วนบุคคลในความจำ" },
       { to: "ai-gateway", why: "วางไว้ที่ gateway เพื่อครอบทุกแอป" },
+    ],
+    refs: [
+      OWASP_AGENTIC,
+      {
+        label: "Meta — Agents Rule of Two: A practical approach to AI agent security",
+        href: "https://ai.meta.com/blog/practical-ai-agent-security/",
+      },
+      {
+        label: "Simon Willison — New prompt injection papers",
+        href: "https://simonwillison.net/2025/Nov/2/new-prompt-injection-papers/",
+      },
     ],
   },
   {
@@ -227,7 +288,12 @@ const TOPIC_LIST: Topic[] = [
     cons: [
       "log เต็มไปด้วยข้อมูลส่วนบุคคล ต้อง mask และกำหนดอายุการเก็บตาม PDPA",
       "trace ของ agent ยาวมาก ค่าเก็บบานเร็ว",
-      "ถ้าไม่มี alert หรือ eval ต่อท้าย ข้อมูลก็กองอยู่เฉย ๆ",
+      "เห็นปัญหาได้ แต่ไม่ได้วัดคุณภาพให้ — ถ้าไม่มี eval ต่อท้าย ข้อมูลก็กองอยู่เฉย ๆ",
+    ],
+    latest: [
+      "มาตรฐาน OpenTelemetry GenAI ครอบคลุม LLM span, agent span และการเรียก tool ผ่าน MCP แล้ว แต่ยังเป็นสถานะ experimental (ยังไม่ถึง 1.0) — มิ.ย. 2026 แยกไปอยู่ repo ของตัวเองเพื่อออกเวอร์ชันได้เร็วขึ้น",
+      "ม.ค. 2026 — ClickHouse ซื้อ Langfuse (Langfuse ยังเป็น open-source)",
+      "รายงาน LangChain (สำรวจ 1,300+ คน ปลายปี 2025): 89% ของทีมมี tracing แล้ว แต่มี eval แค่ 52%",
     ],
     analogy: "กล้องวงจรปิด + บันทึกการทำงาน",
     examples: "Langfuse (open-source), LangSmith, Arize Phoenix, Helicone, Datadog",
@@ -236,6 +302,17 @@ const TOPIC_LIST: Topic[] = [
       { to: "cost-optimization", why: "เห็นว่าเงินหมดไปกับขั้นไหน ก่อนตัดสินใจลด" },
       { to: "loop-engineering", why: "ดูได้ว่าลูปวนกี่รอบ และติดตรงไหน" },
       { to: "ai-gateway", why: "gateway คือจุดเก็บ log ที่ครบที่สุด" },
+    ],
+    refs: [
+      {
+        label: "OpenTelemetry — Inside the LLM call: GenAI observability",
+        href: "https://opentelemetry.io/blog/2026/genai-observability/",
+      },
+      {
+        label: "ClickHouse — Welcomes Langfuse",
+        href: "https://clickhouse.com/blog/clickhouse-acquires-langfuse-open-source-llm-observability",
+      },
+      LANGCHAIN_REPORT,
     ],
   },
   {
@@ -248,8 +325,8 @@ const TOPIC_LIST: Topic[] = [
     extra: {
       title: "ตัวให้คะแนน และเรื่องของ agent",
       items: [
-        "ใช้โค้ดตรวจ — exact match, unit test, ตรวจ schema",
-        "LLM-as-a-Judge — ให้ LLM ให้คะแนนตาม rubric",
+        "ใช้โค้ดตรวจ — exact match, unit test, ตรวจ schema (เร็ว ถูก แต่เปราะ)",
+        "LLM-as-a-Judge — ให้ LLM ให้คะแนนตาม rubric (ยืดหยุ่น แต่ผลไม่คงที่)",
         "คนตรวจ — แม่นที่สุด แต่แพงและช้าที่สุด",
         "agent ต้องวัดทั้งผลลัพธ์และเส้นทาง (ใช้ tool ถูกไหม กี่ขั้น เสียเงินเท่าไหร่) และรันหลายรอบ — pass@k คือสำเร็จอย่างน้อย 1 ใน k ครั้ง ส่วน pass^k คือสำเร็จครบทุกครั้ง",
       ],
@@ -264,6 +341,12 @@ const TOPIC_LIST: Topic[] = [
       "benchmark สาธารณะอิ่มตัว หรือรั่วเข้าข้อมูล train",
       "คะแนนดีไม่ได้แปลว่าผู้ใช้พอใจ",
     ],
+    latest: [
+      "ม.ค. 2026 — Anthropic “Demystifying evals for AI agents”: ตรวจผลลัพธ์และสถานะจริงของระบบ (เทสต์ผ่านจริง, มีรายการคืนเงินใน DB จริง) ดีกว่าดูแค่ว่าคำตอบฟังดูถูก และอ่าน transcript ประกอบทุกครั้งก่อนเชื่อคะแนน",
+      "แยก eval สองแบบ: capability eval (ทำงานแบบนี้ได้หรือยัง) กับ regression eval (ของที่เคยใช้ได้ยังไม่พัง)",
+      "pass@k ยิ่งลองหลายครั้งยิ่งสูง (วัดความสามารถ) ส่วน pass^k ยิ่งลองยิ่งต่ำ (วัดความสม่ำเสมอ) — agent ที่ลูกค้าใช้จริงต้องดู pass^k",
+      "รายงาน LangChain (ปลายปี 2025): คุณภาพคืออุปสรรคอันดับ 1 ของการเอา agent ขึ้น production (32%)",
+    ],
     analogy: "การสอบและ KPI",
     note: "คำว่า “eval harness” (เช่น lm-evaluation-harness) คือโครงสำหรับรันชุดทดสอบ — คนละความหมายกับ agent harness",
     examples: "promptfoo, DeepEval, Ragas, Inspect, LangSmith, Braintrust, Langfuse",
@@ -273,6 +356,13 @@ const TOPIC_LIST: Topic[] = [
       { to: "fine-tuning", why: "ใช้วัดว่าโมเดลที่ train แล้วดีขึ้นจริงไหม" },
       { to: "synthetic-data", why: "สร้างเคสทดสอบและ edge case เพิ่มได้" },
       { to: "observability", why: "ดึงเคสจริงจาก trace มาเป็นชุดทดสอบ" },
+    ],
+    refs: [
+      {
+        label: "Anthropic — Demystifying evals for AI agents",
+        href: "https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents",
+      },
+      LANGCHAIN_REPORT,
     ],
   },
   {
@@ -285,11 +375,11 @@ const TOPIC_LIST: Topic[] = [
     extra: {
       title: "7 วิธี เรียงจากได้ฟรีไปจนถึงต้องแลก",
       items: [
-        "Prompt caching — ส่วนต้นที่ซ้ำทุกครั้ง (system prompt, รายการ tools, เอกสารยาว) อ่านจาก cache ถูกลงราว 90% เช่นของ Claude อ่าน cache ≈ 0.1× ราคา input และเขียน cache ≈ 1.25×",
+        "Prompt caching — ส่วนต้นที่ซ้ำทุกครั้ง (system prompt, รายการ tools, เอกสารยาว) อ่านจาก cache ถูกลงราว 90% เช่นของ Claude อ่าน cache ≈ 0.1× ราคา input เขียน ≈ 1.25× (อายุ 5 นาที) หรือ 2× (อายุ 1 ชั่วโมง) — OpenAI และ Gemini แคชให้อัตโนมัติ ส่วนลดต่างกันตามรุ่น",
         "Batch API — งานไม่ด่วนส่งเป็นชุด ถูกลงราว 50%",
         "ลด context — ตัดของไม่จำเป็น ใช้ compaction และให้ tool คืนผลกระชับ",
         "คุมลูป — จำกัดจำนวนรอบและงบ token ของ agent",
-        "ปรับระดับการคิด (effort) ตามความยากของงาน",
+        "ปรับระดับการคิด (effort / reasoning effort) ตามความยากของงาน",
         "Model routing — งานง่ายใช้โมเดลเล็ก งานยากใช้โมเดลใหญ่ (วัดก่อน บางครั้งโมเดลเก่งที่ effort ต่ำคุ้มกว่า และ cache ใช้ข้ามโมเดลไม่ได้)",
         "Semantic cache, distill หรือ self-host เมื่อปริมาณงานสูงมาก",
       ],
@@ -300,6 +390,11 @@ const TOPIC_LIST: Topic[] = [
       "cache พังเงียบ ๆ ถ้าส่วนต้นของ prompt เปลี่ยน เช่น ใส่เวลาปัจจุบันไว้บนสุด",
       "semantic cache อาจตอบคำถามที่แค่คล้าย แต่ไม่ใช่คำถามเดียวกัน",
     ],
+    latest: [
+      "Epoch AI: ราคาที่ต้องจ่ายเพื่อได้ความสามารถระดับเดิมลดลง 9–900 เท่าต่อปี (มัธยฐานราว 50 เท่า) — แต่ agent ใช้ token มากขึ้นหลายเท่า บิลรวมจึงยังโตได้ ให้คุมที่ “ต้นทุนต่องานที่สำเร็จ”",
+      "พ.ย. 2025 — tool search และ programmatic tool calling ช่วยลด token ของนิยาม tool และผลลัพธ์กลางทางที่ไม่จำเป็นต้องผ่าน context (ดูหัวข้อ Tool Use)",
+      "API ของโมเดลรุ่นใหม่หลายค่ายเปิดให้ตั้งระดับการคิดหรืองบ token ต่องานได้เอง — เลือกให้เหมาะกับงานแทนการใช้ค่าสูงสุดตลอด",
+    ],
     analogy: "การคุมงบ",
     note: "หลักคิด: วัดต้นทุนต่องานที่สำเร็จ ไม่ใช่ต่อ request — request ที่ถูกแต่ต้องลองซ้ำหลายรอบ ไม่ได้ถูกจริง",
     links: [
@@ -308,6 +403,16 @@ const TOPIC_LIST: Topic[] = [
       { to: "distillation", why: "ย่อลงโมเดลเล็กเมื่อปริมาณงานสูงมาก" },
       { to: "ai-gateway", why: "ตั้งงบรายทีมและเลือกโมเดลได้ที่ gateway" },
       { to: "evaluation", why: "ยืนยันว่าลดแล้วคุณภาพไม่ตก" },
+    ],
+    refs: [
+      {
+        label: "Epoch AI — LLM inference prices have fallen rapidly but unequally",
+        href: "https://epoch.ai/data-insights/llm-inference-price-trends",
+      },
+      {
+        label: "Prompt caching: Claude vs GPT vs Gemini (Eden AI)",
+        href: "https://www.edenai.co/post/prompt-caching-claude-vs-gpt-vs-gemini-cost-playbook",
+      },
     ],
   },
 
@@ -333,6 +438,11 @@ const TOPIC_LIST: Topic[] = [
       "คาดเดายาก",
       "error ทบต้น — ถ้าแต่ละขั้นถูก 95% ทำ 20 ขั้นจะถูกครบทุกขั้นแค่ราว 36%",
     ],
+    latest: [
+      "รายงาน LangChain (สำรวจปลายปี 2025): 57% ขององค์กรมี agent ใช้งานจริงแล้ว (ปีก่อน 51%) แต่คุณภาพยังเป็นอุปสรรคอันดับ 1",
+      "มิ.ย. 2025 — Gartner คาดว่าโปรเจกต์ agentic AI กว่า 40% จะถูกยกเลิกภายในสิ้นปี 2027 เพราะต้นทุนบานปลาย คุณค่าไม่ชัด หรือคุมความเสี่ยงไม่พอ",
+      "ระวัง “agent washing” — เอาแชตบอตหรือ RPA เดิมมาเรียกว่า agent; Gartner ประเมินว่าผู้ขายที่เป็น agentic จริงมีแค่ราว 130 รายจากหลายพัน",
+    ],
     analogy: "พนักงานที่รับเป้าหมายแล้วคิดและลงมือเองได้",
     links: [
       { to: "harness", why: "Agent = Model + Harness" },
@@ -340,6 +450,13 @@ const TOPIC_LIST: Topic[] = [
       { to: "tool-use", why: "agent ลงมือทำงานผ่าน tools" },
       { to: "multi-agent", why: "เมื่อ agent ตัวเดียวไม่พอ" },
       { to: "guardrails", why: "ยิ่งอิสระมาก ยิ่งต้องมีรั้ว" },
+    ],
+    refs: [
+      {
+        label: "Gartner — Over 40% of agentic AI projects will be canceled by end of 2027",
+        href: "https://www.gartner.com/en/newsroom/press-releases/2025-06-25-gartner-predicts-over-40-percent-of-agentic-ai-projects-will-be-canceled-by-end-of-2027",
+      },
+      LANGCHAIN_REPORT,
     ],
   },
   {
@@ -367,6 +484,11 @@ const TOPIC_LIST: Topic[] = [
       "agent ตัดสินใจขัดกัน เพราะเห็นข้อมูลไม่เท่ากัน",
       "debug ยาก — งานที่ต้องแชร์บริบทแน่น ๆ อย่างแก้โค้ดชิ้นเดียวกัน ใช้ agent เดียวมักดีกว่า",
     ],
+    latest: [
+      "แบบที่ค่ายใหญ่มาบรรจบกัน: agent หัวหน้าตัวเดียวถือบริบททั้งหมด แล้วแตก sub-agent ชั่วคราวที่ส่งกลับแค่สรุป — แบบให้ agent คุยกันเองเป็นกลุ่ม (group chat) ความนิยมลดลง",
+      "Anthropic: ระบบ research แบบหัวหน้า + ลูกทีม ทำคะแนนดีกว่า agent เดียวราว 90% บนชุดทดสอบภายใน — แลกกับ token ที่มากกว่าหลายเท่า",
+      "A2A ถึง v1.0 แล้ว (มี Signed Agent Cards) อยู่ใต้ Linux Foundation องค์กรร่วมกว่า 150 แห่ง และ ACP ของ IBM รวมเข้ามาตั้งแต่ ส.ค. 2025",
+    ],
     analogy: "ทีมที่มีหัวหน้าแจกงานให้ลูกทีม",
     links: [
       { to: "graph-engineering", why: "multi-agent คือกราฟแบบหนึ่ง ออกแบบด้วย graph engineering" },
@@ -375,13 +497,27 @@ const TOPIC_LIST: Topic[] = [
       { to: "cost-optimization", why: "ต้นทุน token คูณตามจำนวน agent" },
       { to: "mcp", why: "MCP ใช้กับ tool ส่วน A2A ใช้กับ agent" },
     ],
+    refs: [
+      {
+        label: "Linux Foundation — Launches the Agent2Agent Protocol Project",
+        href: "https://www.linuxfoundation.org/press/linux-foundation-launches-the-agent2agent-protocol-project-to-enable-secure-intelligent-communication-between-ai-agents",
+      },
+      {
+        label: "How Anthropic built a multi-agent research system (ByteByteGo)",
+        href: "https://blog.bytebytego.com/p/how-anthropic-built-a-multi-agent",
+      },
+      {
+        label: "MCP, A2A, and where ACP went (Zuplo)",
+        href: "https://zuplo.com/blog/agent-protocol-stack-mcp-a2a-acp-2026",
+      },
+    ],
   },
   {
     id: "graph-engineering",
     name: "Graph Engineering",
     layer: "system",
     tagline: "หลายลูปต่อกันเป็นผังงาน",
-    badge: "ใหม่ 2026",
+    badge: "ใหม่ ก.ค. 2026",
     what: "เมื่อลูปเดียวไม่พอ ก็ต่อหลาย node เป็นกราฟ — node เป็นได้ทั้งโค้ดธรรมดา, LLM call, tool หรือ agent ทั้งตัว ส่วน edge คือเส้นส่งงานต่อ (มีเงื่อนไขได้) และมี state กลางที่ checkpoint แล้ว resume ได้",
     use: "workflow ธุรกิจที่มีหลายขั้นหลายบทบาท ต้องมีคนอนุมัติกลางทาง หรือต้องทำงานต่อได้หลังระบบล่ม",
     pros: [
@@ -394,14 +530,33 @@ const TOPIC_LIST: Topic[] = [
       "กราฟที่แข็งเกินไปทำให้เสียความยืดหยุ่นของ agent",
       "จัดการ state ยาก",
     ],
+    latest: [
+      "18 ก.ค. 2026 — Hamel Husain โพสต์ “Loop Engineering Is Dead. Enter Graph Engineering” หลังคำว่า loop engineering เกิดมาได้ราว 6 สัปดาห์ แล้วกลายเป็นกระแสถกเถียง",
+      "ข้อสรุปของนักวิเคราะห์หลายคน: loop ไม่ได้ตาย — กราฟคือสิ่งที่ได้เมื่อลูปเดียวไม่พอ และกราฟประกอบด้วยลูป",
+      "ประโยชน์ที่จับต้องได้คือบังคับให้เขียนสิ่งเหล่านี้ให้ชัด: state, การส่งต่องาน, ตัวตรวจ, งบ และเงื่อนไขหยุด",
+    ],
     analogy: "ผังงาน — ใครส่งงานต่อให้ใคร ภายใต้เงื่อนไขไหน",
-    note: "อย่าสับสน: graph engineering คือกราฟของ “การทำงาน” ส่วน Knowledge Graph / GraphRAG คือกราฟของ “ข้อมูล” ซึ่งอยู่ในหมวด RAG",
+    note: "อย่าสับสน: graph engineering คือกราฟของ “การทำงาน” ส่วน Knowledge Graph / GraphRAG คือกราฟของ “ข้อมูล” ซึ่งอยู่ในหมวด RAG — และคำนี้ยังเป็นป้ายชื่อใหม่ที่ถกเถียงกันอยู่ ไม่ใช่เทคโนโลยีหรือวิธีมาตรฐานใหม่",
     examples: "LangGraph และ workflow engine อื่น ๆ",
     links: [
       { to: "loop-engineering", why: "กราฟประกอบด้วยหลายลูป" },
       { to: "multi-agent", why: "ระบบหลาย agent คือกราฟแบบหนึ่ง" },
       { to: "agentic-ai", why: "แลกความอิสระของ agent กับความคาดเดาได้" },
       { to: "rag", why: "GraphRAG คือกราฟของข้อมูล คนละเรื่องกัน" },
+    ],
+    refs: [
+      {
+        label: "Louis Bouchard — Graph Engineering, Without the Hype",
+        href: "https://louisbouchard.substack.com/p/graph-engineering-explained-what",
+      },
+      {
+        label: "Turing Post — Is Graph Engineering Real?",
+        href: "https://www.turingpost.com/p/is-graph-engineering-real-why-everyone-is-talking-about-it",
+      },
+      {
+        label: "LangChain — 3 Years of Graph Engineering with LangGraph",
+        href: "https://www.langchain.com/blog/3-years-of-graph-engineering-with-langgraph",
+      },
     ],
   },
 
@@ -411,17 +566,17 @@ const TOPIC_LIST: Topic[] = [
     name: "Loop Engineering",
     layer: "control",
     tagline: "วงจร ทำ → ตรวจ → แก้ → หยุด",
-    badge: "ใหม่ 2026",
+    badge: "ใหม่ มิ.ย. 2026",
     what: "การออกแบบวงจรควบคุมที่สั่งงาน agent → ตรวจผล → แก้หรือลองใหม่ → ตัดสินใจหยุด แทนการให้คนนั่งพิมพ์สั่งทีละรอบ หัวใจคือ Loop = Task + Check เพราะงานที่ไม่มีตัวตรวจก็เป็นแค่ความหวัง",
-    use: "ให้ agent แก้โค้ดวนจนเทสต์ผ่าน, “Ralph loop” (รัน agent ซ้ำด้วย prompt เดิมจนงานเสร็จ) และ agent ที่ตั้งเวลาให้ทำงานทุกคืน",
+    use: "ให้ agent แก้โค้ดวนจนเทสต์ผ่าน รัน agent ซ้ำจนงานเสร็จ และ agent ที่ตั้งเวลาให้ทำงานทุกคืน",
     extra: {
       title: "ส่วนประกอบของลูปที่ดี",
       items: [
-        "เป้าหมายที่ตรวจได้",
+        "เงื่อนไข “เสร็จ” ที่ทดสอบได้ เช่น “เทสต์ใน test/auth ผ่านทั้งหมด และ lint ไม่มี error”",
         "ตัวตรวจ — test, type-check, LLM judge หรือ rubric",
+        "แยกคนตรวจออกจากคนทำ — ใช้ sub-agent หรือโมเดลอีกตัวที่เห็นแค่ผลงาน (เช่น diff) ไม่เห็นเหตุผลของคนทำ",
         "เงื่อนไขหยุด และงบ (จำนวนรอบ token และเวลา)",
-        "ไฟล์บันทึกความคืบหน้า ให้รอบถัดไปทำต่อได้",
-        "จุดให้คนอนุมัติ",
+        "ไฟล์บันทึกความคืบหน้า ให้รอบถัดไปทำต่อได้ และจุดให้คนอนุมัติ",
       ],
     },
     pros: ["งานยาวเสร็จได้โดยไม่ต้องเฝ้า", "คุณภาพสม่ำเสมอ เพราะมีตัวตรวจ"],
@@ -430,6 +585,11 @@ const TOPIC_LIST: Topic[] = [
       "ถ้าตัวตรวจอ่อน agent จะ “โกง” ให้ผ่าน เช่น แก้เทสต์แทนแก้โค้ด",
       "error สะสมข้ามรอบได้",
     ],
+    latest: [
+      "7 มิ.ย. 2026 — เรียงความ “Loop Engineering” ของ Addy Osmani ทำให้คำนี้ติดตลาด องค์ประกอบที่เขาแจกแจง: automations, worktrees, skills, connectors, sub-agents และความจำภายนอก",
+      "ต้นแบบคือ “Ralph Wiggum loop” ของ Geoffrey Huntley (พ.ค. 2025) — แค่ bash while loop ที่ป้อน prompt เดิมให้ agent ซ้ำจนงานเสร็จ ต่อมามีเป็น plugin ใน Claude Code",
+      "พ.ย. 2025 — Anthropic แนะนำ harness สำหรับงานยาวหลาย session: รอบแรกเตรียมรายการ feature (JSON) และไฟล์ความคืบหน้า รอบถัดไปทำทีละ feature ทดสอบ end-to-end แล้ว commit ทิ้งไว้ให้รอบหน้า",
+    ],
     analogy: "ระบบ PDCA — ทำ → ตรวจ → แก้ → จบเมื่อผ่านเกณฑ์",
     links: [
       { to: "evaluation", why: "ตัวตรวจของลูปมาจาก eval" },
@@ -437,6 +597,17 @@ const TOPIC_LIST: Topic[] = [
       { to: "graph-engineering", why: "หลายลูปต่อกันกลายเป็นกราฟ" },
       { to: "cost-optimization", why: "ต้องมีงบ ไม่งั้นวนจนเผาเงิน" },
       { to: "agentic-ai", why: "ลูปคือสิ่งที่ทำให้ agent ทำงานยาว ๆ ได้จริง" },
+    ],
+    refs: [
+      { label: "Addy Osmani — Loop Engineering", href: "https://addyosmani.com/blog/loop-engineering/" },
+      {
+        label: "Geoffrey Huntley — Ralph Wiggum as a “software engineer”",
+        href: "https://ghuntley.com/ralph/",
+      },
+      {
+        label: "Anthropic — Effective harnesses for long-running agents",
+        href: "https://anthropic.com/engineering/effective-harnesses-for-long-running-agents",
+      },
     ],
   },
 
@@ -466,6 +637,11 @@ const TOPIC_LIST: Topic[] = [
       "ซับซ้อน และต้องปรับตามรุ่นโมเดล — ของที่เคยช่วยอาจกลายเป็นส่วนเกิน",
       "ตั้ง permission หรือ sandbox ผิด คือช่องโหว่",
     ],
+    latest: [
+      "OpenAI เล่าการทดลอง “Harness engineering” (เริ่มปลาย ส.ค. 2025): ผลิตภัณฑ์ราว 1 ล้านบรรทัดที่ Codex agent เขียนทุกบรรทัด งานของคนเปลี่ยนเป็นออกแบบสภาพแวดล้อม ระบุเจตนา และสร้าง feedback loop — ใช้ `AGENTS.md` สั้น ๆ ราว 100 บรรทัดเป็น “แผนที่” ชี้ไปเอกสารลึก",
+      "ธ.ค. 2025 — AGENTS.md ย้ายไปอยู่ Agentic AI Foundation (Linux Foundation) คู่กับ MCP กลายเป็นมาตรฐานกลางของไฟล์คู่มือโปรเจกต์ให้ agent",
+      "ปี 2026 สูตร “Agent = Model + Harness” กลายเป็นกรอบคิดหลักของวงการ — คำว่า loop และ graph engineering ต่อยอดออกไปจากจุดนี้",
+    ],
     analogy: "ออฟฟิศ อุปกรณ์ สิทธิ์เข้าถึง และกฎการทำงาน",
     note: "“eval harness” เป็นอีกความหมายหนึ่ง คือโครงสำหรับรันชุดทดสอบ",
     links: [
@@ -474,6 +650,17 @@ const TOPIC_LIST: Topic[] = [
       { to: "memory", why: "harness เป็นคนเขียนและอ่านความจำ" },
       { to: "loop-engineering", why: "ลูปคือตัวสั่งงาน agent ที่อยู่ใน harness" },
       { to: "guardrails", why: "permissions และ sandbox คือรั้วชั้นในของ harness" },
+    ],
+    refs: [
+      { label: "OpenAI — Harness engineering", href: "https://openai.com/index/harness-engineering/" },
+      {
+        label: "Martin Fowler — Harness engineering for coding agent users",
+        href: "https://martinfowler.com/articles/harness-engineering.html",
+      },
+      {
+        label: "LangChain — The anatomy of an agent harness",
+        href: "https://www.langchain.com/blog/the-anatomy-of-an-agent-harness",
+      },
     ],
   },
   {
@@ -486,9 +673,9 @@ const TOPIC_LIST: Topic[] = [
     extra: {
       title: "เทคนิคหลัก",
       items: [
-        "ดึงเฉพาะส่วนที่เกี่ยว",
-        "สรุปย่อเมื่อยาว (compaction)",
-        "ลบผล tool เก่าทิ้ง",
+        "ดึงเฉพาะส่วนที่เกี่ยว ตอนที่ต้องใช้ (just-in-time) — เก็บแค่ตัวชี้ เช่น path ไฟล์ แล้วค่อยเปิดอ่าน",
+        "เก็บ headroom ไว้ อย่าปล่อยให้ context เต็มจนไม่มีที่ให้คิด",
+        "ลบผล tool เก่าทิ้ง และตัด/เล็มก่อน ค่อยสรุปย่อ (compaction) เมื่อจำเป็นจริง",
         "แยกงานย่อยให้ sub-agent ที่มี context สะอาด",
         "จดโน้ตเก็บไว้นอก context",
       ],
@@ -497,6 +684,12 @@ const TOPIC_LIST: Topic[] = [
     cons: [
       "ยิ่งยัดเยอะยิ่งแย่ — “context rot” คือโมเดลโฟกัสได้แย่ลงเมื่อ context ยาว",
       "ข้อมูลผิดที่หลุดเข้าไปจะพาทั้งงานผิดตาม (context poisoning)",
+      "สรุปย่อซ้ำหลายรอบทำให้รายละเอียดหาย (context collapse)",
+    ],
+    latest: [
+      "ก.ค. 2025 — รายงาน “Context Rot” ของ Chroma ทดสอบ 18 โมเดล พบว่าความแม่นลดลงเมื่อ input ยาวขึ้น แม้งานง่ายและแม้ context ยังไม่เต็ม",
+      "แนวปี 2026 เน้น “ลบ” มากกว่า “เติม”: ดึงแบบ just-in-time, เก็บ headroom, ตัด/เล็มก่อนค่อยสรุปย่อ",
+      "ต.ค. 2025 — ACE (Agentic Context Engineering): มอง context เป็น “playbook” ที่แก้ทีละส่วน (Generator → Reflector → Curator) แทนการเขียนสรุปใหม่ทั้งก้อน — ได้ +10.6% บนงาน agent",
     ],
     analogy: "ใบสั่งงาน + เอกสารที่วางบนโต๊ะ (โต๊ะมีที่จำกัด)",
     links: [
@@ -505,6 +698,17 @@ const TOPIC_LIST: Topic[] = [
       { to: "harness", why: "harness เป็นคนประกอบ context ทุกรอบ" },
       { to: "cost-optimization", why: "context สั้นและนิ่ง = ถูกและ cache ได้" },
       { to: "prompt-optimization", why: "prompt คือชิ้นหนึ่งของ context" },
+    ],
+    refs: [
+      { label: "Chroma — Context Rot", href: "https://www.trychroma.com/research/context-rot" },
+      {
+        label: "Agentic Context Engineering (ACE) — arXiv 2510.04618",
+        href: "https://arxiv.org/abs/2510.04618",
+      },
+      {
+        label: "Claude Cookbook — Memory, compaction, and tool clearing",
+        href: "https://platform.claude.com/cookbook/tool-use-context-engineering-context-engineering-tools",
+      },
     ],
   },
   {
@@ -534,14 +738,27 @@ const TOPIC_LIST: Topic[] = [
       "ความเป็นส่วนตัวและ PDPA — ผู้ใช้ต้องดูและลบได้",
       "ตัดสินใจยากว่าควรจำหรือลืมอะไร",
     ],
+    latest: [
+      "ชุดวัดกลางที่ใช้เทียบระบบความจำ: LoCoMo, LongMemEval (500 คำถาม 6 หมวด) และ BEAM — แต่คะแนนที่แต่ละเจ้ารายงานเองวัดคนละวิธี เทียบกันตรง ๆ ไม่ได้",
+      "Zep / Graphiti ใช้ความจำแบบ bi-temporal: ทุกข้อเท็จจริงมีเวลาที่ “เริ่มจริง” และ “เลิกจริง” — ช่วยแก้ปัญหาจำของที่ล้าสมัย",
+      "Letta เน้นความจำที่ agent แก้เองได้ และ sleep-time compute (จัดระเบียบความจำตอนว่าง)",
+      "ธ.ค. 2025 — OWASP จัด Memory & Context Poisoning เป็นความเสี่ยงของ agent ข้อ ASI06",
+    ],
     analogy: "สมุดโน้ตและแฟ้มงานเก่า",
     note: "Memory คือ “เขียน” ข้อมูลออกไปเก็บ RAG คือ “ดึง” กลับมา และ Context engineering คือ “เลือก” ว่ารอบนี้จะใส่อะไร ทั้งสามเป็นวงจรเดียวกัน (ในงานวิจัยสถาปัตยกรรมโมเดล “memory layers” ยังหมายถึงเลเยอร์ key-value ภายในตัวโมเดล ซึ่งเป็นคนละเรื่อง)",
-    examples: "Mem0, Letta (MemGPT), Zep, LangMem และ memory tool ของผู้ให้บริการโมเดล",
+    examples: "Mem0, Letta (MemGPT), Zep / Graphiti, LangMem และ memory tool ของผู้ให้บริการโมเดล",
     links: [
       { to: "context-engineering", why: "เลือกว่าความจำไหนควรเข้า context รอบนี้" },
       { to: "rag", why: "ดึงความจำกลับมาด้วยวิธีเดียวกับ RAG" },
       { to: "vector-db", why: "มักเก็บความจำเป็น embedding" },
       { to: "guardrails", why: "ต้องกัน memory poisoning และข้อมูลส่วนบุคคล" },
+    ],
+    refs: [
+      {
+        label: "Mem0 — AI memory benchmarks in 2026 (LoCoMo, LongMemEval, BEAM)",
+        href: "https://mem0.ai/blog/ai-memory-benchmarks-in-2026",
+      },
+      OWASP_AGENTIC,
     ],
   },
   {
@@ -555,12 +772,12 @@ const TOPIC_LIST: Topic[] = [
     extra: {
       title: "RAG 2.0 อัปเกรดอะไรบ้าง",
       items: [
-        "Hybrid search (keyword + vector) และ reranking",
+        "Hybrid search (keyword BM25 + vector รวมผลด้วย Reciprocal Rank Fusion) และ reranker",
         "เติมบริบทให้แต่ละชิ้นก่อน embed (contextual retrieval)",
         "แตกคำถามซับซ้อนเป็นหลายคำค้น",
-        "Agentic RAG — agent ตัดสินใจเองว่าจะค้นอะไร ค้นซ้ำไหม และใช้ grep, SQL, web หรือ vector",
-        "GraphRAG — ใช้ knowledge graph ตอบคำถามภาพรวม",
-        "Multimodal — ค้นจากรูป ตาราง หรือหน้า PDF",
+        "Agentic RAG — agent วางแผน ค้น ประเมิน แล้วค้นซ้ำเองจนพอ และใช้ grep, SQL, web หรือ vector ตามเหมาะ",
+        "Adaptive routing — คำถามง่ายใช้ทางสั้น คำถามยากค่อยใช้ pipeline เต็ม",
+        "GraphRAG — ใช้ knowledge graph ตอบคำถามภาพรวม · Multimodal — ค้นจากรูป ตาราง หรือหน้า PDF",
       ],
     },
     pros: [
@@ -569,6 +786,11 @@ const TOPIC_LIST: Topic[] = [
       "คุมสิทธิ์เอกสารรายผู้ใช้ได้",
     ],
     cons: ["pipeline ซับซ้อน", "ดึงผิดก็ตอบผิดอย่างมั่นใจ", "latency เพิ่ม"],
+    latest: [
+      "ปี 2026 RAG แบบพื้นฐาน (ตัดชิ้น → vector → top-k) ถูกมองเป็นแค่ต้นแบบ จุดเริ่มของระบบจริงคือ hybrid search + reranker",
+      "Agentic RAG กลายเป็นกระแสหลัก: เปลี่ยนจาก “ค้นครั้งเดียวแล้วตอบ” เป็น agent ที่ค้นหลายรอบจนได้ข้อมูลพอ",
+      "Contextual Retrieval ของ Anthropic: ลดการดึงพลาดได้ 49% และ 67% เมื่อเพิ่ม reranking (อัตราพลาดใน top-20 จาก 5.7% เหลือ 1.9%)",
+    ],
     analogy: "ห้องสมุด + บรรณารักษ์ที่หาเอกสารตรงเรื่องมาให้",
     note: "ทุกวันนี้ context window ใหญ่ถึง 1M token งานเล็กบางงานจึงใส่ทั้งเอกสารได้เลย แต่ข้อมูลที่ใหญ่ เปลี่ยนบ่อย หรือต้องคุมสิทธิ์ ยังต้องใช้ RAG — ปี 2024 Contextual AI เคยใช้คำว่า RAG 2.0 หมายถึงการ train ตัวค้นกับตัวตอบไปพร้อมกัน แต่ตอนนี้นิยมใช้ในความหมายชุดอัปเกรดข้างบนมากกว่า",
     links: [
@@ -578,6 +800,20 @@ const TOPIC_LIST: Topic[] = [
       { to: "evaluation", why: "ต้องวัดทั้งการดึงและการตอบ เช่นด้วย Ragas" },
       { to: "graph-engineering", why: "GraphRAG คือกราฟของข้อมูล ไม่ใช่กราฟของงาน" },
     ],
+    refs: [
+      {
+        label: "Anthropic — Contextual Retrieval",
+        href: "https://www.anthropic.com/engineering/contextual-retrieval",
+      },
+      {
+        label: "Turing Post — 20 Advanced RAG Types to Know in 2026",
+        href: "https://www.turingpost.com/p/ragtypes",
+      },
+      {
+        label: "RAG Techniques Compared (2026)",
+        href: "https://blog.starmorph.com/blog/rag-techniques-compared-best-practices-guide",
+      },
+    ],
   },
   {
     id: "vector-db",
@@ -586,6 +822,15 @@ const TOPIC_LIST: Topic[] = [
     tagline: "ฐานข้อมูลที่ค้นด้วย “ความหมาย”",
     what: "ฐานข้อมูลที่เก็บ embedding (เวกเตอร์ตัวเลขที่แทนความหมาย) แล้วหาตัวที่ใกล้ที่สุดได้เร็ว",
     use: "semantic search, หลังบ้านของ RAG, memory ของ agent, ระบบแนะนำ และ semantic cache",
+    extra: {
+      title: "4 กลุ่มหลักในปี 2026",
+      items: [
+        "บริการ managed — Pinecone, Weaviate Cloud, Zilliz Cloud",
+        "engine โอเพนซอร์สที่ติดตั้งเอง — Qdrant, Milvus, Weaviate",
+        "แบบฝังในแอป — Chroma, LanceDB",
+        "ส่วนเสริมของฐานข้อมูลเดิม — pgvector (Postgres / Supabase), Redis, MongoDB Atlas",
+      ],
+    },
     pros: [
       "ค้นด้วยความหมายได้ เช่น พิมพ์ “รถสตาร์ทไม่ติด” แล้วเจอ “แบตเตอรี่เสื่อม”",
       "เร็วแม้ข้อมูลหลักล้าน",
@@ -595,13 +840,29 @@ const TOPIC_LIST: Topic[] = [
       "ผลที่ “คล้าย” ไม่ได้แปลว่า “ถูก”",
       "เปลี่ยนโมเดล embedding ต้อง embed ใหม่ทั้งหมด",
     ],
+    latest: [
+      "ธ.ค. 2025 — Amazon S3 Vectors เปิดใช้ทั่วไป: เก็บ vector ใน object storage ได้ถึง 2 พันล้าน vector ต่อ index และลดค่าใช้จ่ายได้ถึง 90% — เหมาะกับข้อมูลใหญ่ที่ค้นไม่บ่อย",
+      "ตลาดรวมตัวเหลือไม่กี่ตัวเลือกหลัก และ pgvector (+ pgvectorscale) กลายเป็นค่าเริ่มต้นของงานส่วนใหญ่ที่ข้อมูลไม่เกินหลักสิบล้าน vector",
+      "ระบบที่เก็บ vector บน object storage อย่าง turbopuffer ถูกกว่ามากสำหรับงาน multi-tenant ที่แต่ละลูกค้ามีข้อมูลไม่มาก",
+    ],
     analogy: "ชั้นหนังสือที่จัดตามความหมาย ไม่ใช่ตามตัวอักษร",
     note: "ถ้าข้อมูลไม่มหาศาล Postgres + pgvector ก็พอ ส่วน coding agent อย่าง Claude Code เลือกค้นแบบ agentic (grep และอ่านไฟล์เอง) แทน vector index ด้วยซ้ำ",
-    examples: "pgvector (ใช้ใน Supabase / Postgres ได้เลย), Pinecone, Qdrant, Weaviate, Milvus, Chroma",
+    examples:
+      "pgvector (ใช้ใน Supabase / Postgres ได้เลย), Pinecone, Qdrant, Weaviate, Milvus, Chroma, LanceDB, turbopuffer, Amazon S3 Vectors",
     links: [
       { to: "rag", why: "vector DB คือหลังบ้านของ RAG" },
       { to: "memory", why: "ใช้เก็บความจำระยะยาวของ agent" },
       { to: "cost-optimization", why: "ใช้ทำ semantic cache" },
+    ],
+    refs: [
+      {
+        label: "AWS — Amazon S3 Vectors is now generally available",
+        href: "https://aws.amazon.com/about-aws/whats-new/2025/12/amazon-s3-vectors-generally-available/",
+      },
+      {
+        label: "Actian — Are vector databases still relevant in 2026?",
+        href: "https://www.actian.com/blog/developer/state-of-vector-databases-q2-2026/",
+      },
     ],
   },
   {
@@ -616,11 +877,26 @@ const TOPIC_LIST: Topic[] = [
       "โมเดลอาจเลือก tool หรือใส่ argument ผิด",
       "ยิ่ง tool เยอะยิ่งแม่นน้อยลงและกิน token มากขึ้น เพราะนิยาม tool อยู่ใน context ทุกรอบ",
     ],
+    latest: [
+      "โหมด strict / structured outputs มีในผู้ให้บริการรายใหญ่ครบแล้ว — บังคับ argument ให้ตรง schema เสมอ",
+      "Berkeley Function Calling Leaderboard (BFCL v4) ให้น้ำหนักงาน agentic (40%) และ multi-turn (30%) มากกว่าการเรียกครั้งเดียว — สะท้อนว่าโจทย์จริงคือการเรียกต่อเนื่องหลายขั้น",
+      "เทรนด์ “code mode”: แทนที่จะเรียกทีละ function ให้โมเดลเขียนโค้ดเรียก API ทั้งชุด — Cloudflare ให้ agent ใช้ API กว่า 2,500 endpoint ด้วย token ราว 1,000",
+    ],
     analogy: "แบบฟอร์มขอใช้เครื่องมือ",
     links: [
       { to: "tool-use", why: "function calling คือ “ภาษาที่ใช้ขอ” ส่วน tool use คือ “การใช้งานจริงในลูป”" },
       { to: "mcp", why: "MCP ห่อฟังก์ชันให้ทุก client เรียกได้" },
       { to: "context-engineering", why: "นิยาม tool ทุกตัวกินพื้นที่ context" },
+    ],
+    refs: [
+      {
+        label: "Berkeley Function Calling Leaderboard (BFCL)",
+        href: "https://gorilla.cs.berkeley.edu/leaderboard.html",
+      },
+      {
+        label: "Cloudflare — Code Mode: give agents an entire API in 1,000 tokens",
+        href: "https://blog.cloudflare.com/code-mode-mcp/",
+      },
     ],
   },
   {
@@ -631,10 +907,11 @@ const TOPIC_LIST: Topic[] = [
     what: "ความสามารถในการใช้เครื่องมือต่อเนื่องหลายครั้งจนงานเสร็จ — function calling คือ “ภาษาที่ใช้ขอ” ส่วน tool use คือ “การใช้งานจริงในลูป”",
     use: "ค้นเว็บ รันโค้ด query ฐานข้อมูล คุมเบราว์เซอร์หรือคอมพิวเตอร์",
     extra: {
-      title: "เทรนด์ใหม่",
+      title: "เทคนิคที่ควรรู้",
       items: [
-        "Tool search — โหลดนิยาม tool เฉพาะตัวที่ต้องใช้",
-        "Programmatic tool calling — ให้โมเดลเขียนโค้ดเรียกหลาย tool ในครั้งเดียว เพื่อประหยัด token",
+        "Tool search — โหลดนิยาม tool เฉพาะตัวที่ต้องใช้ แทนการยัดทั้งหมดไว้ใน context",
+        "Programmatic tool calling — ให้โมเดลเขียนโค้ดเรียกหลาย tool ใน sandbox แล้วส่งกลับแค่สรุป",
+        "Code mode — มอง MCP server เป็น API ที่โค้ดเรียกได้",
         "Agent Skills — แพ็กคำสั่งและสคริปต์ที่ agent โหลดเฉพาะตอนต้องใช้",
       ],
     },
@@ -644,12 +921,26 @@ const TOPIC_LIST: Topic[] = [
       "prompt injection ที่ซ่อนมากับผลลัพธ์ของ tool เช่น หน้าเว็บที่แอบใส่คำสั่ง",
       "คุณภาพขึ้นกับการออกแบบ tool — ชื่อ คำอธิบาย และผลลัพธ์ต้องชัดและกระชับ",
     ],
+    latest: [
+      "พ.ย. 2025 — Anthropic เปิด Tool Search, Programmatic Tool Calling และ Tool Use Examples — ตัวอย่างจริง: 58 tools จาก 5 MCP server กิน token ราว 55K ก่อนเริ่มคุย ส่วน tool search ลดได้สูงสุดราว 85%",
+      "Code execution with MCP (Anthropic) และ Code Mode (Cloudflare): ให้ agent เขียนโค้ดเรียก tool แทนการเรียกทีละตัว — ผลกลางทางไม่ต้องผ่าน context",
+      "Agent Skills เป็นมาตรฐานเปิดตั้งแต่ ธ.ค. 2025 — กลางปี 2026 มีเครื่องมือรองรับกว่า 40 ตัว",
+      "ธ.ค. 2025 — OWASP จัด Tool Misuse and Exploitation เป็นความเสี่ยงของ agent ข้อ ASI02",
+    ],
     analogy: "การหยิบเครื่องมือมาทำงานจริง",
     links: [
       { to: "function-calling", why: "กลไกที่ใช้ขอเรียก tool" },
       { to: "mcp", why: "มาตรฐานสำหรับเสียบ tool จากที่ไหนก็ได้" },
       { to: "guardrails", why: "tool ที่ทำได้มาก ต้องมีรั้วด้านการกระทำ" },
       { to: "agentic-ai", why: "tools คือมือของ agent" },
+    ],
+    refs: [
+      { label: "Anthropic — Advanced tool use", href: "https://anthropic.com/engineering/advanced-tool-use" },
+      {
+        label: "Anthropic — Code execution with MCP",
+        href: "https://www.anthropic.com/engineering/code-execution-with-mcp",
+      },
+      { label: "Agent Skills — agentskills.io", href: "https://agentskills.io/home" },
     ],
   },
   {
@@ -658,17 +949,28 @@ const TOPIC_LIST: Topic[] = [
     full: "Model Context Protocol",
     layer: "harness",
     tagline: "ปลั๊ก USB-C ของ AI",
-    what: "มาตรฐานเปิดสำหรับห่อ tools และข้อมูลเป็น server ให้ AI client ตัวไหนก็เสียบใช้ได้ (Claude, ChatGPT, Gemini, Cursor, VS Code ฯลฯ) — Anthropic เปิดตัวปลายปี 2024 และมอบให้ Agentic AI Foundation ภายใต้ Linux Foundation เมื่อ ธ.ค. 2025",
+    what: "มาตรฐานเปิดสำหรับห่อ tools และข้อมูลเป็น server ให้ AI client ตัวไหนก็เสียบใช้ได้ (Claude, ChatGPT, Gemini, Cursor, VS Code ฯลฯ) — Anthropic เปิดตัวปลายปี 2024 ตอนนี้ดูแลโดยมูลนิธิกลางใต้ Linux Foundation",
     use: "ให้ AI เข้าถึง GitHub, Slack, ฐานข้อมูล หรือระบบภายในบริษัท โดยเขียน integration ครั้งเดียว — แก้ปัญหา N×M: เดิม N แอป × M ระบบ ต้องเขียน N×M ชิ้น ตอนนี้เหลือแค่ N+M",
     extra: {
-      title: "server เสนอของได้ 3 แบบ",
-      items: ["Tools — สั่งให้ทำ", "Resources — ข้อมูลให้อ่าน", "Prompts — template สำเร็จรูป"],
+      title: "server เสนอของได้ 3 แบบ + ส่วนขยาย",
+      items: [
+        "Tools — สั่งให้ทำ",
+        "Resources — ข้อมูลให้อ่าน",
+        "Prompts — template สำเร็จรูป",
+        "ส่วนขยายทางการ — MCP Apps (UI ในแชต), Tasks (งานยาว)",
+      ],
     },
-    pros: ["เขียนครั้งเดียวใช้ได้กับทุก client", "ecosystem ใหญ่มาก"],
+    pros: ["เขียนครั้งเดียวใช้ได้กับทุก client", "ecosystem ใหญ่มาก และมีมูลนิธิกลางดูแล"],
     cons: [
       "server ที่ไม่น่าไว้ใจคือช่องโหว่ (tool poisoning, สิทธิ์เกินจำเป็น)",
       "ต่อหลาย server แล้วนิยาม tool จะกิน context",
-      "คุณภาพ server ในตลาดไม่เท่ากัน",
+      "คุณภาพ server ในตลาดไม่เท่ากัน และ spec ยังเปลี่ยนเร็ว",
+    ],
+    latest: [
+      "28 ก.ค. 2026 — spec ใหม่ใหญ่ที่สุดตั้งแต่เปิดตัว: แกนกลาง stateless, Extensions framework, Tasks สำหรับงานยาว (AWS ร่วมพัฒนา), MCP Apps, authorization ที่เข้มขึ้น และนโยบาย deprecation ที่ชัดเจน",
+      "ม.ค. 2026 — MCP Apps ส่วนขยายทางการตัวแรก: tool ส่ง UI แบบโต้ตอบ (ฟอร์ม, dashboard) มาแสดงในแชตได้ ใช้ใน Claude, ChatGPT, VS Code — ร่างร่วมกันโดย Anthropic, OpenAI และทีม MCP-UI",
+      "22 ส.ค. 2026 — roadmap ใหม่: งานถัดไปคือ event ที่ server เป็นฝ่ายส่ง (webhooks / channels) และดัน Tasks เข้า spec หลัก",
+      "ธ.ค. 2025 — ย้ายไปอยู่ Agentic AI Foundation ใต้ Linux Foundation (ร่วมกับ AGENTS.md และ goose)",
     ],
     analogy: "ปลั๊กมาตรฐาน (USB-C) เสียบเครื่องมือไหนก็ได้",
     links: [
@@ -677,6 +979,18 @@ const TOPIC_LIST: Topic[] = [
       { to: "function-calling", why: "สุดท้ายโมเดลก็เรียก tool ของ MCP ผ่าน function calling" },
       { to: "guardrails", why: "ต้องคุมว่า server ไหนน่าไว้ใจ และให้สิทธิ์แค่ไหน" },
       { to: "multi-agent", why: "MCP ใช้ระหว่าง agent กับ tool ส่วน A2A ใช้ระหว่าง agent กับ agent" },
+    ],
+    refs: [
+      MCP_2026_07_28,
+      {
+        label: "MCP Blog — MCP Apps: bringing UI capabilities to MCP clients",
+        href: "https://blog.modelcontextprotocol.io/posts/2026-01-26-mcp-apps/",
+      },
+      { label: "MCP Blog — The new MCP roadmap", href: "https://blog.modelcontextprotocol.io/posts/mcp-roadmap/" },
+      {
+        label: "MCP Blog — MCP joins the Agentic AI Foundation",
+        href: "https://blog.modelcontextprotocol.io/posts/2025-12-09-mcp-joins-agentic-ai-foundation/",
+      },
     ],
   },
   {
@@ -691,9 +1005,9 @@ const TOPIC_LIST: Topic[] = [
       title: "ของใหม่ที่มาด้วย",
       items: [
         "header `Mcp-Method` / `Mcp-Name` ให้ gateway route และคิดเงินได้โดยไม่ต้องแกะ JSON",
-        "cache รายการ tools ได้ (`ttlMs`)",
+        "cache รายการ tools ได้ (`ttlMs`, `cacheScope`)",
         "ถ้าต้องจำ state ให้ tool คืน “handle” (เช่น `cart_id`) แล้วโมเดลส่งกลับมาเป็น argument",
-        "ถามผู้ใช้กลางทางแบบใหม่ — server ตอบว่าขอข้อมูลเพิ่ม แล้ว client ยิง request เดิมซ้ำพร้อมคำตอบ",
+        "ถามผู้ใช้กลางทางแบบใหม่ (Multi Round-Trip Requests) — server ตอบ `input_required` แล้ว client ยิง request เดิมซ้ำพร้อมคำตอบ",
         "Sampling, Roots และ Logging ถูก deprecate",
       ],
     },
@@ -707,11 +1021,27 @@ const TOPIC_LIST: Topic[] = [
       "state ต้องไปเก็บเอง (DB / Redis) หรือส่ง handle ไปมา",
       "ฟีเจอร์ที่ server เป็นฝ่ายเริ่มคุยถูกลดลง — มีเสียงวิจารณ์ว่า “แบบนี้ก็กลายเป็น REST API ธรรมดาหรือเปล่า”",
     ],
+    latest: [
+      "28 ก.ค. 2026 — spec ออกเป็นฉบับจริง (ไม่ใช่แค่ร่าง) และ SDK หลัก 4 ภาษา (TypeScript, Python, Go, C#) รองรับตั้งแต่วันแรก",
+      "Roots, Sampling และ Logging จะถูกเก็บไว้อย่างน้อย 12 เดือนก่อนลบ และ transport HTTP+SSE แบบเก่าก็ถูก deprecate",
+      "Authorization เข้มขึ้น: ตรวจ issuer ตาม RFC 9207 และเปลี่ยนจาก Dynamic Client Registration ไปใช้ Client ID Metadata Documents",
+    ],
     analogy: "เคาน์เตอร์ที่ไม่ต้องจำหน้าลูกค้า ยื่นเอกสารครบทุกครั้ง ไปช่องไหนก็ได้",
     links: [
       { to: "mcp", why: "เวอร์ชันใหม่ของโปรโตคอลเดียวกัน" },
       { to: "ai-gateway", why: "header ใหม่ทำมาเพื่อ gateway โดยตรง" },
       { to: "tool-use", why: "tool ต้องคืน handle ให้โมเดลส่งกลับมาในรอบถัดไป" },
+    ],
+    refs: [
+      MCP_2026_07_28,
+      {
+        label: "MCP — Key changes in 2026-07-28 (changelog)",
+        href: "https://modelcontextprotocol.io/specification/2026-07-28/changelog",
+      },
+      {
+        label: "InfoQ — MCP goes stateless",
+        href: "https://www.infoq.com/news/2026/08/mcp-stateless-gateway/",
+      },
     ],
   },
 
@@ -729,11 +1059,22 @@ const TOPIC_LIST: Topic[] = [
       "prompt ที่จูนไว้กับโมเดลหนึ่งอาจแย่ลงในรุ่นใหม่ — prompt เก่าที่สั่งละเอียดเกินมักทำให้โมเดลใหม่ทำงานแย่ลง",
       "ถ้าไม่มี eval ก็แค่ “รู้สึก” ว่าดีขึ้น",
     ],
+    latest: [
+      "GEPA (ได้รับเลือกนำเสนอแบบ oral ที่ ICLR 2026): ให้โมเดลอ่าน trace ที่ผิดแล้ว “สะท้อนคิด” เป็นภาษาคนเพื่อแก้ prompt — ชนะ RL แบบ GRPO เฉลี่ย 6% (สูงสุด 20%) โดยใช้ rollout น้อยกว่าถึง 35 เท่า และชนะ MIPROv2 กว่า 10%",
+      "แนวคิดเดียวกันขยายจาก prompt ไปทั้ง context — ดู ACE ในหัวข้อ Context Engineering",
+    ],
     analogy: "ปรับวิธีสั่งงานจนได้ผลดีที่สุด",
     links: [
       { to: "evaluation", why: "ต้องมี eval ก่อน ถึงจะ optimize ได้" },
       { to: "context-engineering", why: "prompt คือชิ้นหนึ่งของ context" },
       { to: "fine-tuning", why: "ปรับ prompt ให้สุดก่อน ค่อยคิดเรื่อง fine-tune" },
+    ],
+    refs: [
+      {
+        label: "GEPA: Reflective prompt evolution can outperform RL — arXiv 2507.19457",
+        href: "https://arxiv.org/abs/2507.19457",
+      },
+      { label: "gepa-ai/gepa (GitHub)", href: "https://github.com/gepa-ai/gepa" },
     ],
   },
   {
@@ -748,7 +1089,7 @@ const TOPIC_LIST: Topic[] = [
       items: [
         "SFT — สอนด้วยตัวอย่างถาม-ตอบ",
         "Preference tuning — DPO หรือ RLHF",
-        "RL fine-tuning — ให้รางวัลเมื่อทำถูก",
+        "RL fine-tuning / RFT — ให้ grader ที่เราเขียนเองให้คะแนน แล้ว train ให้คำตอบคะแนนสูงเกิดบ่อยขึ้น",
         "LoRA / QLoRA — train แค่ส่วนเล็ก ๆ ประหยัด GPU",
       ],
     },
@@ -759,6 +1100,11 @@ const TOPIC_LIST: Topic[] = [
       "อาจลืมความสามารถเดิม",
       "โมเดลฐานออกรุ่นใหม่ต้อง train ใหม่ และโมเดลชั้นนำหลายตัวเปิดให้ fine-tune แบบจำกัด",
     ],
+    latest: [
+      "Reinforcement fine-tuning (RFT) ได้รับความนิยมขึ้น — เหมาะกับงานที่ผู้เชี่ยวชาญเห็นตรงกันว่าอะไรคือคำตอบที่ถูก (OpenAI เปิดให้ใช้กับโมเดลตระกูล reasoning)",
+      "ต.ค. 2025 — Thinking Machines เปิด Tinker: API fine-tune โมเดล open-weight ด้วย LoRA ทั้งแบบ supervised และ RL โดยไม่ต้องดูแลเครื่อง GPU เอง",
+      "โมเดลปิดรุ่นท็อปส่วนใหญ่ยังไม่เปิดให้ fine-tune — เช่น Claude fine-tune ได้เฉพาะบางรุ่นผ่าน Amazon Bedrock",
+    ],
     analogy: "ส่งไปอบรมเฉพาะทาง",
     note: "ลำดับที่แนะนำ: Prompt → Context / RAG → Fine-tune ขยับไปขั้นถัดไปเมื่อขั้นก่อนหน้าไม่พอจริง ๆ",
     links: [
@@ -767,6 +1113,17 @@ const TOPIC_LIST: Topic[] = [
       { to: "rag", why: "ความรู้ที่เปลี่ยนบ่อยใช้ RAG แทน" },
       { to: "evaluation", why: "วัดว่า train แล้วดีขึ้นจริงไหม" },
       { to: "prompt-optimization", why: "ลองปรับ prompt ให้สุดก่อน" },
+    ],
+    refs: [
+      {
+        label: "OpenAI — Reinforcement fine-tuning",
+        href: "https://developers.openai.com/api/docs/guides/reinforcement-fine-tuning",
+      },
+      { label: "Thinking Machines — Tinker", href: "https://thinkingmachines.ai/tinker/" },
+      {
+        label: "AWS — Fine-tune Claude 3 Haiku in Amazon Bedrock",
+        href: "https://aws.amazon.com/blogs/machine-learning/fine-tune-anthropics-claude-3-haiku-in-amazon-bedrock-to-boost-model-accuracy-and-quality/",
+      },
     ],
   },
   {
@@ -779,15 +1136,29 @@ const TOPIC_LIST: Topic[] = [
     pros: ["ถูก เร็ว ขยายได้ไม่จำกัด", "ไม่ต้องใช้ข้อมูลลูกค้าจริง"],
     cons: [
       "ถ้าไม่กรองจะได้ข้อมูลผิดหรือซ้ำซาก ทุกอย่างมี “สำเนียง AI”",
-      "train ด้วยข้อมูลสังเคราะห์วนซ้ำ โมเดลจะเสื่อม (model collapse)",
+      "ถ้าเอาข้อมูลสังเคราะห์มาแทนข้อมูลจริงวนไปหลายรุ่น โมเดลจะเสื่อม (model collapse)",
       "bias ของโมเดลต้นทางติดมาด้วย",
       "บางค่ายห้ามนำ output ไป train โมเดลคู่แข่ง",
+    ],
+    latest: [
+      "งานวิจัยปี 2024–2025 ชี้ว่า model collapse เกิดเมื่อ “แทนที่” ข้อมูลจริงด้วยข้อมูลสังเคราะห์ทุกรุ่น — ถ้า “สะสม” ข้อมูลสังเคราะห์ไว้คู่กับข้อมูลจริง โมเดลยังเสถียร",
+      "ทางสร้างข้อมูลสังเคราะห์ที่นิยมในปี 2026: สั่งโมเดลชั้นนำตรง ๆ แล้วกรองคุณภาพ, ใช้ pipeline โอเพนซอร์ส หรือใช้ API ด้าน distillation ของผู้ให้บริการ",
     ],
     analogy: "แบบฝึกหัดและข้อสอบจำลอง",
     links: [
       { to: "distillation", why: "distillation ≈ synthetic data จาก teacher + fine-tune" },
       { to: "fine-tuning", why: "เป็นวัตถุดิบของการ train" },
       { to: "evaluation", why: "เติมเคสทดสอบที่หายากในของจริง" },
+    ],
+    refs: [
+      {
+        label: "Collapse or Thrive? Perils and promises of synthetic data (ICML 2025)",
+        href: "https://openreview.net/forum?id=Xr5iINA3zU",
+      },
+      {
+        label: "Position: Model collapse does not mean what you think — arXiv 2503.03150",
+        href: "https://arxiv.org/abs/2503.03150",
+      },
     ],
   },
   {
@@ -801,7 +1172,11 @@ const TOPIC_LIST: Topic[] = [
     cons: [
       "student ไม่เก่งเกิน teacher และมักเก่งเฉพาะงานที่สอน",
       "ต้องมี pipeline ข้อมูลและ eval",
-      "ติดเงื่อนไขการใช้งานของ teacher",
+      "ติดเงื่อนไขการใช้งานของ teacher — กลั่นโมเดลของคนอื่นโดยไม่ได้รับอนุญาตผิดเงื่อนไข",
+    ],
+    latest: [
+      "ต.ค. 2025 — on-policy distillation (Thinking Machines): ให้ student สร้างคำตอบเอง แล้ว teacher ให้คะแนนทีละ token — ได้ทั้งความตรงกับสถานการณ์จริงแบบ RL และสัญญาณละเอียดแบบ distillation โดยถูกกว่า RL มาก",
+      "ก.พ. 2026 — Anthropic รายงานว่า DeepSeek, Moonshot AI และ MiniMax สร้างบัญชีปลอมราว 24,000 บัญชี คุยกับ Claude กว่า 16 ล้านครั้งเพื่อกลั่นความสามารถไปใช้ — distillation ข้ามบริษัทจึงกลายเป็นประเด็นทั้งกฎหมายและความมั่นคง",
     ],
     analogy: "รุ่นพี่เก่งสอนรุ่นน้องที่ค่าจ้างถูกกว่าให้ทำงานแทน",
     links: [
@@ -809,6 +1184,20 @@ const TOPIC_LIST: Topic[] = [
       { to: "fine-tuning", why: "student เรียนผ่านการ fine-tune" },
       { to: "cost-optimization", why: "ลดต้นทุนเมื่อปริมาณงานสูงมาก" },
       { to: "evaluation", why: "วัดว่า student ใกล้ teacher แค่ไหน" },
+    ],
+    refs: [
+      {
+        label: "Thinking Machines — On-policy distillation",
+        href: "https://thinkingmachines.ai/blog/on-policy-distillation",
+      },
+      {
+        label: "Anthropic — Detecting and preventing distillation attacks",
+        href: "https://anthropic.com/news/detecting-and-preventing-distillation-attacks",
+      },
+      {
+        label: "CNBC — Anthropic accuses DeepSeek, Moonshot and MiniMax of distillation attacks",
+        href: "https://www.cnbc.com/2026/02/24/anthropic-openai-china-firms-distillation-deepseek.html",
+      },
     ],
   },
 ];
@@ -819,8 +1208,8 @@ export const TOPICS: Record<TopicId, Topic> = Object.fromEntries(
 
 /** 5 คำ Engineering ที่ฮิตต่อกันมา — เรียงจากชั้นนอกสุดเข้าไปชั้นในสุด */
 export const ZOOM: { name: string; topic?: TopicId; era: string; says: string }[] = [
-  { name: "Graph", topic: "graph-engineering", era: "กลางปี 2026", says: "หลายลูปต่อกันเป็นระบบ" },
-  { name: "Loop", topic: "loop-engineering", era: "กลางปี 2026", says: "ทำ → ตรวจ → แก้ → หยุด" },
+  { name: "Graph", topic: "graph-engineering", era: "ก.ค. 2026", says: "หลายลูปต่อกันเป็นระบบ" },
+  { name: "Loop", topic: "loop-engineering", era: "มิ.ย. 2026", says: "ทำ → ตรวจ → แก้ → หยุด" },
   { name: "Harness", topic: "harness", era: "ปลายปี 2025 – ต้นปี 2026", says: "สภาพแวดล้อมรอบโมเดล" },
   { name: "Context", topic: "context-engineering", era: "2025", says: "ทุกอย่างที่โมเดลเห็นในรอบนั้น" },
   { name: "Prompt", era: "2022–24", says: "คำสั่งหนึ่งข้อความ" },
@@ -882,7 +1271,7 @@ export const ROADMAP: { title: string; desc: string; topics: TopicId[] }[] = [
   },
   {
     title: "Context engineering + RAG",
-    desc: "ทำระบบถามตอบจากเอกสารของตัวเอง เช่น ใช้ pgvector ใน Supabase",
+    desc: "ทำระบบถามตอบจากเอกสารของตัวเอง เช่น ใช้ pgvector ใน Supabase + hybrid search",
     topics: ["context-engineering", "rag", "vector-db", "memory"],
   },
   {
@@ -892,17 +1281,17 @@ export const ROADMAP: { title: string; desc: string; topics: TopicId[] }[] = [
   },
   {
     title: "MCP server แบบ stateless",
-    desc: "ห่อ API ของระบบตัวเองให้ AI ใช้ แล้ว deploy บน serverless ได้เลย",
+    desc: "ห่อ API ของระบบตัวเองให้ AI ใช้ตาม spec 2026-07-28 แล้ว deploy บน serverless ได้เลย",
     topics: ["mcp", "stateless-mcp"],
   },
   {
     title: "Guardrails + AI Gateway + Cost",
-    desc: "ปิดบังข้อมูลส่วนบุคคลใน prompt และ log (PDPA) แล้วใช้ caching กับ batch",
+    desc: "ปิดบังข้อมูลส่วนบุคคลใน prompt และ log (PDPA) ไล่เช็กตาม OWASP Top 10 for Agentic Applications แล้วใช้ caching กับ batch",
     topics: ["guardrails", "ai-gateway", "cost-optimization"],
   },
   {
     title: "Loop → Graph → Multi-agent",
-    desc: "เมื่องานต้องการจริงเท่านั้น",
+    desc: "เมื่องานต้องการจริงเท่านั้น — เริ่มจากลูปที่มีตัวตรวจชัด ๆ ก่อน",
     topics: ["loop-engineering", "graph-engineering", "multi-agent"],
   },
   {
@@ -915,19 +1304,34 @@ export const ROADMAP: { title: string; desc: string; topics: TopicId[] }[] = [
 export const MORE: { name: string; desc: string }[] = [
   {
     name: "Agent Skills",
-    desc: "โฟลเดอร์ `SKILL.md` + สคริปต์ ที่ agent โหลดเฉพาะตอนต้องใช้ — มาตรฐานเปิดตั้งแต่ ธ.ค. 2025 ใช้ได้กับ Claude, Codex, Gemini CLI, Copilot, Cursor",
+    desc: "โฟลเดอร์ `SKILL.md` + สคริปต์ ที่ agent โหลดเฉพาะตอนต้องใช้ — มาตรฐานเปิดตั้งแต่ ธ.ค. 2025 กลางปี 2026 มีเครื่องมือรองรับกว่า 40 ตัว เช่น Claude, Codex, Gemini CLI, Copilot, Cursor",
   },
   {
     name: "AGENTS.md / CLAUDE.md",
-    desc: "คู่มือโปรเจกต์ให้ coding agent อ่าน — procedural memory แบบง่ายที่สุด",
+    desc: "คู่มือโปรเจกต์ให้ coding agent อ่าน — procedural memory แบบง่ายที่สุด (AGENTS.md อยู่ใต้ Agentic AI Foundation แล้ว)",
   },
-  { name: "A2A", desc: "โปรโตคอลให้ agent ต่างระบบคุยกัน (MCP ใช้กับ tool ส่วน A2A ใช้กับ agent)" },
+  {
+    name: "A2A",
+    desc: "โปรโตคอลให้ agent ต่างระบบคุยกัน — ถึง v1.0 แล้ว มี Signed Agent Cards และองค์กรร่วมกว่า 150 แห่ง",
+  },
+  {
+    name: "MCP Apps",
+    desc: "tool ส่ง UI แบบโต้ตอบ (ฟอร์ม, dashboard) มาแสดงในแชต — ส่วนขยายทางการตัวแรกของ MCP (ม.ค. 2026) ใช้ได้ใน Claude, ChatGPT, VS Code",
+  },
+  {
+    name: "A2UI · AG-UI",
+    desc: "A2UI (Google) บอกว่าจะให้หน้าจอแสดงอะไรแบบ declarative ไม่ต้องส่งโค้ด ส่วน AG-UI (CopilotKit) คือ event stream ระหว่าง agent กับหน้าจอแบบ real-time — ใช้คู่กัน",
+  },
+  {
+    name: "Agentic Commerce · UCP · ACP · AP2",
+    desc: "ให้ agent ซื้อของแทนเรา — UCP (Google + Shopify, ม.ค. 2026) ค้นหาและตะกร้า · ACP (OpenAI + Stripe) จ่ายเงินในแชต · AP2 (เริ่มจาก Google) พิสูจน์ว่าใครอนุญาตให้ agent จ่าย",
+  },
   { name: "Structured Outputs", desc: "บังคับคำตอบให้ตรง JSON Schema" },
   { name: "Hybrid Search · Reranking · Chunking", desc: "ชิ้นส่วนย่อยของ RAG 2.0" },
   { name: "Knowledge Graph · GraphRAG", desc: "กราฟข้อมูลสำหรับการค้นคืน" },
   {
     name: "Prompt Injection · Red Teaming",
-    desc: "ภัยอันดับหนึ่งของ agent และการทดสอบเจาะระบบ AI",
+    desc: "ภัยอันดับหนึ่งของ agent (OWASP ASI01 Agent Goal Hijack) และการทดสอบเจาะระบบ AI",
   },
   { name: "Sandboxing · Human-in-the-Loop", desc: "รันในพื้นที่ปิด และให้คนอนุมัติในจุดสำคัญ" },
   { name: "Computer Use · Browser Agents", desc: "AI คุมหน้าจอและเบราว์เซอร์เอง" },
@@ -943,34 +1347,36 @@ export const MORE: { name: string; desc: string }[] = [
   { name: "Spec-Driven Development", desc: "เขียน spec ให้ชัดก่อนให้ agent ลงมือ" },
 ];
 
-export const SOURCES: { label: string; href: string }[] = [
+/** แหล่งหลักของทั้งหน้า — รายละเอียดรายหัวข้ออยู่ใน refs ของแต่ละหัวข้อ */
+export const SOURCES: Ref[] = [
+  MCP_2026_07_28,
   {
-    label: "The 2026-07-28 MCP Specification — MCP Blog",
-    href: "https://blog.modelcontextprotocol.io/posts/2026-07-28/",
-  },
-  {
-    label: "MCP Goes Stateless — InfoQ",
-    href: "https://www.infoq.com/news/2026/08/mcp-stateless-gateway/",
-  },
-  {
-    label: "MCP joins the Agentic AI Foundation — MCP Blog",
+    label: "MCP Blog — MCP joins the Agentic AI Foundation",
     href: "https://blog.modelcontextprotocol.io/posts/2025-12-09-mcp-joins-agentic-ai-foundation/",
   },
   {
-    label: "Loop Engineering Emerges as Developers Put AI Coding Agents on Repeat — ADTmag",
-    href: "https://adtmag.com/articles/2026/07/01/loop-engineering-emerges-as-developers-put-ai-coding-agents-on-repeat.aspx",
+    label: "OpenAI — Harness engineering: leveraging Codex in an agent-first world",
+    href: "https://openai.com/index/harness-engineering/",
+  },
+  { label: "Addy Osmani — Loop Engineering", href: "https://addyosmani.com/blog/loop-engineering/" },
+  {
+    label: "Louis Bouchard — Graph Engineering, Without the Hype",
+    href: "https://louisbouchard.substack.com/p/graph-engineering-explained-what",
   },
   {
-    label: "3 Years of Graph Engineering with LangGraph — LangChain",
-    href: "https://www.langchain.com/blog/3-years-of-graph-engineering-with-langgraph",
-  },
-  {
-    label: "Harness engineering for coding agent users — Martin Fowler",
-    href: "https://martinfowler.com/articles/harness-engineering.html",
-  },
-  {
-    label: "Loop, Harness, Context Engineering: The Terms Explained — codecentric",
+    label: "codecentric — Loop, Harness, Context Engineering: the terms explained",
     href: "https://www.codecentric.de/en/knowledge-hub/blog/loop-harness-context-engineering-explained",
+  },
+  LANGCHAIN_REPORT,
+  {
+    label: "Anthropic — Demystifying evals for AI agents",
+    href: "https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents",
+  },
+  OWASP_AGENTIC,
+  { label: "Chroma — Context Rot", href: "https://www.trychroma.com/research/context-rot" },
+  {
+    label: "Epoch AI — LLM inference price trends",
+    href: "https://epoch.ai/data-insights/llm-inference-price-trends",
   },
   { label: "Agent Skills — agentskills.io", href: "https://agentskills.io/home" },
 ];

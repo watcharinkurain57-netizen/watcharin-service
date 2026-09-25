@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { LAYER_BY_ID, TOPICS, TOPIC_ORDER, type TopicId } from "@/lib/ai-map";
+import { LAYER_BY_ID, TOPICS, TOPIC_ORDER, UPDATED, type TopicId } from "@/lib/ai-map";
 import { RichText } from "./RichText";
 import { setReviewed, useReviewed } from "./store";
 import { NEW_BADGE, TONE } from "./tones";
@@ -175,6 +175,25 @@ function TopicBody({
         </ul>
       </Block>
 
+      {/* เรื่องล่าสุดแยกกล่องไว้ต่างหาก — คนที่กลับมาทบทวนรอบสองจะได้ดูแค่ตรงนี้ว่ามีอะไรเปลี่ยน */}
+      {topic.latest && (
+        <div className="mt-5 rounded-2xl border border-brand-200 bg-brand-50/60 px-4 py-3">
+          <h4 className="mb-2 text-[0.8rem] font-bold tracking-wide text-brand-800">
+            ล่าสุด · ข้อมูลถึง {UPDATED}
+          </h4>
+          <ul className="space-y-2 text-[0.92rem] leading-relaxed text-ink">
+            {topic.latest.map((item) => (
+              <li key={item} className="flex gap-2.5">
+                <span aria-hidden="true" className="mt-[0.6em] size-1.5 flex-none rounded-full bg-brand-500" />
+                <span>
+                  <RichText text={item} />
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {topic.examples && (
         <Block title="ตัวอย่างเครื่องมือ">
           <p className="text-ink-muted">{topic.examples}</p>
@@ -210,6 +229,26 @@ function TopicBody({
           })}
         </ul>
       </Block>
+
+      {topic.refs && (
+        <Block title="อ่านต่อ">
+          <ul className="space-y-1.5 text-[0.9rem]">
+            {topic.refs.map((ref) => (
+              <li key={ref.href}>
+                <a
+                  href={ref.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold text-brand-700 underline-offset-2 hover:underline"
+                >
+                  {ref.label} <span aria-hidden="true">↗</span>
+                  <span className="sr-only">(เปิดแท็บใหม่)</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </Block>
+      )}
     </article>
   );
 }
