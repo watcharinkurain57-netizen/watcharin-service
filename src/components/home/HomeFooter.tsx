@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+// ลิงก์ไปส่วนต่าง ๆ ของหน้าแรกต้องขึ้นต้นด้วย / เพราะ footer นี้ใช้ในหน้าอื่นด้วย
+// (/start, /ai-map) — ถ้าเขียนแค่ #modes กดจากหน้าอื่นจะไม่ไปไหน
 const COLUMNS = [
   {
     title: "โปรเจกต์",
@@ -12,17 +14,21 @@ const COLUMNS = [
   {
     title: "บริการ",
     links: [
-      { label: "มาถามเฉย ๆ", href: "#modes" },
-      { label: "ทำไปด้วยกัน", href: "#modes" },
-      { label: "ทำให้เลย", href: "#modes" },
+      { label: "มาถามเฉย ๆ", href: "/#modes" },
+      { label: "ทำไปด้วยกัน", href: "/#modes" },
+      { label: "ทำให้เลย", href: "/#modes" },
     ],
+  },
+  {
+    title: "เรียนรู้",
+    links: [{ label: "แผนที่ AI Engineering", href: "/ai-map" }],
   },
   {
     title: "เกี่ยวกับ",
     links: [
       { label: "เรซูเม่ (ไทย)", href: "/resume/th" },
       { label: "Resume (EN)", href: "/resume/en" },
-      { label: "ติดต่อ", href: "#talk" },
+      { label: "ติดต่อ", href: "/#talk" },
     ],
   },
 ];
@@ -31,7 +37,8 @@ export function HomeFooter() {
   return (
     <footer className="bg-[#16302a] py-14 text-[#9db5ac]">
       <div className="mx-auto max-w-6xl px-5">
-        <div className="grid gap-8 sm:grid-cols-2 md:grid-cols-[1.4fr_repeat(3,1fr)]">
+        {/* 5 คอลัมน์แถวเดียวเฉพาะจอ 1024px ขึ้นไป — ที่ 768px คอลัมน์ชื่อเว็บแคบจน "watcharin-service" หักสองบรรทัด */}
+        <div className="grid gap-8 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-[1.4fr_repeat(4,1fr)]">
           <div>
             <p className="mb-2 text-[1.1rem] font-extrabold text-[#eaf3ef]">watcharin-service</p>
             <p className="max-w-[26ch] text-[0.92rem]">

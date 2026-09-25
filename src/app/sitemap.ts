@@ -34,6 +34,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.7,
     })),
     {
+      // แผนที่คำศัพท์ AI — หน้าความรู้ คนค้นคำอย่าง "MCP คืออะไร" มีโอกาสเจอ
+      url: `${SITE_URL}/ai-map`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    {
       // The Factory OS demo is a sales asset in its own right — it answers
       // "what does an MES dashboard actually look like" for search traffic.
       url: `${SITE_URL}/coresync`,
