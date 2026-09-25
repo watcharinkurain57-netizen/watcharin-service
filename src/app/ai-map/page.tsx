@@ -7,23 +7,12 @@ import { TONE } from "@/components/ai-map/tones";
 import { HomeFooter } from "@/components/home/HomeFooter";
 import { HomeNav } from "@/components/home/HomeNav";
 import { FLOW, LAYERS, MORE, ROADMAP, SOURCES, TOPIC_ORDER, UPDATED, ZOOM } from "@/lib/ai-map";
+import { SHARE_IMAGE } from "@/lib/share-image";
 
 const TOPIC_COUNT = TOPIC_ORDER.length;
 
 const SHARE_TITLE = "แผนที่ AI Engineering — watcharin-service";
 const SHARE_DESCRIPTION = `${TOPIC_COUNT} คำที่คนทำ AI ต้องรู้ กดดูทีละหัวข้อ ว่าคืออะไร เชื่อมกันยังไง ใช้ทำอะไร และข้อดีข้อเสีย`;
-
-/**
- * ⚠️ ต้องใส่ images เอง — พอหน้านี้ประกาศ openGraph / twitter ของตัวเอง
- * Next จะเขียนทับของ layout ทั้งก้อน รูปแชร์จาก app/opengraph-image.tsx จึงหายไปด้วย
- * (หน้าที่ไม่ได้ประกาศ openGraph เอง เช่น /studio ยังได้รูปนั้นตามปกติ)
- */
-const SHARE_IMAGE = {
-  url: "/opengraph-image",
-  width: 1200,
-  height: 630,
-  alt: "watcharin-service",
-};
 
 export const metadata: Metadata = {
   title: "แผนที่ AI Engineering",

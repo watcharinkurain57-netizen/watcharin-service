@@ -7,6 +7,7 @@ import { ProjectCover } from "@/components/archive/ProjectCover";
 import { can, PUBLIC_VIEWER } from "@/lib/archive-access";
 import { STATUS_LABEL, type ArchiveProject } from "@/lib/project-archive";
 import { fetchProject, fetchProjects } from "@/lib/project-archive-repo";
+import { SHARE_IMAGE } from "@/lib/share-image";
 
 type Params = { params: Promise<{ slug: string }> };
 
@@ -30,6 +31,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
       title: `${project.name} — ${project.tagline}`,
       description: project.problem[0],
       type: "article",
+      images: [SHARE_IMAGE],
     },
   };
 }
