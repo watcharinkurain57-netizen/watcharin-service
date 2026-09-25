@@ -8,9 +8,11 @@
     "start": "next start",
     "lint": "eslint",
     "audit:coresync": "node --experimental-strip-types scripts/audit-coresync.ts",
+    "audit:agents": "node --experimental-strip-types scripts/audit-agents.mts",
     "audit:notes": "node --experimental-strip-types scripts/audit-task-notes.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.128.0",
     "@react-three/fiber": "^9.7.0",
     "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.112.3",
@@ -24,7 +26,8 @@
     "react-dom": "19.2.4",
     "resend": "^6.12.4",
     "server-only": "^0.0.1",
-    "three": "^0.185.1"
+    "three": "^0.185.1",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
