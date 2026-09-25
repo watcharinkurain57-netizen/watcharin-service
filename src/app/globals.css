@@ -103,6 +103,24 @@ body:has(.theme-soft) {
   }
 }
 
+/* แผ่นรายละเอียดหัวข้อของ /ai-map บนจอเล็ก — เลื่อนขึ้นจากขอบล่าง */
+@keyframes sheet-up {
+  from {
+    opacity: 0;
+    transform: translateY(32px);
+  }
+}
+
+.sheet-up {
+  animation: sheet-up 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet-up {
+    animation: none;
+  }
+}
+
 /* ========== Custom styles ========== */
 /* No opaque base layer: the body already paints --color-surface underneath,
    and the fixed WebGL canvas sits between the two. Adding a solid colour here
