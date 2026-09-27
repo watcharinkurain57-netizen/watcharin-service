@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { AgentsTab } from "@/components/archive/agents/AgentsTab";
 import { ChatTab } from "@/components/archive/ChatTab";
 import { DiagramsTab } from "@/components/archive/diagrams/DiagramsTab";
 import { FilesTab } from "@/components/archive/FilesTab";
@@ -60,6 +61,7 @@ const TABS: TabDef[] = [
   { id: "diagrams", label: "ไดอะแกรม", need: "project.diagrams.view" },
   { id: "chat", label: "คุยงาน", need: "project.comments.view" },
   { id: "people", label: "คนในโปรเจกต์", need: "project.members.view" },
+  { id: "agents", label: "ผู้ช่วย AI", need: "project.agents.use" },
 ];
 
 export function ProjectTabs({
@@ -204,6 +206,12 @@ export function ProjectTabs({
           draft={chatDraft}
         />
       )}
+
+      {/*
+        ผู้ช่วยรู้บทบาทของผู้ชมเพื่อกรองว่าใช้ผู้ช่วยตัวไหนได้บ้าง
+        (ตัวกันจริงอยู่ฝั่งเซิร์ฟเวอร์ — /api/agents/run เช็คสิทธิ์ซ้ำเองทั้งหมด)
+      */}
+      {active === "agents" && <AgentsTab projectId={projectId} viewer={viewer} />}
 
       {active === "people" && (
         <section className="rounded-2xl border border-line bg-surface-raised p-6">

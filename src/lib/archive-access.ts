@@ -60,7 +60,17 @@ export type Capability =
    * ⚠️ อย่าสับสนกับ `project.finance.view` ที่เป็นต้นทุน/กำไรฝั่งเรา
    * อันนี้คือยอดที่เรียกเก็บซึ่งลูกค้าเห็นอยู่แล้ว แค่แก้ไม่ได้
    */
-  | "project.invoice.manage";
+  | "project.invoice.manage"
+  /**
+   * ใช้ผู้ช่วย AI ในโปรเจกต์ (แท็บ "ผู้ช่วย AI" · src/lib/agents/)
+   *
+   * แยกเป็น capability ของตัวเองเพราะทุกครั้งที่กดคือค่า API ที่เราจ่าย
+   * วันนี้เปิดให้เจ้าของคนเดียว · อยากให้ลูกค้าใช้ด้วย = เพิ่มบรรทัดนี้ใน client ข้างล่าง
+   * ไม่ต้องกลัวว่าลูกค้าจะเห็นต้นทุนผ่านผู้ช่วย — เครื่องมือแต่ละตัวของผู้ช่วย
+   * เช็ค capability ของมันเองซ้ำอีกชั้น (เช่นดูต้นทุนต้องมี project.finance.view)
+   * แล้ว RLS ยังกันอีกชั้นที่ฐานข้อมูล
+   */
+  | "project.agents.use";
 
 const PUBLIC_CAPS: Capability[] = ["project.view", "project.progress.view"];
 
@@ -97,6 +107,7 @@ const CAPABILITIES: Record<ViewerRole, readonly Capability[]> = {
     "project.diagrams.manage",
     "project.members.manage",
     "project.invoice.manage",
+    "project.agents.use",
   ],
 };
 
