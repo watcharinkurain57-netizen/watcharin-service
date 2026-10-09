@@ -1062,6 +1062,8 @@
     padding: 24px;
   }
   .campus-contact {
+    grid-template-columns: 1fr;
+    min-height: 0;
     gap: 30px;
   }
   .campus main > .campus-zone-shortcuts,
