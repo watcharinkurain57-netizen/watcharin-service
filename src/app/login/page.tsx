@@ -1,3 +1,4 @@
+import { requireWorkspace } from "@/lib/workspace-access";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -12,6 +13,7 @@ export const metadata: Metadata = {
 type Props = { searchParams: Promise<{ error?: string; next?: string }> };
 
 export default async function LoginPage({ searchParams }: Props) {
+  requireWorkspace();
   const { error, next } = await searchParams;
 
   const supabase = await createSupabaseServerClient();

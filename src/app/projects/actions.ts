@@ -1,5 +1,6 @@
 "use server";
 
+import { requireWorkspace } from "@/lib/workspace-access";
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -14,6 +15,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
  * ถ้าไม่เช็ค ใครก็ยิงรัว ๆ ให้เว็บต้องเรนเดอร์ใหม่ทุกวินาทีได้
  */
 export async function revalidateArchive(): Promise<void> {
+  requireWorkspace();
   const supabase = await createSupabaseServerClient();
 
   const {

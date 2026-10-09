@@ -1,4 +1,5 @@
-import { supabasePublic } from "@/lib/supabase/public";
+import { getSupabasePublicClient } from "@/lib/supabase/public";
+import { requireWorkspace } from "@/lib/workspace-access";
 import type { ArchiveProject, ProjectImage } from "@/lib/project-archive";
 
 /**
@@ -64,7 +65,8 @@ function toProject(row: ProjectRowDb): ArchiveProject {
 }
 
 export async function fetchProjects(): Promise<ArchiveProject[]> {
-  const { data, error } = await supabasePublic
+  requireWorkspace();
+  const { data, error } = await getSupabasePublicClient()
     .from("projects")
     .select(COLUMNS)
     .order("views", { ascending: false });
@@ -76,7 +78,8 @@ export async function fetchProjects(): Promise<ArchiveProject[]> {
 }
 
 export async function fetchProject(slug: string): Promise<ArchiveProject | null> {
-  const { data, error } = await supabasePublic
+  requireWorkspace();
+  const { data, error } = await getSupabasePublicClient()
     .from("projects")
     .select(COLUMNS)
     .eq("slug", slug)

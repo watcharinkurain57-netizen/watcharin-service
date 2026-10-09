@@ -32,7 +32,7 @@ export function Hero() {
               <div className="flex items-center gap-8 text-sm">
                 <div>
                   <div className="font-extrabold text-3xl text-ink">3</div>
-                  <div className="text-ink-faint mt-1">ระบบ Live production</div>
+                  <div className="text-ink-faint mt-1">ระบบที่เคยขึ้น production</div>
                 </div>
                 <div className="w-px h-12 bg-line" />
                 <div>

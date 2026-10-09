@@ -1,3 +1,4 @@
+import { requireWorkspace } from "@/lib/workspace-access";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -18,6 +19,7 @@ export const dynamic = "force-dynamic";
  * ตัวที่กันจริงคือ policy ใน 0023 (คนขออ่านได้เฉพาะใบของตัวเอง)
  */
 export default async function RequestsPage() {
+  requireWorkspace();
   const supabase = await createSupabaseServerClient();
 
   const {

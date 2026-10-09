@@ -4,11 +4,14 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
     "audit:coresync": "node --experimental-strip-types scripts/audit-coresync.ts",
-    "audit:notes": "node --experimental-strip-types scripts/audit-task-notes.ts"
+    "audit:notes": "node --experimental-strip-types scripts/audit-task-notes.ts",
+    "audit:site": "node --experimental-strip-types scripts/audit-site-features.ts",
+    "audit:portfolio-http": "node scripts/audit-portfolio-http.mjs",
+    "audit:contact": "node --experimental-strip-types scripts/audit-contact.ts"
   },
   "dependencies": {
     "@react-three/fiber": "^9.7.0",

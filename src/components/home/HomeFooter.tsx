@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { siteFeatures } from "@/lib/site-config";
 
 // ลิงก์ไปส่วนต่าง ๆ ของหน้าแรกต้องขึ้นต้นด้วย / เพราะ footer นี้ใช้ในหน้าอื่นด้วย
 // (/start, /ai-map) — ถ้าเขียนแค่ #modes กดจากหน้าอื่นจะไม่ไปไหน
@@ -34,6 +35,14 @@ const COLUMNS = [
 ];
 
 export function HomeFooter() {
+  const publicHref = (href: string) => {
+    if (!siteFeatures.portfolio) return href;
+    if (href === "/projects") return "/campus/work";
+    if (href === "/#modes") return "/campus/zones/systems";
+    if (href === "/#talk") return "/campus/contact";
+    if (href.startsWith("/resume/")) return `/campus${href}`;
+    return href;
+  };
   return (
     <footer className="bg-[#16302a] py-14 text-[#9db5ac]">
       <div className="mx-auto max-w-6xl px-5">
@@ -54,7 +63,7 @@ export function HomeFooter() {
               <ul className="grid gap-2 text-[0.92rem]">
                 {col.links.map((l) => (
                   <li key={l.label}>
-                    <Link href={l.href} className="transition-colors hover:text-white">
+                    <Link href={publicHref(l.href)} className="transition-colors hover:text-white">
                       {l.label}
                     </Link>
                   </li>

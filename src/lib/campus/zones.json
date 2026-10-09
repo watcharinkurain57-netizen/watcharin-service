@@ -1,0 +1,231 @@
+{
+  "systems": {
+    "name": "Systems Lab",
+    "eyebrow": "SERVICENOW / ARCHITECTURE / INTEGRATION",
+    "number": "01",
+    "headline": "เชื่อมระบบให้ธุรกิจเดินต่อ.",
+    "intro": "จากโจทย์และกระบวนการทำงาน สู่สถาปัตยกรรม ระบบบริการ และการเชื่อมต่อข้อมูลที่ใช้ร่วมกันได้",
+    "heroProject": "architecture",
+    "cta": "คุยเรื่องงานระบบ",
+    "capabilities": [
+      {
+        "title": "ServiceNow",
+        "body": "ITSM / CRM และการเชื่อมต่อกับระบบงานที่เกี่ยวข้อง"
+      },
+      {
+        "title": "Architecture",
+        "body": "แปลงโจทย์ธุรกิจเป็น Blueprint และรูปแบบการเชื่อมระบบ"
+      },
+      {
+        "title": "Integration + Data",
+        "body": "API งานเว็บภายใน และ Dashboard สำหรับมองภาพรวม"
+      }
+    ],
+    "steps": [
+      {
+        "title": "เข้าใจงาน",
+        "body": "ทำความเข้าใจผู้ใช้ กระบวนการ และข้อจำกัดของระบบเดิม"
+      },
+      {
+        "title": "ออกแบบการเชื่อมต่อ",
+        "body": "กำหนดโครงสร้างระบบ เส้นทางข้อมูล และขอบเขตการพัฒนา"
+      },
+      {
+        "title": "พัฒนาและตรวจผล",
+        "body": "ต่อระบบ ทดสอบการทำงานร่วมกัน และตรวจผลตามโจทย์"
+      }
+    ],
+    "empty": null
+  },
+  "brands": {
+    "name": "Brand House",
+    "eyebrow": "APPAREL / FOOD / IDENTITY",
+    "number": "02",
+    "headline": "แต่ละแบรนด์ มีโลกของตัวเอง.",
+    "intro": "พื้นที่รวบรวมเรื่องราว อัตลักษณ์ สินค้า และโครงการของแต่ละแบรนด์ ตั้งแต่เสื้อผ้าไปจนถึงอาหาร",
+    "heroProject": null,
+    "cta": "คุยเรื่องแบรนด์",
+    "capabilities": [
+      {
+        "title": "Identity",
+        "body": "แนวคิด บุคลิก และระบบภาพที่ทำให้แบรนด์สื่อสารไปในทางเดียวกัน"
+      },
+      {
+        "title": "Apparel",
+        "body": "คอลเลกชัน เสื้อผ้า และเรื่องราวของสินค้า"
+      },
+      {
+        "title": "Food + Packaging",
+        "body": "แบรนด์อาหาร บรรจุภัณฑ์ และการนำเสนอสินค้า"
+      }
+    ],
+    "steps": [
+      {
+        "title": "กำหนดตัวตน",
+        "body": "เล่าแนวคิด กลุ่มเป้าหมาย และสิ่งที่แบรนด์ต้องการสื่อ"
+      },
+      {
+        "title": "พัฒนาอัตลักษณ์",
+        "body": "วางภาษา ภาพ สี และการใช้กับสินค้าแต่ละรูปแบบ"
+      },
+      {
+        "title": "ต่อยอดการสื่อสาร",
+        "body": "เชื่อมโครงการของแบรนด์กับงานสื่อและเว็บไซต์ที่เกี่ยวข้อง"
+      }
+    ],
+    "empty": null,
+    "brandRecords": [
+      {
+        "key": "wansabye",
+        "name": "WANSABYE",
+        "status": "แบรนด์เดิม · เสื้อผ้า",
+        "summary": "ร้านเสื้อผ้าที่เปิดมานาน เน้นเสื้อยืดสีพื้น ใส่สบาย",
+        "channels": ["Facebook", "Instagram", "Shopee", "TikTok", "LINE"],
+        "url": "https://www.facebook.com/WansabyeTH",
+        "linkLabel": "ดู WANSABYE บน Facebook ↗"
+      },
+      {
+        "key": "thaithrae",
+        "name": "Thai Thrae · ไทยแทร่",
+        "status": "กำลังพัฒนา · เสื้อผ้า",
+        "summary": "แบรนด์เสื้อผ้าใหม่ที่กำลังพัฒนา เตรียมนำเสนอสินค้าและเรื่องราวเมื่อพร้อม",
+        "channels": ["Facebook"],
+        "url": "https://www.facebook.com/thaithrae/",
+        "linkLabel": "ดู Thai Thrae บน Facebook ↗"
+      }
+    ],
+    "heroArtwork": "brand-house-concept-v1.png",
+    "brandGallery": {
+      "brandKey": "wansabye",
+      "title": "ภาพจาก WANSABYE",
+      "sourceLabel": "ภาพจริงจากเพจ · 2024",
+      "logo": {
+        "key": "logo",
+        "file": "wansabye-logo.jpg",
+        "width": 480,
+        "height": 480,
+        "caption": "WANSABYE",
+        "alt": "โลโก้ WANSABYE สีขาวบนพื้นสีทราย",
+        "sourceURL": "https://www.facebook.com/WansabyeTH",
+        "digest": "2cebc320739428cd32a79274c8d0ada14a5764bacc76008fe86cf892da0cf3a1",
+        "kind": "original-public-brand-logo"
+      },
+      "photos": [
+        {
+          "key": "shop",
+          "file": "wansabye-shop.jpg",
+          "width": 1440,
+          "height": 1440,
+          "caption": "หน้าร้าน ↗",
+          "alt": "บรรยากาศหน้าร้าน WANSABYE พร้อมป้ายร้าน หุ่น และเสื้อผ้า",
+          "sourceURL": "https://www.facebook.com/photo/?fbid=812365294236323&set=pb.100063885800199.-2207520000",
+          "digest": "d9c8ff4c5a89424a86e106006a270006c6ac8ca281f49bf7b2b299287ab9eb55",
+          "kind": "original-public-brand-photo"
+        },
+        {
+          "key": "interior",
+          "file": "wansabye-interior.jpg",
+          "width": 1440,
+          "height": 1440,
+          "caption": "เสื้อยืดสีพื้น ↗",
+          "alt": "ราวเสื้อยืดสีพื้นและการจัดแสดงสินค้าในร้าน WANSABYE",
+          "sourceURL": "https://www.facebook.com/photo/?fbid=812365300902989&set=pb.100063885800199.-2207520000",
+          "digest": "59eff3ed5a18e52d240ef8601251d9c0bed4741a71278bbdfa50fb282b2311a9",
+          "kind": "original-public-brand-photo"
+        },
+        {
+          "key": "clothing",
+          "file": "wansabye-clothing.jpg",
+          "width": 1440,
+          "height": 1440,
+          "caption": "เสื้อผ้าและโทนสี ↗",
+          "alt": "เสื้อผ้าโทนสีกลางและหุ่นสวมเสื้อสีดำในร้าน WANSABYE",
+          "sourceURL": "https://www.facebook.com/photo/?fbid=812365287569657&set=pb.100063885800199.-2207520000",
+          "digest": "7f8bd47aa739914573884ab6536f5c20b018bb742c47d08c9efef1e90ee2b079",
+          "kind": "original-public-brand-photo"
+        }
+      ]
+    }
+  },
+  "media": {
+    "name": "Creative Studio",
+    "eyebrow": "3D / ADVERTISING / VISUAL STORIES",
+    "number": "03",
+    "headline": "เปลี่ยนไอเดีย ให้เป็นภาพที่เล่าเรื่อง.",
+    "intro": "พื้นที่สำหรับงาน 3D ภาพโฆษณา และสื่อของแบรนด์ พร้อมเรื่องราวตั้งแต่โจทย์แรกจนถึงงานจบ",
+    "heroProject": null,
+    "cta": "คุยเรื่องงานสื่อ",
+    "capabilities": [
+      {
+        "title": "3D Visuals",
+        "body": "ภาพสินค้า ฉาก และงานภาพสามมิติ"
+      },
+      {
+        "title": "Advertising",
+        "body": "Key Visual และภาพแคมเปญของแบรนด์"
+      },
+      {
+        "title": "Motion + Stories",
+        "body": "วิดีโอ ภาพเคลื่อนไหว และเรื่องราวของงาน"
+      }
+    ],
+    "steps": [
+      {
+        "title": "ตีโจทย์ภาพ",
+        "body": "กำหนดสารหลัก รูปแบบสื่อ และทิศทางภาพที่ต้องการ"
+      },
+      {
+        "title": "ทดลองและสร้าง",
+        "body": "พัฒนาองค์ประกอบ ฉาก วัสดุ แสง และภาพร่างตามโครงการ"
+      },
+      {
+        "title": "นำเสนอผลงาน",
+        "body": "รวบรวมงานจบและกระบวนการ พร้อมเชื่อมแบรนด์ที่เกี่ยวข้อง"
+      }
+    ],
+    "empty": {
+      "title": "ผลงานจาก Studio กำลังจัดเตรียม.",
+      "body": "ภาพ 3D ภาพโฆษณา และวิดีโอที่เลือกเผยแพร่จะถูกรวบรวมไว้ที่นี่",
+      "label": "VISUAL STORIES · COMING SOON"
+    },
+    "heroArtwork": "creative-studio-concept-v1.png"
+  },
+  "web": {
+    "name": "Digital Garage",
+    "eyebrow": "WEBSITES / APPLICATIONS / SOFTWARE",
+    "number": "04",
+    "headline": "จากไอเดีย สู่สิ่งที่ใช้งานได้.",
+    "intro": "เว็บไซต์ แอป และ Software ที่เชื่อมการออกแบบกับการพัฒนา พร้อมรายละเอียดว่าแต่ละโครงการสร้างขึ้นมาอย่างไร",
+    "heroProject": "watcharin",
+    "cta": "คุยเรื่องเว็บไซต์ / Software",
+    "capabilities": [
+      {
+        "title": "Web Experiences",
+        "body": "เว็บไซต์และ Portfolio ที่เล่าตัวตนและเข้าถึงผลงานได้ง่าย"
+      },
+      {
+        "title": "Applications",
+        "body": "ผลิตภัณฑ์ดิจิทัลและเครื่องมือสำหรับงานของผู้ใช้"
+      },
+      {
+        "title": "Full-stack + Data",
+        "body": "เชื่อมหน้าใช้งาน ระบบหลังบ้าน และข้อมูลเข้าด้วยกัน"
+      }
+    ],
+    "steps": [
+      {
+        "title": "กำหนดประสบการณ์",
+        "body": "ทำความเข้าใจผู้ใช้ โจทย์ และฟังก์ชันหลักของผลิตภัณฑ์"
+      },
+      {
+        "title": "ออกแบบและพัฒนา",
+        "body": "ต่อหน้าจอ ระบบ และข้อมูลให้ทำงานร่วมกัน"
+      },
+      {
+        "title": "ทดสอบและปรับปรุง",
+        "body": "ตรวจการใช้งานบนอุปกรณ์จริง แล้วปรับตามสิ่งที่พบ"
+      }
+    ],
+    "empty": null
+  }
+}
