@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   createContext,
   useContext,
+  useCallback,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -12,7 +13,13 @@ import {
   type ComponentProps,
   type ReactNode,
 } from "react";
-import { campusBase, campusZones, resolveCampusRoute } from "@/lib/campus";
+import {
+  campusBase,
+  campusContent,
+  campusZones,
+  resolveCampusRoute,
+  zoneKeys,
+} from "@/lib/campus";
 
 type ReturnContext = { path: string; title: string };
 type Memory = {
@@ -20,12 +27,19 @@ type Memory = {
   origins: Record<string, ReturnContext>;
 };
 type Flight = { element: HTMLImageElement; rect: DOMRect; key: string };
+type PageTransition = {
+  path: string;
+  pushed: boolean;
+  animation?: Animation;
+  timer?: number;
+  watchdog?: number;
+};
 type MotionContext = {
   homeHref: string;
   reduced: boolean;
   origins: Memory["origins"];
   prepare: (target?: HTMLElement | null) => void;
-  navigate: (path: string) => void;
+  navigate: (path: string, target?: HTMLElement | null) => void;
 };
 const Context = createContext<MotionContext | null>(null);
 export const useCampusMotion = () => useContext(Context)!;
@@ -52,9 +66,17 @@ export function CampusLink({
           !event.ctrlKey &&
           !event.shiftKey &&
           !event.altKey &&
+          event.currentTarget.target !== "_blank" &&
+          event.currentTarget.origin === location.origin &&
           event.currentTarget.pathname !== location.pathname
         ) {
-          motion.prepare(event.currentTarget);
+          event.preventDefault();
+          motion.navigate(
+            event.currentTarget.pathname +
+              event.currentTarget.search +
+              event.currentTarget.hash,
+            event.currentTarget,
+          );
         }
       }}
     >
@@ -76,7 +98,13 @@ export function CampusBackLink({ projectKey }: { projectKey: string }) {
   );
 }
 
-export function CampusShell({ children, homeHref = campusBase }: { children: ReactNode; homeHref?: string }) {
+export function CampusShell({
+  children,
+  homeHref = campusBase,
+}: {
+  children: ReactNode;
+  homeHref?: string;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const root = useRef<HTMLDivElement>(null);
@@ -88,6 +116,85 @@ export function CampusShell({ children, homeHref = campusBase }: { children: Rea
   const animations = useRef(new Set<Animation>());
   const [reduced, setReduced] = useState(false);
   const [origins, setOrigins] = useState<Memory["origins"]>({});
+  const menu = useRef<HTMLDialogElement>(null);
+  const menuTrigger = useRef<HTMLButtonElement>(null);
+  const curtain = useRef<HTMLDivElement>(null);
+  const transition = useRef<PageTransition | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const finishTransition = useCallback(() => {
+    const current = transition.current;
+    if (!current) return;
+    clearTimeout(current.timer);
+    clearTimeout(current.watchdog);
+    current.animation?.cancel();
+    transition.current = null;
+    if (curtain.current) delete curtain.current.dataset.active;
+  }, []);
+  const revealPage = useCallback(() => {
+    const current = transition.current;
+    const node = curtain.current;
+    if (!current || !node) return;
+    clearTimeout(current.watchdog);
+    current.animation?.cancel();
+    if (root.current?.dataset.reducedMotion === "true") {
+      finishTransition();
+      return;
+    }
+    current.animation = node.animate(
+      [{ transform: "translateY(0)" }, { transform: "translateY(-100%)" }],
+      { duration: 420, easing: "cubic-bezier(.76,0,.24,1)", fill: "forwards" },
+    );
+    current.animation.finished.then(finishTransition).catch(() => {});
+  }, [finishTransition]);
+  function navigate(path: string, target?: HTMLElement | null) {
+    if (transition.current) return;
+    prepare(target);
+    menu.current?.close();
+    if (root.current?.dataset.reducedMotion === "true" || !curtain.current) {
+      router.push(path, { scroll: false });
+      return;
+    }
+    // The curtain replaces the shared-image flight for this navigation.
+    cancelFlight.current();
+    const node = curtain.current;
+    node.dataset.active = "true";
+    const current: PageTransition = { path, pushed: false };
+    transition.current = current;
+    current.animation = node.animate(
+      [{ transform: "translateY(100%)" }, { transform: "translateY(0)" }],
+      { duration: 260, easing: "cubic-bezier(.76,0,.24,1)", fill: "forwards" },
+    );
+    current.timer = window.setTimeout(() => {
+      current.pushed = true;
+      router.push(path, { scroll: false });
+      // Recover if a route cannot resolve; the visitor never gets trapped behind a curtain.
+      current.watchdog = window.setTimeout(revealPage, 2200);
+    }, 260);
+  }
+
+  useEffect(() => {
+    return () => {
+      finishTransition();
+      document.body.style.overflow = "";
+    };
+  }, [finishTransition]);
+
+  useEffect(() => {
+    if (!reduced || !transition.current) return;
+    const current = transition.current;
+    finishTransition();
+    if (!current.pushed) router.push(current.path, { scroll: false });
+  }, [reduced, router, finishTransition]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [menuOpen]);
 
   function save() {
     try {
@@ -159,10 +266,14 @@ export function CampusShell({ children, homeHref = campusBase }: { children: Rea
       if (saved?.positions && saved?.origins) {
         const validPath = (path: unknown): path is string =>
           typeof path === "string" &&
-          (path === homeHref || path === campusBase || path.startsWith(`${campusBase}/`)) &&
+          (path === homeHref ||
+            path === campusBase ||
+            path.startsWith(`${campusBase}/`)) &&
           Boolean(
             resolveCampusRoute(
-              path === homeHref ? [] : path.slice(campusBase.length).split("/").filter(Boolean),
+              path === homeHref
+                ? []
+                : path.slice(campusBase.length).split("/").filter(Boolean),
             ),
           );
         for (const [path, value] of Object.entries(saved.positions))
@@ -275,10 +386,11 @@ export function CampusShell({ children, homeHref = campusBase }: { children: Rea
           : null;
         const heading = root.current?.querySelector<HTMLElement>("main h1");
         (focus ?? heading)?.focus({ preventScroll: true });
+        revealPage();
       });
     });
     return () => cancelAnimationFrame(frame);
-  }, [pathname]);
+  }, [pathname, revealPage]);
 
   useEffect(() => {
     const nodes =
@@ -355,10 +467,7 @@ export function CampusShell({ children, homeHref = campusBase }: { children: Rea
         reduced,
         origins,
         prepare,
-        navigate: (path) => {
-          prepare();
-          router.push(path, { scroll: false });
-        },
+        navigate,
       }}
     >
       <div
@@ -366,12 +475,31 @@ export function CampusShell({ children, homeHref = campusBase }: { children: Rea
         id="watcharin-portfolio-mockup"
         className="campus"
         data-reduced-motion={String(reduced)}
+        data-home={String(pathname === homeHref || pathname === campusBase)}
       >
         <header className="campus-header">
           <CampusLink
             href={campusBase}
             className="campus-logo"
             aria-label="Watcharin Service — หน้าหลัก"
+            onClick={(event) => {
+              if (
+                pathname !== homeHref ||
+                event.metaKey ||
+                event.ctrlKey ||
+                event.shiftKey ||
+                event.altKey
+              )
+                return;
+              event.preventDefault();
+              window.scrollTo({
+                top: 0,
+                behavior: reduced ? "instant" : "smooth",
+              });
+              root.current
+                ?.querySelector<HTMLElement>("main h1")
+                ?.focus({ preventScroll: true });
+            }}
           >
             <strong>W</strong>
             <span>
@@ -380,35 +508,114 @@ export function CampusShell({ children, homeHref = campusBase }: { children: Rea
               SERVICE
             </span>
           </CampusLink>
-          <nav aria-label="เมนูหลัก">
-            <CampusLink
-              href={campusBase}
-              aria-current={pathname === homeHref ? "page" : undefined}
+          <div className="campus-header-actions">
+            <nav aria-label="เมนูหลัก">
+              <CampusLink
+                href={campusBase}
+                aria-current={pathname === homeHref ? "page" : undefined}
+              >
+                หน้าหลัก
+              </CampusLink>
+              <CampusLink
+                href={`${campusBase}/work`}
+                aria-current={pathname.includes("/work") ? "page" : undefined}
+              >
+                ผลงาน
+              </CampusLink>
+              <CampusLink
+                href={`${campusBase}/about`}
+                aria-current={pathname.endsWith("/about") ? "page" : undefined}
+              >
+                เกี่ยวกับผม
+              </CampusLink>
+              <CampusLink href="/campus/resume/th">Resume</CampusLink>
+              <CampusLink
+                className="campus-button"
+                href={`${campusBase}/contact`}
+              >
+                ติดต่อ ↗
+              </CampusLink>
+            </nav>
+            <button
+              className="campus-menu-toggle"
+              type="button"
+              ref={menuTrigger}
+              aria-expanded={menuOpen}
+              aria-controls="campus-menu"
+              aria-haspopup="dialog"
+              onClick={() => {
+                menu.current?.showModal();
+                setMenuOpen(true);
+              }}
             >
-              หน้าหลัก
+              เมนู{" "}
+              <span className="campus-menu-icon" aria-hidden="true">
+                <i />
+                <i />
+              </span>
+            </button>
+          </div>
+        </header>
+        <dialog
+          className="campus-menu"
+          id="campus-menu"
+          ref={menu}
+          aria-labelledby="campus-menu-title"
+          onClose={() => {
+            setMenuOpen(false);
+            menuTrigger.current?.focus();
+          }}
+          onClick={(event) => {
+            if (event.target === event.currentTarget) menu.current?.close();
+          }}
+        >
+          <div className="campus-menu-heading">
+            <span id="campus-menu-title">Creative Campus / เมนู</span>
+            <button
+              type="button"
+              autoFocus
+              onClick={() => menu.current?.close()}
+            >
+              ปิด ×
+            </button>
+          </div>
+          <nav
+            className="campus-menu-links"
+            aria-label="สำรวจเว็บไซต์"
+            onClick={() => menu.current?.close()}
+          >
+            <CampusLink href={campusBase} onClick={() => menu.current?.close()}>
+              แคมปัส
             </CampusLink>
-            <CampusLink
-              href={`${campusBase}/work`}
-              aria-current={pathname.includes("/work") ? "page" : undefined}
-            >
-              ผลงาน
-            </CampusLink>
-            <CampusLink
-              href={`${campusBase}/about`}
-              aria-current={pathname.endsWith("/about") ? "page" : undefined}
-            >
-              เกี่ยวกับผม
-            </CampusLink>
-            <CampusLink href="/campus/resume/th">Resume</CampusLink>
-            <CampusLink
-              className="campus-button"
-              href={`${campusBase}/contact`}
-            >
-              ติดต่อ ↗
+            <CampusLink href={`${campusBase}/work`}>ผลงาน</CampusLink>
+            <CampusLink href={`${campusBase}/about`}>เกี่ยวกับผม</CampusLink>
+            <CampusLink href={`${campusBase}/resume/th`}>Resume</CampusLink>
+            <CampusLink href={`${campusBase}/contact`}>
+              คุยเรื่องโปรเจกต์
             </CampusLink>
           </nav>
-        </header>
+          <nav
+            className="campus-menu-zones"
+            aria-label="พื้นที่ของแคมปัส"
+            onClick={() => menu.current?.close()}
+          >
+            {zoneKeys.map((zone) => (
+              <CampusLink href={`${campusBase}/zones/${zone}`} key={zone}>
+                {campusZones[zone].name}
+              </CampusLink>
+            ))}
+          </nav>
+          <a
+            className="campus-menu-email"
+            href={`mailto:${campusContent.profile.email}`}
+          >
+            {campusContent.profile.email}
+          </a>
+        </dialog>
         {children}
+        <div className="campus-curtain" ref={curtain} aria-hidden="true">
+          <span>Creative Campus</span>
+        </div>
         <footer className="campus-footer">
           <div>
             <strong>WATCHARIN SERVICE</strong>
