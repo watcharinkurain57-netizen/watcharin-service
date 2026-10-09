@@ -14,6 +14,7 @@ import {
 } from "@/lib/campus";
 import { CampusBackLink, CampusLink } from "./CampusShell";
 import { CampusReadingNav } from "./CampusReadingNav";
+import { CampusBrandGallery } from "./CampusBrandGallery";
 
 const categories = [
   { key: "all", name: "ทั้งหมด" },
@@ -91,6 +92,17 @@ export function CampusWork({ category }: { category: CampusZoneKey | "all" }) {
         <p>สำรวจโครงการแต่ละด้าน พร้อมแนวคิดและวิธีพัฒนาที่อยู่เบื้องหลัง</p>
       </div>
       <CampusCategories active={category} />
+      {category === "brands" && (
+        <>
+          <CampusBrands />
+          <CampusLink
+            className="campus-text-link"
+            href={`${campusBase}/zones/brands`}
+          >
+            สำรวจแนวทางใน Brand House ↗
+          </CampusLink>
+        </>
+      )}
       {projects.length ? (
         <div className="campus-project-grid">
           {projects.map((project, index) => (
@@ -101,7 +113,7 @@ export function CampusWork({ category }: { category: CampusZoneKey | "all" }) {
             />
           ))}
         </div>
-      ) : (
+      ) : category !== "brands" ? (
         <div className="campus-empty">
           <span className="campus-eyebrow">A WORLD IN PROGRESS</span>
           <h2>
@@ -115,13 +127,17 @@ export function CampusWork({ category }: { category: CampusZoneKey | "all" }) {
             สำรวจโซน ↗
           </CampusLink>
         </div>
+      ) : null}
+      {category === "brands" ? (
+        <CampusContactCta title="มีแบรนด์ที่อยากต่อยอด?" zone="brands" />
+      ) : (
+        <div className="campus-endnote">
+          <span>
+            ภาพคอนเซปต์ใช้แสดงแนวทางงาน ดูบทบาทและสถานะในรายละเอียดแต่ละโครงการ
+          </span>
+          <CampusLink href={`${campusBase}/contact`}>คุยกัน ↗</CampusLink>
+        </div>
       )}
-      <div className="campus-endnote">
-        <span>
-          ภาพคอนเซปต์ใช้แสดงแนวทางงาน ดูบทบาทและสถานะในรายละเอียดแต่ละโครงการ
-        </span>
-        <CampusLink href={`${campusBase}/contact`}>คุยกัน ↗</CampusLink>
-      </div>
     </main>
   );
 }
@@ -319,7 +335,7 @@ export function CampusZonePage({ zoneKey }: { zoneKey: CampusZoneKey }) {
   );
 }
 function CampusBrands() {
-  const { brandRecords, brandGallery } = campusZones.brands;
+  const { brandRecords } = campusZones.brands;
   return (
     <>
       <section className="campus-brand-records">
@@ -348,41 +364,7 @@ function CampusBrands() {
           ))}
         </div>
       </section>
-      <section className="campus-brand-gallery">
-        <div className="campus-brand-heading">
-          <Image
-            src={campusAsset(brandGallery.logo.file)}
-            width={96}
-            height={96}
-            alt={brandGallery.logo.alt}
-          />
-          <div>
-            <span className="campus-eyebrow">{brandGallery.sourceLabel}</span>
-            <h2>{brandGallery.title}</h2>
-            <p>ภาพจากหน้าร้านและสินค้าในเพจของแบรนด์</p>
-          </div>
-        </div>
-        <div className="campus-brand-photos">
-          {brandGallery.photos.map((photo) => (
-            <figure key={photo.key} data-campus-reveal="">
-              <a
-                href={photo.sourceURL}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Image
-                  src={campusAsset(photo.file)}
-                  width={photo.width}
-                  height={photo.height}
-                  sizes="(max-width: 600px) 100vw, 360px"
-                  alt={photo.alt}
-                />
-                <figcaption>{photo.caption}</figcaption>
-              </a>
-            </figure>
-          ))}
-        </div>
-      </section>
+      <CampusBrandGallery />
     </>
   );
 }

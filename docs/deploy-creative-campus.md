@@ -1,6 +1,6 @@
 # เผยแพร่ Creative Campus
 
-เป้าหมาย: เปลี่ยนหน้าหลักเป็น Portfolio เก็บระบบงานเดิมไว้แต่ปิดการเข้าใช้ งานนี้อยู่ใน branch `codex/creative-campus` และยังไม่ได้เผยแพร่ไป `watcharin-service.com`
+เป้าหมาย: เปลี่ยนหน้าหลักเป็น Portfolio เก็บระบบงานเดิมไว้แต่ปิดการเข้าใช้ งานนี้อยู่ใน branch `codex/creative-campus` ใน [Draft PR #49](https://github.com/watcharinkurain57-netizen/watcharin-service/pull/49) มี Vercel Preview ที่ต้องล็อกอิน และยังไม่ได้เผยแพร่ไป `watcharin-service.com`
 
 ## ค่าที่ใช้สำหรับ build
 
@@ -24,6 +24,7 @@
 - `/`: แคมปัส 3D พร้อมภาพสำรองและโหมดลด Motion
 - `/campus/work`: ผลงานเจ็ดชิ้น รวมสถานะ Demo/Archived และภาพคอนเซปต์ที่ระบุไว้
 - `/campus/zones/brands`: WANSABYE พร้อมภาพที่ได้รับอนุญาตและลิงก์ต้นทาง; Thai Thrae อยู่ระหว่างพัฒนา
+- `/campus/work/brands`: ข้อมูลสองแบรนด์ตามสถานะจริง; เปิดภาพ WANSABYE ขนาดใหญ่ เลื่อนด้วยปุ่ม/ลูกศร ปิดด้วย Escape และคืนโฟกัสได้บน Desktop/มือถือ
 - `/campus/contact?zone=brands`: เลือกหัวข้อ Brand House ล่วงหน้า เปลี่ยนประเภทงานได้
 - `/campus/resume/th` และ `/campus/resume/en`: Resume สำหรับพิมพ์
 - `/projects` และ `/start`: redirect ไปผลงาน/ติดต่อ; ระบบงานและการเขียนข้อมูลเดิมปิดไว้

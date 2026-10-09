@@ -1,6 +1,6 @@
 # Creative Campus portfolio
 
-Creative Campus is now the homepage at `/`. The former homepage is preserved in `src/components/home/LegacyHome.tsx`; the archive, authentication, internal workspace, actions, database code and migrations remain in the repository. This is a local implementation on `codex/creative-campus`, not a deployed change.
+Creative Campus is now the homepage at `/`. The former homepage is preserved in `src/components/home/LegacyHome.tsx`; the archive, authentication, internal workspace, actions, database code and migrations remain in the repository. Work is on `codex/creative-campus` in Draft PR #49 with a protected Vercel Preview; the production domain has not changed.
 
 ## Start and review
 
@@ -48,6 +48,8 @@ These switches control website availability. They do not remove database records
 | `/campus/contact` | Contact form with an explicit sender/API key, otherwise contextual direct email |
 
 `src/lib/campus/content.json` and `zones.json` hold the reviewed content. `public/campus/` contains seven concept mockups, two zone illustrations, the static campus poster, the original WANSABYE logo and three authorized public photographs. AI mockups are labeled; WANSABYE photos link to their original posts. Thai Thrae remains in development and Creative Studio does not claim completed client work. TangTee and XTier are presented as archived work.
+
+The Brand House Work filter shows the existing WANSABYE and developing Thai Thrae records and the real WANSABYE gallery, with a link to the zone's approach. These records retain their stated status rather than being added as completed project cases. Both the zone and Work filter share the gallery: native modal dialog, full uncropped photos, previous/next buttons and arrow keys, Escape and backdrop dismissal, focus containment/restoration, and direct original-post citations. Opening a photo keeps the visitor in the portfolio. Reduced-motion settings disable gallery animation.
 
 The `(portfolio)` route group shares one `CampusShell` between the homepage and detail routes. Assets stay under `/campus/`; the Home links point to `/` without confusing page and asset paths.
 
