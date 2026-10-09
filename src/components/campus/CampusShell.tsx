@@ -88,12 +88,16 @@ export function CampusLink({
 export function CampusBackLink({ projectKey }: { projectKey: string }) {
   const { origins } = useCampusMotion();
   const origin = origins[projectKey];
+  const title =
+    origin?.path === campusBase || origin?.path === "/"
+      ? "กลับแคมปัส"
+      : (origin?.title ?? "ผลงานทั้งหมด");
   return (
     <CampusLink
       href={origin?.path ?? `${campusBase}/work`}
       className="campus-back"
     >
-      ← {origin?.title ?? "ผลงานทั้งหมด"}
+      ← {title}
     </CampusLink>
   );
 }
