@@ -58,13 +58,13 @@
       "summary": "เว็บไซต์หลัก แนะนำตัว บริการ และผลงาน พร้อม Resume และช่องทางติดต่อ",
       "role": "Founder & Software Architect",
       "focus": "Next.js · React · TypeScript · Vercel",
-      "url": "https://watcharin-service.com/studio",
+      "url": "https://watcharin-service.com",
       "linkLabel": "ดูเว็บไซต์ปัจจุบัน ↗",
       "briefTitle": "ตัวตนและผลงานในที่เดียว",
       "brief": "สร้างพื้นที่แนะนำตัว บริการ ผลงาน และประวัติการทำงานให้เข้าถึงได้ทั้งภาษาไทยและอังกฤษ",
       "directionTitle": "ออกแบบและพัฒนาตั้งแต่ต้นจนขึ้นระบบ",
-      "direction": "เว็บไซต์ปัจจุบันมี Resume แบบ PDF, แบบฟอร์มติดต่อที่เชื่อมอีเมล และโครงสร้าง SEO บน Next.js / React",
-      "story": "Creative Campus เป็นแนวทางออกแบบใหม่สำหรับ Portfolio ซึ่งอยู่ระหว่างพัฒนา ภาพแคมปัสนี้เป็นภาพคอนเซปต์ของแบบใหม่"
+      "direction": "พัฒนา Portfolio บน Next.js / React พร้อมแคมปัส 3D, Motion ระหว่างหน้า, Resume สำหรับพิมพ์ และช่องทางติดต่อผ่านอีเมล",
+      "story": "ออกแบบและพัฒนา Creative Campus ตั้งแต่โครงสร้างหน้าและภาพประกอบ ไปจนถึงการใช้งานบน Desktop และมือถือ ภาพ Mockup แสดงแนวทางการนำเสนอเว็บไซต์"
     },
     {
       "key": "coresync",

@@ -1,6 +1,6 @@
 # เผยแพร่ Creative Campus
 
-เป้าหมาย: เปลี่ยนหน้าหลักเป็น Portfolio เก็บระบบงานเดิมไว้แต่ปิดการเข้าใช้ งานนี้อยู่ใน branch `codex/creative-campus` ใน [Draft PR #49](https://github.com/watcharinkurain57-netizen/watcharin-service/pull/49) มี Vercel Preview ที่ต้องล็อกอิน และยังไม่ได้เผยแพร่ไป `watcharin-service.com`
+เป้าหมาย: เปลี่ยนหน้าหลักเป็น Portfolio เก็บระบบงานเดิมไว้แต่ปิดการเข้าใช้ งานเผยแพร่อยู่ใน [PR #49](https://github.com/watcharinkurain57-netizen/watcharin-service/pull/49) ใช้ GitHub/Vercel project และโดเมน `watcharin-service.com` เดิม
 
 ## ค่าที่ใช้สำหรับ build
 
@@ -25,6 +25,7 @@
 - `/campus/work`: ผลงานเจ็ดชิ้น รวมสถานะ Demo/Archived และภาพคอนเซปต์ที่ระบุไว้
 - `/campus/zones/brands`: WANSABYE พร้อมภาพที่ได้รับอนุญาตและลิงก์ต้นทาง; Thai Thrae อยู่ระหว่างพัฒนา
 - `/campus/work/brands`: ข้อมูลสองแบรนด์ตามสถานะจริง; เปิดภาพ WANSABYE ขนาดใหญ่ เลื่อนด้วยปุ่ม/ลูกศร ปิดด้วย Escape และคืนโฟกัสได้บน Desktop/มือถือ
+- `/campus/zones/{systems,brands,media,web}`: ภาพกระบวนการ 3 ขั้นต่อโซน พร้อมคำอธิบายแนวทางทำงาน; `/campus/projects/watcharin` มีภาพขั้นตอนพัฒนา Creative Campus
 - `/campus/contact?zone=brands`: เลือกหัวข้อ Brand House ล่วงหน้า เปลี่ยนประเภทงานได้
 - `/campus/resume/th` และ `/campus/resume/en`: Resume สำหรับพิมพ์
 - `/projects` และ `/start`: redirect ไปผลงาน/ติดต่อ; ระบบงานและการเขียนข้อมูลเดิมปิดไว้
@@ -43,7 +44,7 @@ pnpm audit:portfolio-http http://127.0.0.1:8768
 
 มาตรฐาน build ใช้ `next build --webpack` ตาม `package.json` การตรวจ Contact ใช้ delivery adapter ในหน่วยความจำและข้อมูล `example.invalid` ไม่มีการส่งอีเมลจริง การตรวจ HTTP ส่งเฉพาะข้อมูลที่ไม่ผ่าน validation จึงไม่เรียก Resend
 
-เผยแพร่ branch เป็น Vercel Preview ที่ตรวจสอบได้ก่อน แล้วเปิดดูเส้นทางข้างต้นบน Desktop และมือถือ ตรวจชื่อ/รูป/เนื้อหาและ Motion ก่อนอนุมัติขึ้น Production
+ตรวจ build และเส้นทางข้างต้นบน Desktop และมือถือ ตรวจชื่อ/รูป/เนื้อหาและ Motion ก่อนขึ้น Production หาก Preview ถูกป้องกันด้วย Vercel login ให้คงการป้องกันไว้และตรวจ local production build ก่อน เมื่อเจ้าของอนุมัติ ให้ตรวจ CI ของ commit ล่าสุดและ merge PR เพื่อเผยแพร่ จากนั้นตรวจ deployment และโดเมนจริงตามขั้นตอนด้านล่าง
 
 หากใช้แบบฟอร์ม: เมื่อได้รับอนุญาตให้ส่งทดสอบแล้ว ให้ส่งคำขอหนึ่งรายการจาก Preview ไปกล่องรับที่กำหนด ตรวจทั้ง Resend และกล่องรับจริง รวมถึง Reply-To ที่ชี้กลับผู้กรอก กรณีผู้ให้บริการไม่รับคำขอหรือขาดหมายเลขรับงาน ฟอร์มต้องไม่แสดงว่าสำเร็จ การตอบสำเร็จจาก API หมายถึง Resend รับคำขอแล้ว; การถึงกล่องรับต้องตรวจแยก
 

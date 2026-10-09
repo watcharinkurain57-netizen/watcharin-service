@@ -15,6 +15,7 @@ import {
 import { CampusBackLink, CampusLink } from "./CampusShell";
 import { CampusReadingNav } from "./CampusReadingNav";
 import { CampusBrandGallery } from "./CampusBrandGallery";
+import { CampusProcess } from "./CampusProcess";
 
 const categories = [
   { key: "all", name: "ทั้งหมด" },
@@ -192,6 +193,7 @@ export function CampusProjectPage({ project }: { project: CampusProject }) {
           <div>
             <h2>{project.directionTitle}</h2>
             <p>{project.direction}</p>
+            {project.key === "watcharin" && <CampusProcess zone="web" project />}
           </div>
         </article>
         <article id="role" tabIndex={-1} data-campus-reveal="">
@@ -309,27 +311,7 @@ export function CampusZonePage({ zoneKey }: { zoneKey: CampusZoneKey }) {
           <p>{zone.empty?.body}</p>
         </div>
       )}
-      <section className="campus-process">
-        <div>
-          <span className="campus-eyebrow">IDEA / APPROACH / BUILD</span>
-          <h2>
-            เริ่มจากโจทย์
-            <br />
-            แล้วค่อยลงมือสร้าง.
-          </h2>
-        </div>
-        <ol>
-          {zone.steps.map((step, i) => (
-            <li key={step.title} data-campus-reveal="">
-              <span>0{i + 1}</span>
-              <div>
-                <h3>{step.title}</h3>
-                <p>{step.body}</p>
-              </div>
-            </li>
-          ))}
-        </ol>
-      </section>
+      <CampusProcess zone={zoneKey} />
       <CampusContactCta title="มีไอเดียที่อยากต่อยอด?" zone={zoneKey} />
     </main>
   );
