@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AccountButton } from "@/components/auth/AccountButton";
+import { siteFeatures } from "@/lib/site-config";
 
 export function HomeNav() {
   return (
@@ -21,12 +22,12 @@ export function HomeNav() {
           aria-label="เมนูหลัก"
           className="hidden gap-4 whitespace-nowrap text-[0.94rem] font-semibold text-ink-muted md:flex lg:gap-6"
         >
-          <Link href="/projects" className="transition-colors hover:text-brand-600">
+          <Link href={siteFeatures.portfolio ? "/campus/work" : "/projects"} className="transition-colors hover:text-brand-600">
             คลังโปรเจกต์
           </Link>
           {/* /#modes ไม่ใช่ #modes — แถบนี้ใช้ในหน้าอื่นด้วย (/start, /ai-map)
               ถ้าเขียนแค่ #modes กดจากหน้าอื่นจะไปหา #modes ในหน้านั้นเองซึ่งไม่มี */}
-          <Link href="/#modes" className="transition-colors hover:text-brand-600">
+          <Link href={siteFeatures.portfolio ? "/campus/zones/systems" : "/#modes"} className="transition-colors hover:text-brand-600">
             บริการ
           </Link>
           <Link href="/studio" className="transition-colors hover:text-brand-600">
@@ -39,11 +40,11 @@ export function HomeNav() {
         </nav>
 
         <div className="ml-auto flex flex-none items-center gap-2.5">
-          <AccountButton />
+          {siteFeatures.workspace && <AccountButton />}
           {/* พาไปหน้าเล่าโปรเจกต์ (ล็อกอินแล้วกรอกสองช่อง) ไม่ใช่เลื่อนลงไปฟอร์มอีเมล
               ฟอร์มอีเมลยังอยู่ท้ายหน้าสำหรับคนที่ไม่อยากล็อกอิน */}
           <Link
-            href="/start"
+            href={siteFeatures.workspace ? "/start" : "/campus/contact"}
             className="rounded-full bg-brand-600 px-5 py-2.5 text-[0.9rem] font-bold text-white shadow-sm shadow-brand-600/25 transition-transform duration-300 hover:-translate-y-0.5 motion-reduce:transform-none"
           >
             เล่าโปรเจกต์ให้ฟัง

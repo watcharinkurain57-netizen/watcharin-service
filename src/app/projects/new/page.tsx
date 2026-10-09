@@ -1,3 +1,4 @@
+import { requireWorkspace } from "@/lib/workspace-access";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { ProjectForm } from "@/components/archive/ProjectForm";
@@ -11,6 +12,7 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function NewProjectPage() {
+  requireWorkspace();
   const supabase = await createSupabaseServerClient();
 
   const {

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { LogoMark } from "@/components/Logo";
+import { siteFeatures } from "@/lib/site-config";
 
 export default function NotFound() {
   return (
@@ -27,7 +28,7 @@ export default function NotFound() {
           ← กลับหน้าหลัก
         </Link>
         <Link
-          href="/#contact"
+          href={siteFeatures.portfolio ? "/campus/contact" : "/#contact"}
           className="bg-surface-raised border border-line text-ink font-semibold px-7 py-3.5 rounded-full hover:border-line-strong transition text-base"
         >
           ติดต่อเรา

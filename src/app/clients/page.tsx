@@ -1,3 +1,4 @@
+import { requireWorkspace } from "@/lib/workspace-access";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -19,6 +20,7 @@ export const dynamic = "force-dynamic";
  * ตัวที่กันจริงคือ policy is_app_admin() ใน 0022 ตรงนี้แค่ทำให้ไม่งง
  */
 export default async function ClientsPage() {
+  requireWorkspace();
   const supabase = await createSupabaseServerClient();
 
   const {

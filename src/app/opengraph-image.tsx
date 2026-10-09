@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { ImageResponse } from "next/og";
 import { SHARE_IMAGE } from "@/lib/share-image";
+import { siteFeatures } from "@/lib/site-config";
 
 /**
  * รูปที่ขึ้นตอนแชร์ลิงก์ (LINE, Facebook, X) — ใช้ทั้งเว็บ
@@ -53,6 +54,24 @@ const SCOPE = ["PLC", "SCADA", "MES", "ERP", "Web", "Mobile", "AI", "LINE Bot"];
 
 export default async function Image() {
   const [inter600, inter800, thai500, thai700] = await loadFonts();
+  if (siteFeatures.portfolio) {
+    const poster = await readFile(join(process.cwd(), "public/campus/campus-poster.png"));
+    return new ImageResponse(
+      <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", background: "#eee9dc", color: "#292b2c", padding: "42px 58px", fontFamily: "Inter" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 18, fontWeight: 600, letterSpacing: 2 }}>
+          <span>W · WATCHARIN SERVICE</span><span>CREATIVE CAMPUS</span>
+        </div>
+        <div style={{ fontSize: 52, fontWeight: 800, letterSpacing: -2, marginTop: 26 }}>A world of things I build.</div>
+        <div style={{ fontSize: 22, marginTop: 10, color: "#68716c" }}>Systems. Brands. Digital experiences.</div>
+        {/* Existing approved poster; no external network or fabricated work. */}
+        <img src={`data:image/png;base64,${poster.toString("base64")}`} alt="Creative Campus" width={1024} height={374} style={{ objectFit: "contain", width: 1024, height: 374, marginTop: 12 }} />
+      </div>,
+      { ...size, fonts: [
+        { name: "Inter", data: inter600, weight: 600, style: "normal" },
+        { name: "Inter", data: inter800, weight: 800, style: "normal" },
+      ] },
+    );
+  }
 
   return new ImageResponse(
     (

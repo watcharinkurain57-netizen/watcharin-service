@@ -131,7 +131,7 @@ const en: ResumeData = {
   ecosystem: {
     name: "Watcharin Ecosystem",
     description:
-      "A connected, AI-powered business ecosystem — products designed to work together end to end. Three systems are already live in production.",
+      "Built three production systems end-to-end. watcharin-service.com remains active; TangTee and XTier were sunset in August 2026 and are retained as past work.",
     systems: [
       "watcharin-service.com — consulting & project archive (live)",
       "tang-tee.com — Team & trip coordination platform (2026, sunset)",
@@ -157,7 +157,7 @@ const th: ResumeData = {
       "Software Architect ประสบการณ์ 4+ ปี ครอบคลุมงาน full-stack, enterprise engineering และการออกแบบสถาปัตยกรรมระบบ — ผ่านงานองค์กรมหาชนอย่าง PTT Digital Solutions และ MFEC ส่งระบบขึ้น production จริงมาแล้ว 3 ระบบ (watcharin-service.com, tang-tee.com, x-tier.pro) แบบ end-to-end — ออกแบบ พัฒนา deploy และดูแลใช้งานเอง โดยใช้ AI เร่ง delivery · สองระบบปิดบริการเมื่อ ส.ค. 2026 หลังถอดบทเรียนไปต่อยอดแล้ว",
   },
   highlights: [
-    "ส่งระบบขึ้น production จริง 3 ระบบแบบ end-to-end ในฐานะ architect และ developer คนเดียว — ใช้งานอยู่ตอนนี้ทั้งหมด",
+    "เคยส่งระบบขึ้น production จริง 3 ระบบแบบ end-to-end ในฐานะ architect และ developer คนเดียว — เว็บหลักยังเปิดใช้งาน ส่วน TangTee และ XTier ปิดบริการแล้ว",
     "ประสบการณ์ 4+ ปีในองค์กรมหาชน (PTT Digital Solutions, MFEC, เถ้าแก่น้อย) ตั้งแต่ full-stack ถึง enterprise architecture",
     "AI-augmented delivery: ส่ง MVP ที่ใช้งานได้จริงในหลักสัปดาห์ โดยไม่ทิ้งเรื่อง scalability",
     "ออกแบบระบบให้สอดคล้องกฎหมายตั้งแต่ต้น — ทำตาม พ.ร.บ.ขายตรง และ PDPA",
@@ -213,7 +213,7 @@ const th: ResumeData = {
   ecosystem: {
     name: "Watcharin Ecosystem",
     description:
-      "ระบบนิเวศธุรกิจที่ขับเคลื่อนด้วย AI — ออกแบบให้แต่ละระบบทำงานเชื่อมกันแบบครบวงจร ตอนนี้มี 3 ระบบเปิดใช้งานจริงบน production แล้ว",
+      "เคยพัฒนาและส่งระบบขึ้น production 3 ระบบแบบ end-to-end — watcharin-service.com ยังเปิดใช้งาน ส่วน TangTee และ XTier ปิดบริการในเดือนสิงหาคม 2026 และเก็บไว้เป็นผลงานย้อนหลัง",
     systems: [
       "watcharin-service.com — ที่ปรึกษาและคลังโปรเจกต์ (เปิดใช้งานอยู่)",
       "tang-tee.com — แพลตฟอร์มรวมทีมและจัดทริป (2026 ปิดบริการแล้ว)",

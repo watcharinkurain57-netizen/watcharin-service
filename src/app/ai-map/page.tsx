@@ -6,6 +6,7 @@ import { TopicLink } from "@/components/ai-map/TopicLink";
 import { TONE } from "@/components/ai-map/tones";
 import { HomeFooter } from "@/components/home/HomeFooter";
 import { HomeNav } from "@/components/home/HomeNav";
+import { siteFeatures } from "@/lib/site-config";
 import { FLOW, LAYERS, MORE, ROADMAP, SOURCES, TOPIC_ORDER, UPDATED, ZOOM } from "@/lib/ai-map";
 import { SHARE_IMAGE } from "@/lib/share-image";
 
@@ -324,13 +325,13 @@ export default function AiMapPage() {
               </p>
               <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-3">
                 <Link
-                  href="/start"
+                  href={siteFeatures.workspace ? "/start" : "/campus/contact"}
                   className="rounded-full bg-brand-600 px-5 py-2.5 text-[0.92rem] font-bold text-white shadow-sm shadow-brand-600/25 transition-transform duration-300 hover:-translate-y-0.5 motion-reduce:transform-none"
                 >
                   เล่าโปรเจกต์ให้ฟัง
                 </Link>
                 <Link
-                  href="/#talk"
+                  href={siteFeatures.portfolio ? "/campus/contact" : "/#talk"}
                   className="text-[0.9rem] font-semibold text-ink-muted transition-colors hover:text-brand-700"
                 >
                   หรือทักมาถามเฉย ๆ

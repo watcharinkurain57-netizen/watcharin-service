@@ -1,3 +1,4 @@
+import { requireWorkspace } from "@/lib/workspace-access";
 import Link from "next/link";
 import { AccountButton } from "@/components/auth/AccountButton";
 import { ArchiveNavCta } from "@/components/archive/ArchiveNavCta";
@@ -8,6 +9,7 @@ import { MyProjectsLink } from "@/components/archive/MyProjectsLink";
  * แยกแถบบนออกจากหน้าแรก เพราะที่นี่คือคนละที่: หน้าแรกคือหน้าร้าน ที่นี่คือข้างใน
  */
 export default function ArchiveLayout({ children }: { children: React.ReactNode }) {
+  requireWorkspace();
   return (
     <>
       <header className="sticky top-0 z-50 border-b border-line bg-surface/85 backdrop-blur-md">

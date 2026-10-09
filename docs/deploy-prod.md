@@ -1,5 +1,7 @@
 # ขึ้น production ครั้งแรก
 
+> คู่มือนี้เป็นขั้นตอนสำหรับระบบงานเดิมที่ใช้ Supabase สำหรับ Portfolio ใหม่ที่ปิดระบบงานไว้ ให้ใช้ [คู่มือเผยแพร่ Creative Campus](deploy-creative-campus.md) ซึ่งไม่ต้องสร้างฐานข้อมูลหรือรัน migration
+
 > PR: https://github.com/watcharinkurain57-netizen/watcharin-service/pull/16
 > ลำดับสำคัญ — ข้อ 5 (merge) ต้องอยู่หลังข้อ 1–4 ไม่งั้นเว็บ prod จะชี้ไปฐานข้อมูลที่ยังไม่มีตาราง
 

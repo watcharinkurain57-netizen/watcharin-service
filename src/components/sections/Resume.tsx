@@ -48,7 +48,7 @@ export function Resume() {
                     <span className="text-sm text-ink-faint">มิ.ย. 2026 – ปัจจุบัน</span>
                   </div>
                   <div className="text-emerald-600 font-medium mb-2">Watcharin Ecosystem</div>
-                  <p className="text-ink-muted text-sm leading-relaxed">ส่งระบบขึ้น production จริงแล้ว <strong>3 ระบบ</strong>แบบ end-to-end — <strong>watcharin-service.com</strong>, <strong>tang-tee.com</strong> และ <strong>x-tier.pro</strong> รับผิดชอบตั้งแต่ออกแบบ พัฒนา deploy จนถึงดูแลใช้งานจริง บน Next.js + Supabase (Postgres/RLS) + Vercel พร้อม AI (Claude) และออกแบบให้สอดคล้อง PDPA</p>
+                  <p className="text-ink-muted text-sm leading-relaxed">ส่งระบบขึ้น production จริงแล้ว <strong>3 ระบบ</strong>แบบ end-to-end — <strong>watcharin-service.com</strong>, <strong>tang-tee.com</strong> และ <strong>x-tier.pro</strong> เว็บหลักยังเปิดใช้งาน ส่วน TangTee และ XTier ปิดบริการใน ส.ค. 2026 รับผิดชอบตั้งแต่ออกแบบ พัฒนา deploy จนถึงดูแลใช้งานจริง บน Next.js + Supabase (Postgres/RLS) + Vercel พร้อม AI (Claude) และออกแบบให้สอดคล้อง PDPA</p>
                 </div>
               </div>
               <div className="bg-surface-raised border border-line rounded-2xl p-6 flex gap-4 card-hover relative">
