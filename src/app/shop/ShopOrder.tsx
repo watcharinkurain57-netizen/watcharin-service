@@ -9,6 +9,7 @@ type MenuItem = {
   points: number;
   redeemable: boolean;
   available: boolean;
+  image_url: string;
 };
 type Config = {
   shopName: string;
@@ -159,27 +160,45 @@ export function ShopOrder() {
             </header>
 
             <div className="shop-menu">
-              {cfg.menu.map((m) => (
-                <div key={m.name} className={`shop-item${m.available ? "" : " is-off"}`}>
-                  <div>
-                    <div className="shop-name">{m.name}</div>
-                    <div className="shop-desc">{m.description}</div>
-                    <div className="shop-price">
-                      {baht(m.price)}
-                      {m.points > 1 ? ` · ${m.points} แต้ม` : ""}
+              {cfg.menu.map((m) => {
+                const qty = cart[m.name] ?? 0;
+                return (
+                  <article
+                    key={m.name}
+                    className={`shop-card${m.available ? "" : " is-off"}${qty ? " is-picked" : ""}`}
+                  >
+                    <div className="shop-photo">
+                      {m.image_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element -- รูปจาก Supabase Storage ที่เจ้าของร้านอัปโหลดเอง
+                        <img src={m.image_url} alt={m.name} loading="lazy" decoding="async" />
+                      ) : (
+                        <span className="shop-initial" aria-hidden="true">{m.name.slice(0, 1)}</span>
+                      )}
+                      {m.points > 1 && <span className="shop-badge">{m.points} แต้ม</span>}
                     </div>
-                  </div>
-                  {m.available ? (
-                    <div className="shop-qty">
-                      <button type="button" aria-label={`ลด ${m.name}`} onClick={() => change(m.name, -1)}>−</button>
-                      <span aria-live="polite">{cart[m.name] ?? 0}</span>
-                      <button type="button" className="is-add" aria-label={`เพิ่ม ${m.name}`} onClick={() => change(m.name, 1)}>+</button>
+                    <div className="shop-info">
+                      <div className="shop-name">{m.name}</div>
+                      {m.description && <div className="shop-desc">{m.description}</div>}
                     </div>
-                  ) : (
-                    <div className="shop-note">วันนี้ไม่มี</div>
-                  )}
-                </div>
-              ))}
+                    <div className="shop-foot">
+                      <span className="shop-price">{baht(m.price)}</span>
+                      {!m.available ? (
+                        <span className="shop-note">วันนี้ไม่มี</span>
+                      ) : qty === 0 ? (
+                        <div className="shop-qty">
+                          <button type="button" className="is-add" aria-label={`เพิ่ม ${m.name}`} onClick={() => change(m.name, 1)}>+</button>
+                        </div>
+                      ) : (
+                        <div className="shop-qty">
+                          <button type="button" aria-label={`ลด ${m.name}`} onClick={() => change(m.name, -1)}>−</button>
+                          <span aria-live="polite">{qty}</span>
+                          <button type="button" className="is-add" aria-label={`เพิ่ม ${m.name}`} onClick={() => change(m.name, 1)}>+</button>
+                        </div>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
             </div>
 
             <div className="shop-section">

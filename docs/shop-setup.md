@@ -46,6 +46,11 @@ update public.shop_settings set promptpay_id = '0XXXXXXXXX' where id = 1;
    `curl -X POST <ลิงก์ preview>/api/shop/summary -H "Authorization: Bearer <CRON_SECRET>"`
 4. ผ่านแล้วค่อยใส่ env ฝั่ง Production และเปลี่ยนลิงก์ริชเมนูเป็นเว็บจริง
 
+## รูปเมนู
+1. Supabase → Storage → bucket `shop-menu` → Upload (jpg/png/webp ไม่เกิน 5 MB · รูปจัตุรัสสวยสุด)
+2. กดไฟล์ → Get URL / Copy URL
+3. Table Editor → `shop_menu` → วาง URL ในช่อง `image_url` ของเมนูนั้น (ว่าง = แสดงกรอบสีพร้อมตัวอักษรแรกแทน)
+
 ## ใช้งานทุกวัน (Supabase → Table Editor)
 - `shop_menu`: แก้ราคา · เอาติ๊ก `available` ออกวันที่ไม่ทำเมนูนั้น
 - `shop_orders`: เทียบยอดกับแอปธนาคาร ติ๊ก `payment_checked` · ไม่มีเงินเข้า/ยกเลิก → `status = cancelled` (แต้มคืนให้อัตโนมัติ)

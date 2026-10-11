@@ -12,7 +12,7 @@ export async function GET(req: Request) {
   if (!settings?.promptpay_id) return closed();
 
   const [menu, pickup, customer] = await Promise.all([
-    db.from("shop_menu").select("name, description, price, points, redeemable, available").order("sort"),
+    db.from("shop_menu").select("name, description, price, points, redeemable, available, image_url").order("sort"),
     db.rpc("shop_next_pickup"),
     (async () => {
       const token = readToken(req);
