@@ -61,6 +61,25 @@ update public.shop_settings set promptpay_id = '0XXXXXXXXX' where id = 1;
 - ออร์เดอร์ที่ได้ QR แต่ไม่จ่าย = `payment_status = pending` ไม่ได้แต้ม ไม่เข้าสรุป 19:00 ปล่อยไว้ได้
 - จ่ายแล้ว = `payment_status = paid` + `payment_checked` ติ๊กให้เอง · เงินโอนเข้าบัญชีธนาคารตามรอบของ Omise
 
+## ชื่อลูกค้าจากไลน์ (LIFF)
+ลูกค้ากดปุ่ม "สั่งอาหาร" ในไลน์ร้าน → ชื่อที่แสดงในไลน์ขึ้นให้เอง ไม่ต้องพิมพ์ (กด "แก้" เปลี่ยนเป็นชื่อเล่นได้)
+1. LINE Developers → Provider "Watcharin Service" → Create a new channel → **LINE Login** (ต้องอยู่ provider เดียวกับ OA ร้าน)
+2. ในช่อง LINE Login → แท็บ LIFF → Add
+   - Size: **Full** · Endpoint URL: `https://watcharin-service.com/shop` (ทดสอบ: ลิงก์ preview + `/shop`)
+   - Scopes: ติ๊ก **profile** · Bot link feature: **On (Normal)** แล้วเลือก OA ร้าน
+3. คัดลอก **LIFF ID** → Vercel env `NEXT_PUBLIC_SHOP_LIFF_ID` (ไม่ใช่ความลับ) → redeploy
+4. ปุ่มในเมนูไลน์ใช้ลิงก์ `https://liff.line.me/<LIFF ID>` แทนลิงก์เว็บตรง ๆ
+5. Channel ของ LINE Login ต้องกด **Publish** (สถานะ Developing ใช้ได้แค่บัญชีที่เป็น admin/tester)
+
+ไม่ตั้ง = ลูกค้าพิมพ์ชื่อเองครั้งแรก มือถือจำไว้ครั้งต่อไป
+
+## เมนูไลน์ (Rich menu)
+LINE Official Account Manager → หน้าแรก → Rich menus → Create
+- เทมเพลต: แบบ 2 ช่อง ซ้ายใหญ่ ขวาเล็ก (ขนาด 2500×843) · อัปโหลดรูป `line-richmenu-2500x843.jpg`
+- ช่องซ้าย "สั่งอาหาร" → Link → `https://liff.line.me/<LIFF ID>` (ยังไม่มี LIFF ใช้ `https://watcharin-service.com/shop`)
+- ช่องขวา "ทักแอดมิน" → Text → `ขอสอบถามค่ะ/ครับ`
+- Menu bar text: `สั่งอาหาร` · Default behavior: Shown
+
 ## รูปเมนู
 1. Supabase → Storage → bucket `shop-menu` → Upload (jpg/png/webp ไม่เกิน 5 MB · รูปจัตุรัสสวยสุด)
 2. กดไฟล์ → Get URL / Copy URL

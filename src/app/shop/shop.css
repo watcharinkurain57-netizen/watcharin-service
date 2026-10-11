@@ -85,3 +85,7 @@ body:has(.shop-app) { background: #f1f7f4; }
   .shop-qr.is-loading { animation: shop-pulse 1.2s ease-in-out infinite; }
 }
 @keyframes shop-pulse { 50% { opacity: .35; } }
+
+/* ชื่อที่รู้แล้ว (จำไว้ / จากไลน์) — บรรทัดเดียว ไม่ต้องพิมพ์ */
+.shop-name-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 12px; padding: 10px 12px; background: var(--s-bg); border-radius: 10px; }
+.shop-link { font: inherit; background: none; border: 0; color: var(--s-accent-text); font-weight: 600; text-decoration: underline; cursor: pointer; padding: 4px; }

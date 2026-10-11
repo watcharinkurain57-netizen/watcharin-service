@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { lineDisplayName } from "@/lib/shop/liff";
 
 type MenuItem = {
   name: string;
@@ -93,6 +94,8 @@ export function ShopOrder() {
   const [loadError, setLoadError] = useState("");
   const [cart, setCart] = useState<Record<string, number>>({});
   const [nick, setNick] = useState("");
+  /** มีชื่อแล้ว (จำไว้ / จากไลน์) โชว์เป็นบรรทัดเดียว กด "แก้" ถึงจะเป็นช่องพิมพ์ */
+  const [editNick, setEditNick] = useState(true);
   const [slot, setSlot] = useState("");
   const [useReward, setUseReward] = useState(false);
   const [step, setStep] = useState<"menu" | "pay" | "done">("menu");
@@ -112,7 +115,19 @@ export function ShopOrder() {
         if (!res.ok) throw new Error(body.error ?? "โหลดเมนูไม่สำเร็จ");
         setCfg(body);
         setSlot(body.slots[0] ?? "");
-        setNick(load(NICK_KEY) || body.customer?.nickname || "");
+        const known = load(NICK_KEY) || body.customer?.nickname || "";
+        setNick(known);
+        if (known) setEditNick(false);
+        // เปิดจากไลน์และยังไม่เคยมีชื่อ — ใช้ชื่อที่แสดงในไลน์ (ถ้ายังไม่ได้เริ่มพิมพ์เอง)
+        else
+          lineDisplayName().then((n) => {
+            if (!n) return;
+            setNick((cur) => {
+              if (cur) return cur;
+              setEditNick(false);
+              return n;
+            });
+          });
       })
       .catch((e: Error) => setLoadError(e.message || "โหลดเมนูไม่สำเร็จ ลองรีเฟรช"));
   }, []);
@@ -140,6 +155,7 @@ export function ShopOrder() {
   function goPay() {
     if (!nick.trim()) {
       setError("กรอกชื่อเล่นก่อนนะคะ");
+      setEditNick(true);
       document.getElementById("shop-nick")?.focus();
       return;
     }
@@ -317,10 +333,17 @@ export function ShopOrder() {
 
             <div className="shop-section">
               <h2>รับของ</h2>
-              <div className="shop-field">
-                <label htmlFor="shop-nick">ชื่อเล่น (ใช้ชื่อในไลน์หรือชื่อเล่นก็ได้)</label>
-                <input id="shop-nick" value={nick} maxLength={30} autoComplete="nickname" placeholder="เช่น ต้น" onChange={(e) => setNick(e.target.value)} />
-              </div>
+              {nick.trim() && !editNick ? (
+                <div className="shop-name-row">
+                  <span>สั่งในชื่อ <b>{nick}</b></span>
+                  <button type="button" className="shop-link" onClick={() => setEditNick(true)}>แก้</button>
+                </div>
+              ) : (
+                <div className="shop-field">
+                  <label htmlFor="shop-nick">ชื่อเล่น (ใช้ชื่อในไลน์หรือชื่อเล่นก็ได้)</label>
+                  <input id="shop-nick" value={nick} maxLength={30} autoComplete="nickname" placeholder="เช่น ต้น" onChange={(e) => setNick(e.target.value)} />
+                </div>
+              )}
               <div className="shop-field">
                 <label htmlFor="shop-slot">เวลารับ</label>
                 <select id="shop-slot" value={slot} onChange={(e) => setSlot(e.target.value)}>
