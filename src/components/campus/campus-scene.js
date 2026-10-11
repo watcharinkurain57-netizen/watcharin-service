@@ -21,22 +21,22 @@ export function mountCampusMotion(root, T, onOpen) {
     detail = page.querySelector(".ww-detail");
   const catalog = {
     systems: {
-      tag: "01 / SERVICENOW · SYSTEMS",
+      tag: "ระบบองค์กร",
       title: "Systems Lab",
       description: "สำรวจระบบองค์กร สถาปัตยกรรม และการเชื่อมต่อข้อมูล",
     },
     brands: {
-      tag: "02 / IDENTITY · APPAREL",
+      tag: "แบรนด์เสื้อผ้าและอาหาร",
       title: "Brand House",
       description: "พบกับ WANSABYE และ Thai Thrae พร้อมเรื่องราวของแบรนด์",
     },
     media: {
-      tag: "03 / 3D · VISUAL STORIES",
+      tag: "ภาพและเรื่องราว",
       title: "Creative Studio",
       description: "พื้นที่ของภาพ 3D ภาพโฆษณา และเรื่องราวที่กำลังสร้าง",
     },
     web: {
-      tag: "04 / WEBSITES · SOFTWARE",
+      tag: "เว็บไซต์และซอฟต์แวร์",
       title: "Digital Garage",
       description: "จากเว็บไซต์และแอป สู่รายละเอียดวิธีออกแบบและพัฒนา",
     },
@@ -642,14 +642,12 @@ export function mountCampusMotion(root, T, onOpen) {
       for (const key of Object.keys(view))
         view[key] = lerp(from[key], to[key], t);
     }
+    try { introPlayed = sessionStorage.getItem("campus:intro-seen:v2") === "true"; } catch {}
     function layout() {
       const w = host.clientWidth,
-        h = Math.max(
-          1,
-          host.clientHeight - (page.clientWidth <= 520 ? 100 : 0),
-        );
+        h = Math.max(1, host.clientHeight);
       if (!w || !host.clientHeight) return false;
-      compact = page.clientWidth <= 520;
+      compact = host.clientWidth <= 560;
       if (w !== width || h !== height) {
         width = w;
         height = h;
@@ -919,16 +917,17 @@ export function mountCampusMotion(root, T, onOpen) {
     function intro() {
       clearTrack();
       introPlayed = true;
+      try { sessionStorage.setItem("campus:intro-seen:v2", "true"); } catch {}
       selected = null;
       hover(null);
       for (const button of page.querySelectorAll("[data-zone]"))
         button.setAttribute("aria-pressed", "false");
       detail.querySelector(".ww-detail-kicker").textContent =
-        "WELCOME TO MY WORLD";
-      detail.querySelector("h3").textContent = "Watcharin World";
+        "เลือกอาคารเพื่อสำรวจ";
+      detail.querySelector("h3").textContent = "Creative Campus";
       detail.querySelector("p").textContent =
-        "เลือกอาคาร แล้วพาเจ้ารถคันเล็กไปสำรวจสิ่งที่ผมสร้าง";
-      openButton.textContent = "เริ่มสำรวจ Digital Garage ↗";
+        "สี่พื้นที่ของงานที่ผมสร้าง";
+      openButton.textContent = "เข้าสู่ Digital Garage ↗";
       car.position.set(0, 0.18, 0.35);
       car.rotation.set(0, 0, 0);
       parallax.x = parallax.z = parallax.targetX = parallax.targetZ = 0;
@@ -950,7 +949,7 @@ export function mountCampusMotion(root, T, onOpen) {
         { duration: 700, easing: "cubic-bezier(.22,1,.36,1)" },
       );
       run(
-        1750,
+        1450,
         (t) => {
           interpolateView(from, overview, out(t));
           Object.values(buildings).forEach((g, i) => {

@@ -15,8 +15,11 @@ export function CampusReadingNav() {
       .filter((node): node is HTMLElement => Boolean(node));
     const update = () => {
       let id = "brief";
+      const edge =
+        (document.querySelector(".campus-story-nav")?.getBoundingClientRect()
+          .bottom ?? 160) + 48;
       for (const element of elements)
-        if (element.getBoundingClientRect().top <= 160) id = element.id;
+        if (element.getBoundingClientRect().top <= edge) id = element.id;
       setActive(id);
     };
     update();
@@ -25,7 +28,7 @@ export function CampusReadingNav() {
   }, []);
   return (
     <nav className="campus-story-nav" aria-label="หัวข้อกรณีศึกษา">
-      {sections.map(({ id, title }, i) => (
+      {sections.map(({ id, title }) => (
         <a
           key={id}
           href={`#${id}`}
@@ -39,7 +42,7 @@ export function CampusReadingNav() {
             document.getElementById(id)?.focus({ preventScroll: true });
           }}
         >
-          <small>0{i + 1}</small> {title}
+          {title}
         </a>
       ))}
     </nav>

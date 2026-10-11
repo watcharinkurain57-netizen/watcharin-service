@@ -91,7 +91,7 @@ export function ContactForm({ variant = "dark", initialTopic = "", contactEmail 
   const inputClass = "w-full bg-white/5 border border-white/15 rounded-xl px-4 py-3 text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-400/60 transition";
   return (
     <form onSubmit={handleSubmit} className={`${panelClass} space-y-4`} aria-busy={status === "submitting"}>
-      {variant === "campus" && <div><span className="campus-eyebrow">START A CONVERSATION</span><h2>เล่าเรื่องที่อยากทำ</h2></div>}
+      {variant === "campus" && <div className="campus-form-intro"><h2>เล่าเรื่องที่อยากทำ</h2><p>ฝากรายละเอียดไว้ แล้วผมจะติดต่อกลับทางอีเมล</p></div>}
       <div aria-hidden="true" style={{ position: "absolute", left: "-9999px" }}>
         <label>Website (leave blank)<input type="text" name="website" tabIndex={-1} autoComplete="off" /></label>
       </div>
