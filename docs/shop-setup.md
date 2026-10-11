@@ -21,7 +21,7 @@ update public.shop_settings set promptpay_id = '0XXXXXXXXX' where id = 1;
 | `SUPABASE_SECRET_KEY` | Settings → API Keys → secret key (**ห้ามขึ้นต้นด้วย NEXT_PUBLIC_**) |
 | `CRON_SECRET` | ตั้งเอง ยาว ๆ (ถ้ามีอยู่แล้วจาก meeting-reminders ใช้ตัวเดิม) |
 | `SHOP_LINE_CHANNEL_TOKEN` | LINE Developers → channel ของร้าน → Messaging API → Channel access token |
-| `SHOP_LINE_TO` | LINE Developers → Basic settings → Your user ID (ขึ้นต้นด้วย U) |
+| `SHOP_LINE_TO` | LINE Developers → Basic settings → Your user ID (ขึ้นต้นด้วย U) · เป็นค่าเดียวกันทุก OA ที่อยู่ใต้ Provider เดียวกัน (Watcharin Service) |
 
 ทางเลือก: `SHOP_SUMMARY_EMAIL` ถ้าอยากได้สรุปทางอีเมลด้วย (ใช้ Resend ที่มีอยู่)
 
