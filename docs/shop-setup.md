@@ -1,12 +1,14 @@
 # ร้านแซลดอง กุ้งแช่ — เปิดระบบสั่งซื้อ /shop
 
-ลูกค้า: ปุ่ม "สั่งอาหาร" ในไลน์ร้าน → `watcharin-service.com/shop` → เลือกเมนู → สแกน QR พร้อมเพย์ (ยอดขึ้นเอง) → กด "โอนแล้ว" จบ
+ลูกค้า: ปุ่ม "สั่งอาหาร" ในไลน์ร้าน → `watcharin-service.com/shop` → เลือกเมนู → สแกน QR พร้อมเพย์ (ยอดขึ้นเอง) → จ่ายแล้วหน้าเว็บขึ้น "รับออร์เดอร์แล้ว" เอง (ผ่าน Omise)
+ยังไม่ตั้ง Omise: ใช้ QR พร้อมเพย์ของร้านแทน ลูกค้ากด "โอนแล้ว" แล้วร้านเช็กยอดเอง
 ร้าน: 19:05 ได้สรุปเข้าไลน์ (เฉพาะวันที่พรุ่งนี้มีของต้องส่ง) · ข้อมูลทั้งหมดอยู่ใน Supabase
 
 > ลำดับสำคัญ: ทำข้อ 1–3 ก่อน merge ไม่งั้น /shop ขึ้นว่ายังไม่เปิด (ไม่พัง แต่ใช้ไม่ได้)
 
 ## 1. ฐานข้อมูล
 Supabase (prod) → SQL Editor → วาง `supabase/migrations/0024_shop_orders.sql` ทั้งไฟล์ → Run
+ตามด้วย `0025_shop_menu_images.sql` และ `0026_shop_gateway.sql`
 (ต้องมี `is_app_admin()` จาก 0003 อยู่แล้ว)
 
 แล้วใส่เลขพร้อมเพย์:
@@ -46,6 +48,19 @@ update public.shop_settings set promptpay_id = '0XXXXXXXXX' where id = 1;
    `curl -X POST <ลิงก์ preview>/api/shop/summary -H "Authorization: Bearer <CRON_SECRET>"`
 4. ผ่านแล้วค่อยใส่ env ฝั่ง Production และเปลี่ยนลิงก์ริชเมนูเป็นเว็บจริง
 
+## เช็กเงินเข้าอัตโนมัติ (Omise)
+1. สมัครที่ omise.co (บุคคลธรรมดาได้) · ระหว่างรออนุมัติใช้โหมดทดสอบได้เลย
+2. Omise Dashboard → Keys → คัดลอก Secret key (`skey_test_…` ตอนทดสอบ, `skey_…` ตอนใช้จริง)
+3. Vercel → env `OMISE_SECRET_KEY` (ติ๊ก Sensitive) → redeploy · **ห้ามส่งคีย์ในแชท**
+4. Omise Dashboard → Webhooks → ใส่ `https://<โดเมน>/api/shop/omise/webhook`
+   (ไม่ใส่ก็ใช้ได้ หน้าเว็บถาม Omise เองทุก 3 วิ แต่ถ้าลูกค้าปิดหน้าไปก่อน webhook จะยืนยันให้)
+
+ทดสอบ (คีย์ test): สั่งในหน้า /shop → Omise Dashboard → Charges → charge ล่าสุด → Actions → Mark as successful → หน้าเว็บขึ้น "รับออร์เดอร์แล้ว" เอง
+
+- ค่าธรรมเนียม PromptPay ~1.65% + VAT · ยอดขั้นต่ำ 20 บาท · QR หมดอายุ 30 นาที (ลูกค้ากดสร้างใหม่ได้)
+- ออร์เดอร์ที่ได้ QR แต่ไม่จ่าย = `payment_status = pending` ไม่ได้แต้ม ไม่เข้าสรุป 19:00 ปล่อยไว้ได้
+- จ่ายแล้ว = `payment_status = paid` + `payment_checked` ติ๊กให้เอง · เงินโอนเข้าบัญชีธนาคารตามรอบของ Omise
+
 ## รูปเมนู
 1. Supabase → Storage → bucket `shop-menu` → Upload (jpg/png/webp ไม่เกิน 5 MB · รูปจัตุรัสสวยสุด)
 2. กดไฟล์ → Get URL / Copy URL
@@ -53,10 +68,10 @@ update public.shop_settings set promptpay_id = '0XXXXXXXXX' where id = 1;
 
 ## ใช้งานทุกวัน (Supabase → Table Editor)
 - `shop_menu`: แก้ราคา · เอาติ๊ก `available` ออกวันที่ไม่ทำเมนูนั้น
-- `shop_orders`: เทียบยอดกับแอปธนาคาร ติ๊ก `payment_checked` · ไม่มีเงินเข้า/ยกเลิก → `status = cancelled` (แต้มคืนให้อัตโนมัติ)
+- `shop_orders`: (ไม่มี Omise) เทียบยอดกับแอปธนาคาร ติ๊ก `payment_checked` · ยกเลิก → `status = cancelled` (แต้มคืนให้อัตโนมัติ)
 - `shop_customers`: ดูแต้ม รหัสลูกค้า · เติม `note` เรื่องแพ้อาหาร
 - `shop_settings`: เวลาปิดรับ วันรับของ (`open_days` 0=อาทิตย์) รอบเวลารับ
 
 ## สิ่งที่ระบบไม่ได้ทำ
-- ไม่ตรวจสลิปอัตโนมัติ (บริการตรวจสลิปเสียเงิน) — แต้มเข้าทันที ยกเลิกแล้วคืนเอง
+- ไม่มี Omise = ไม่ตรวจเงินเข้า — แต้มเข้าทันที ยกเลิกแล้วคืนเอง
 - ลูกค้าไม่ต้องล็อกอิน: มือถือจำ token ไว้ เปลี่ยนเครื่อง = เริ่มรหัสใหม่ (ย้ายแต้มให้ได้ใน `shop_customers`)

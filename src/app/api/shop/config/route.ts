@@ -1,3 +1,4 @@
+import { omiseEnabled } from "@/lib/shop/omise";
 import { closed, pickupLabel, readSettings, readToken, shopDb } from "@/lib/shop/shop.server";
 
 export const runtime = "nodejs";
@@ -31,6 +32,8 @@ export async function GET(req: Request) {
       pickupLabel: pickupLabel(pickup.data as string),
       menu: menu.data,
       customer,
+      // true = QR จาก Omise ระบบรู้เองว่าเงินเข้า · false = QR พร้อมเพย์ของร้าน ลูกค้ากด "โอนแล้ว"
+      gateway: omiseEnabled(),
     },
     { headers: { "Cache-Control": "no-store" } },
   );

@@ -73,3 +73,15 @@ body:has(.shop-app) { background: #f1f7f4; }
 @media (prefers-reduced-motion: no-preference) {
   .shop-btn:active, .shop-qty button:active { transform: scale(.96); }
 }
+
+/* ---------- จ่ายผ่าน Omise: QR สูงกว่าจัตุรัส (มีหัว Thai QR) + สถานะรอเงินเข้า ---------- */
+.shop-qr.is-gateway { width: 260px; height: auto; min-height: 260px; object-fit: contain; }
+.shop-qr.is-loading { height: 320px; background: var(--s-tint); }
+.shop-wait { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--s-accent-text); font-weight: 600; font-size: .92rem; }
+.shop-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--s-accent); }
+.shop-app a.shop-btn { text-decoration: none; display: inline-block; }
+@media (prefers-reduced-motion: no-preference) {
+  .shop-dot { animation: shop-pulse 1.2s ease-in-out infinite; }
+  .shop-qr.is-loading { animation: shop-pulse 1.2s ease-in-out infinite; }
+}
+@keyframes shop-pulse { 50% { opacity: .35; } }

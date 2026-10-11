@@ -37,6 +37,8 @@ async function handle(req: Request) {
     .select("order_no, nickname, pickup_slot, items, total, discount, payment_checked")
     .eq("pickup_date", tomorrow)
     .neq("status", "cancelled")
+    // ออร์เดอร์ที่สร้าง QR Omise แล้วไม่จ่าย ค้างเป็น pending — ไม่ต้องเตรียมของ
+    .eq("payment_status", "paid")
     .order("pickup_slot")
     .order("order_no");
   if (error) return Response.json({ error: error.message }, { status: 500 });
