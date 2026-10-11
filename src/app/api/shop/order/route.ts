@@ -43,6 +43,7 @@ export async function POST(req: Request) {
   if (error) {
     // ข้อความจาก raise exception ขึ้นต้นด้วย "shop:" — ไม่ส่งรายละเอียดภายในออกไป
     const known = error.message.startsWith("shop:");
+    if (!known) console.error("[shop] place_order:", error.message);
     return Response.json(
       { error: known ? "เมนูหรือเวลารับเปลี่ยนไปแล้ว ลองรีเฟรชแล้วสั่งใหม่" : "ส่งออร์เดอร์ไม่สำเร็จ ลองอีกครั้ง" },
       { status: known ? 409 : 500 },
