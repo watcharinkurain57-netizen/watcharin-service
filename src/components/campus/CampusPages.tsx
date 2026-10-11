@@ -338,61 +338,101 @@ function CampusContactCta({
 export function CampusZonePage({ zoneKey }: { zoneKey: CampusZoneKey }) {
   const zone = campusZones[zoneKey];
   const projects = projectsInZone(zoneKey);
+  const nextKey = zoneKeys[(zoneKeys.indexOf(zoneKey) + 1) % zoneKeys.length];
+  const nextZone = campusZones[nextKey];
   const artwork =
-    "heroArtwork" in zone
-      ? campusAsset(zone.heroArtwork)
-      : projectCover(
-          campusContent.projects.find(
-            (project) => project.key === zone.heroProject,
-          )!,
-        );
+    zoneKey === "brands"
+      ? campusAsset("wansabye-shop.jpg")
+      : "heroArtwork" in zone
+        ? campusAsset(zone.heroArtwork)
+        : projectCover(
+            campusContent.projects.find(
+              (project) => project.key === zone.heroProject,
+            )!,
+          );
   return (
-    <main id="main-content" className="campus-page">
-      <CampusLink href={campusBase} className="campus-back">
-        ← กลับแคมปัส
-      </CampusLink>
-      <CampusCategories active={zoneKey} zones />
+    <main
+      id="main-content"
+      className="campus-page campus-zone-page"
+      data-zone={zoneKey}
+    >
+      <CampusPageMotion />
+      <div className="campus-zone-navigation">
+        <CampusLink href={campusBase} className="campus-back">
+          ← กลับแคมปัส
+        </CampusLink>
+        <CampusCategories active={zoneKey} zones />
+      </div>
+      <header className="campus-zone-title">
+        <h1 tabIndex={-1}>{zone.name}</h1>
+      </header>
       <div className="campus-zone-hero">
         <div>
-          <span className="campus-eyebrow">{zone.eyebrow}</span>
-          <h1 tabIndex={-1}>{zone.name}</h1>
           <h2>{zone.headline}</h2>
           <p>{zone.intro}</p>
-          <CampusLink
-            className="campus-button"
-            href={`${campusBase}/contact?zone=${zoneKey}`}
+          <a
+            className="campus-text-link"
+            href={zoneKey === "media" ? "#studio-status" : "#zone-work"}
           >
-            {zone.cta} ↗
-          </CampusLink>
+            {zoneKey === "brands"
+              ? "ดูเรื่องราวของแบรนด์"
+              : zoneKey === "media"
+                ? "ดูสิ่งที่กำลังเตรียม"
+                : "สำรวจงานในพื้นที่นี้"}{" "}
+            ↓
+          </a>
         </div>
-        <figure className="campus-cover">
-          <Image
-            src={artwork}
-            width={1672}
-            height={941}
-            sizes="(max-width: 600px) 100vw, 560px"
-            priority
-            alt={`ภาพคอนเซปต์สำหรับ ${zone.name}`}
-          />
-          <figcaption>AI · CONCEPT ARTWORK</figcaption>
+        <figure className="campus-zone-visual">
+          <div className="campus-cover" data-campus-parallax="">
+            <Image
+              src={artwork}
+              width={zoneKey === "brands" ? 1440 : 1672}
+              height={zoneKey === "brands" ? 1440 : 941}
+              sizes="(max-width: 760px) 100vw, 60vw"
+              priority
+              alt={
+                zoneKey === "brands"
+                  ? "หน้าร้าน WANSABYE พร้อมป้ายร้านและเสื้อผ้า"
+                  : `ภาพคอนเซปต์สำหรับ ${zone.name}`
+              }
+            />
+          </div>
+          <figcaption>
+            {zoneKey === "brands"
+              ? "WANSABYE · ภาพจริงจากเพจ ปี 2024"
+              : `ภาพคอนเซปต์จาก AI สำหรับ ${zone.name}`}
+          </figcaption>
         </figure>
       </div>
-      <div className="campus-capabilities">
-        {zone.capabilities.map((item, i) => (
-          <article key={item.title} data-campus-reveal="">
-            <span className="campus-eyebrow">0{i + 1}</span>
-            <h3>{item.title}</h3>
-            <p>{item.body}</p>
-          </article>
-        ))}
-      </div>
+      <section className="campus-zone-scope" aria-labelledby="zone-scope-title">
+        <div className="campus-zone-section-intro">
+          <h2 id="zone-scope-title">
+            {zoneKey === "brands" || zoneKey === "media"
+              ? "พื้นที่ที่อยากต่อยอด"
+              : "จากประสบการณ์ที่นำมาต่อยอด"}
+          </h2>
+          <p>
+            {zoneKey === "brands" || zoneKey === "media"
+              ? "แนวทางของงานที่กำลังพัฒนาไปในพื้นที่นี้"
+              : "มองงานตั้งแต่โจทย์ผู้ใช้ ไปจนถึงระบบและข้อมูลที่ทำงานร่วมกัน"}
+          </p>
+        </div>
+        <div className="campus-capabilities">
+          {zone.capabilities.map((item) => (
+            <article key={item.title}>
+              <h3>{item.title}</h3>
+              <p>{item.body}</p>
+            </article>
+          ))}
+        </div>
+      </section>
       {zoneKey === "brands" && <CampusBrands />}
       {projects.length > 0 && (
-        <section className="campus-zone-projects">
-          <span className="campus-eyebrow">
-            SELECTED WORK / {zone.name.toUpperCase()}
-          </span>
-          <h2>ผลงานใน {zone.name}</h2>
+        <section id="zone-work" className="campus-zone-projects" tabIndex={-1}>
+          <div className="campus-zone-section-intro">
+            <h2>สำรวจงานใน {zone.name}</h2>
+            <p>อ่านโจทย์ แนวทางการพัฒนา และบทบาทในแต่ละโครงการ</p>
+          </div>
           <div className="campus-project-grid">
             {projects.map((project) => (
               <CampusProjectCard key={project.key} project={project} />
@@ -401,13 +441,25 @@ export function CampusZonePage({ zoneKey }: { zoneKey: CampusZoneKey }) {
         </section>
       )}
       {zoneKey === "media" && (
-        <div className="campus-empty" data-campus-reveal="">
-          <span className="campus-eyebrow">{zone.empty?.label}</span>
+        <div
+          id="studio-status"
+          className="campus-empty campus-studio-status"
+          tabIndex={-1}
+        >
+          <span className="campus-page-label">งานที่กำลังจัดเตรียม</span>
           <h2>{zone.empty?.title}</h2>
           <p>{zone.empty?.body}</p>
         </div>
       )}
       <CampusProcess zone={zoneKey} />
+      <nav className="campus-zone-next" aria-label="สำรวจพื้นที่ถัดไป">
+        <span className="campus-page-label">สำรวจพื้นที่ถัดไป</span>
+        <CampusLink href={`${campusBase}/zones/${nextKey}`}>
+          <span>{nextZone.name}</span>
+          <span aria-hidden="true">↗</span>
+        </CampusLink>
+        <p>{nextZone.headline}</p>
+      </nav>
       <CampusContactCta title="มีไอเดียที่อยากต่อยอด?" zone={zoneKey} />
     </main>
   );
@@ -416,12 +468,11 @@ function CampusBrands() {
   const { brandRecords } = campusZones.brands;
   return (
     <>
-      <section className="campus-brand-records">
-        <span className="campus-eyebrow">BRAND STORIES / IN PROGRESS</span>
+      <section id="zone-work" className="campus-brand-records" tabIndex={-1}>
         <h2>เรื่องราวที่กำลังเดินต่อ.</h2>
         <div className="campus-brand-grid">
           {brandRecords.map((brand) => (
-            <article key={brand.key} data-campus-reveal="">
+            <article key={brand.key}>
               <span className="campus-status">{brand.status}</span>
               <h3>{brand.name}</h3>
               <p>{brand.summary}</p>

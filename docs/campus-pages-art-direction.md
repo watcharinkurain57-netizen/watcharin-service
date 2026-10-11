@@ -32,3 +32,25 @@ Contact    Clear invitation  Topic, name, email, message
 ```
 
 Review: preserve the functioning 3D as the homepage's bold element. On inner pages, spend emphasis on the actual project image or portrait. Avoid uniform boxed cards, numbered decorative labels, fabricated outcomes, and repeated reveal effects. Parallax is limited to project photographs/mockups; portrait and form remain still. Native scrolling, chapter focus, keyboard controls, and reduced motion remain intact.
+
+## The four work areas
+
+Keep the same tokens and typography. Open each area with its large English name, a Thai explanation, and one characteristic image. Systems Lab and Digital Garage use their labeled concept covers. Brand House leads with the real WANSABYE shop photograph rather than concept artwork; Creative Studio clearly identifies its studio image as a concept and its portfolio as still being prepared. Do not present future interests as completed client work.
+
+```text
+Systems / Digital   Name across the page
+                    Thai introduction      Landscape concept
+                    Areas of work / related projects / process
+
+Brand House         Name across the page
+                    Brand introduction     Large actual shop photograph
+                    Brand records / original photographs / process
+
+Creative Studio     Name across the page
+                    Visual direction       Wide studio concept
+                    Areas of interest / honest portfolio status / process
+
+All areas           Next area / contextual conversation
+```
+
+Review: the actual brand photo is the strongest evidence on Brand House, so give it the most room. Remove decorative capability numbers and repeated entrance reveals. The only sequential numbers describe the actual three-step process. Use restrained image parallax, preserve the gallery's keyboard controls, and give narrow screens a single reading column.
