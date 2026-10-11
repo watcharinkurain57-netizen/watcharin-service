@@ -24,6 +24,14 @@ export async function GET(req: Request) {
   ]);
   if (menu.error || pickup.error) return Response.json({ error: "โหลดเมนูไม่สำเร็จ" }, { status: 500 });
 
+  // นับเฉพาะออร์เดอร์ที่จ่ายแล้วของรอบรับของเดียวกัน — โชว์บนหน้าร้านว่ามีคนสั่งจริง ไม่บอกว่าใคร
+  const { count } = await db
+    .from("shop_orders")
+    .select("id", { count: "exact", head: true })
+    .eq("pickup_date", pickup.data as string)
+    .eq("payment_status", "paid")
+    .neq("status", "cancelled");
+
   return Response.json(
     {
       shopName: settings.shop_name,
@@ -34,6 +42,7 @@ export async function GET(req: Request) {
       customer,
       // true = QR จาก Omise ระบบรู้เองว่าเงินเข้า · false = QR พร้อมเพย์ของร้าน ลูกค้ากด "โอนแล้ว"
       gateway: omiseEnabled(),
+      roundOrders: count ?? 0,
     },
     { headers: { "Cache-Control": "no-store" } },
   );

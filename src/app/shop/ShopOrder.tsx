@@ -21,7 +21,12 @@ type Config = {
   customer: { code: string; nickname: string; points: number } | null;
   /** true = QR จาก Omise ระบบเช็กเงินเข้าเอง */
   gateway: boolean;
+  /** ออร์เดอร์ที่จ่ายแล้วของรอบรับของนี้ */
+  roundOrders: number;
 };
+
+/** น้อยกว่านี้ไม่โชว์ — "สั่งแล้ว 1 ออร์เดอร์" ดูเงียบมากกว่าน่าเชื่อถือ */
+const SHOW_ROUND_FROM = 3;
 type Placed = {
   orderNo: string;
   code: string;
@@ -287,6 +292,9 @@ export function ShopOrder() {
               <h1>{cfg.shopName}</h1>
               <p className="shop-sub">สั่งและโอนก่อน {cfg.cutoffHour}:00 รับของวันทำการถัดไป</p>
               <span className="shop-pill">ออร์เดอร์ตอนนี้ รับ{cfg.pickupLabel}</span>
+              {cfg.roundOrders >= SHOW_ROUND_FROM && (
+                <span className="shop-social">🔥 รอบนี้สั่งแล้ว {cfg.roundOrders} ออร์เดอร์</span>
+              )}
             </header>
 
             <div className="shop-menu">
