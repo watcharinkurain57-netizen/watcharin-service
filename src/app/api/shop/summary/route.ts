@@ -1,6 +1,6 @@
 import { Resend } from "resend";
 import { bangkokDate, pickupLabel, shopDb } from "@/lib/shop/shop.server";
-import { buildSummary, type SummaryRow } from "@/lib/shop/summary";
+import { buildCommunityPost, buildSummary, type SummaryRow } from "@/lib/shop/summary";
 
 /**
  * สรุปออร์เดอร์ 19:00 — pg_cron เรียกทุกวัน (supabase/cron_shop_summary.sql)
@@ -54,7 +54,14 @@ async function handle(req: Request) {
     const res = await fetch("https://api.line.me/v2/bot/message/push", {
       method: "POST",
       headers: { Authorization: `Bearer ${lineToken}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ to: lineTo, messages: [{ type: "text", text: text.slice(0, 4900) }] }),
+      body: JSON.stringify({
+        to: lineTo,
+        messages: [
+          { type: "text", text: text.slice(0, 4900) },
+          // ข้อความที่ 2: กดค้าง → ส่งต่อ → เลือก OpenChat ของร้าน
+          { type: "text", text: buildCommunityPost(pickupLabel(tomorrow), data as SummaryRow[]) },
+        ],
+      }),
     });
     (res.ok ? sent : failed).push(`line:${res.status}`);
   }
