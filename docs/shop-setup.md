@@ -36,6 +36,15 @@ update public.shop_settings set promptpay_id = '0XXXXXXXXX' where id = 1;
 
 แพ็กเกจฟรีส่ง push ได้ 200 ข้อความ/เดือน สรุปวันละ 1 ข้อความใช้ ~22
 
+ไม่ต้องตั้ง webhook: ระบบไม่ได้อ่านแชท แค่ push สรุปออกไป
+
+### ทดสอบก่อนขึ้นจริง (แนะนำ)
+1. ใส่ env ข้อ 2 ที่ Vercel โดยเลือก environment **Preview** แล้ว redeploy preview ของ PR
+2. ริชเมนูชั่วคราวลิงก์ไป `<ลิงก์ preview>/shop` แล้วลองสั่งจากมือถือ
+3. ยิงสรุปเองไม่ต้องรอ 1 ทุ่ม (สรุปจะแสดงออเดอร์ที่รับ "พรุ่งนี้"):
+   `curl -X POST <ลิงก์ preview>/api/shop/summary -H "Authorization: Bearer <CRON_SECRET>"`
+4. ผ่านแล้วค่อยใส่ env ฝั่ง Production และเปลี่ยนลิงก์ริชเมนูเป็นเว็บจริง
+
 ## ใช้งานทุกวัน (Supabase → Table Editor)
 - `shop_menu`: แก้ราคา · เอาติ๊ก `available` ออกวันที่ไม่ทำเมนูนั้น
 - `shop_orders`: เทียบยอดกับแอปธนาคาร ติ๊ก `payment_checked` · ไม่มีเงินเข้า/ยกเลิก → `status = cancelled` (แต้มคืนให้อัตโนมัติ)
