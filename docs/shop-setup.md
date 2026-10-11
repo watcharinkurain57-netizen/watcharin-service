@@ -40,6 +40,7 @@ update public.shop_settings set promptpay_id = '0XXXXXXXXX' where id = 1;
 
 ### ทดสอบก่อนขึ้นจริง (แนะนำ)
 1. ใส่ env ข้อ 2 ที่ Vercel โดยเลือก environment **Preview** แล้ว redeploy preview ของ PR
+   - Preview ของเว็บนี้ต่อ Supabase โปรเจกต์ dev แต่ `SUPABASE_SECRET_KEY` เป็นของ prod → เพิ่ม `SHOP_SUPABASE_URL` (Preview) = `https://ouhinfbpsuhuzsyuqwbl.supabase.co` ให้ร้านต่อโปรเจกต์เดียวกับ key
 2. ริชเมนูชั่วคราวลิงก์ไป `<ลิงก์ preview>/shop` แล้วลองสั่งจากมือถือ
 3. ยิงสรุปเองไม่ต้องรอ 1 ทุ่ม (สรุปจะแสดงออเดอร์ที่รับ "พรุ่งนี้"):
    `curl -X POST <ลิงก์ preview>/api/shop/summary -H "Authorization: Bearer <CRON_SECRET>"`

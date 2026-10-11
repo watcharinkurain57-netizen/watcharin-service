@@ -10,11 +10,15 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
  *
  * ไม่ผูกกับ INTERNAL_WORKSPACE_ENABLED: ร้านเปิดได้ในโหมด portfolio
  * ขอแค่มี NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SECRET_KEY ไม่ครบ = ตอบ 503
+ *
+ * SHOP_SUPABASE_URL (ไม่บังคับ) ใช้แทน NEXT_PUBLIC_SUPABASE_URL เฉพาะร้าน
+ * เพราะบน Vercel Preview เว็บส่วนอื่นต่อ Supabase โปรเจกต์ dev
+ * แต่ SUPABASE_SECRET_KEY ใช้ค่าเดียวกับ Production → URL กับ key ต้องเป็นโปรเจกต์เดียวกัน
  */
 let client: SupabaseClient | null | undefined;
 export function shopDb(): SupabaseClient | null {
   if (client === undefined) {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+    const url = (process.env.SHOP_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL)?.trim();
     const key = process.env.SUPABASE_SECRET_KEY?.trim();
     client = url && key ? createClient(url, key, { auth: { persistSession: false } }) : null;
   }
@@ -33,11 +37,13 @@ export type ShopSettings = {
 };
 
 export async function readSettings(db: SupabaseClient): Promise<ShopSettings | null> {
-  const { data } = await db
+  const { data, error } = await db
     .from("shop_settings")
     .select("shop_name, promptpay_id, cutoff_hour, open_days, pickup_slots")
     .eq("id", 1)
     .maybeSingle();
+  // ไม่งั้นหน้าร้านขึ้นแค่ "ยังไม่เปิด" แล้วไม่รู้ว่าเพราะ key ผิดหรือยังไม่ใส่พร้อมเพย์
+  if (error) console.error("[shop] readSettings:", error.message);
   return data;
 }
 
