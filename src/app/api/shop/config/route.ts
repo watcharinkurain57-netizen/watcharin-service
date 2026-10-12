@@ -1,4 +1,4 @@
-import { omiseEnabled } from "@/lib/shop/omise";
+import { enabledBanks, omiseEnabled } from "@/lib/shop/omise";
 import { closed, pickupLabel, readSettings, readToken, shopDb } from "@/lib/shop/shop.server";
 
 export const runtime = "nodejs";
@@ -42,6 +42,8 @@ export async function GET(req: Request) {
       customer,
       // true = QR จาก Omise ระบบรู้เองว่าเงินเข้า · false = QR พร้อมเพย์ของร้าน ลูกค้ากด "โอนแล้ว"
       gateway: omiseEnabled(),
+      // ปุ่ม "จ่ายผ่านแอปธนาคาร" — ว่าง = มีแต่ QR
+      banks: enabledBanks(),
       roundOrders: count ?? 0,
     },
     { headers: { "Cache-Control": "no-store" } },

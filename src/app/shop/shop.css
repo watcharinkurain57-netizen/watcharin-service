@@ -90,3 +90,8 @@ body:has(.shop-app) { background: #f1f7f4; }
 .shop-name-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 12px; padding: 10px 12px; background: var(--s-bg); border-radius: 10px; }
 .shop-link { font: inherit; background: none; border: 0; color: var(--s-accent-text); font-weight: 600; text-decoration: underline; cursor: pointer; padding: 4px; }
 .shop-social { font-size: .88rem; font-weight: 600; color: var(--s-ink); }
+
+/* จ่ายผ่านแอปธนาคาร (Omise mobile banking) */
+.shop-banks { margin-top: 14px; }
+.shop-bank-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin-top: 6px; }
+.shop-bank-grid .shop-btn { width: 100%; }

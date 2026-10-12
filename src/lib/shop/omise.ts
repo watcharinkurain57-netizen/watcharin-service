@@ -26,6 +26,8 @@ export type OmiseCharge = {
   amount: number;
   currency: string;
   metadata?: Record<string, string>;
+  /** จ่ายผ่านแอปธนาคาร: ลิงก์ที่ลูกค้าต้องเปิดเพื่อไปยืนยันในแอป */
+  authorize_uri?: string;
   source?: { scannable_code?: { image?: { download_uri?: string } } };
 };
 
@@ -44,15 +46,45 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
 
 /** amount เป็นบาท (Omise รับสตางค์) · ขั้นต่ำของ PromptPay คือ 20 บาท */
 export function createPromptPayCharge(amountBaht: number, orderId: string, orderNo: string) {
+  return createCharge(amountBaht, orderId, orderNo, {
+    "source[type]": "promptpay",
+    // QR หมดอายุใน 30 นาที — ลูกค้าที่ทิ้งไว้แล้วกลับมาจ่ายทีหลังจะได้ไม่จ่ายออร์เดอร์ที่เลยรอบไปแล้ว
+    expires_at: new Date(Date.now() + 30 * 60_000).toISOString(),
+  });
+}
+
+/** ธนาคารที่ Omise เด้งเข้าแอปให้ได้ (source type = mobile_banking_<ชื่อ>) เรียงตามคนใช้เยอะ */
+export const BANKS = ["kbank", "scb", "ktb", "bbl", "bay"] as const;
+export type Bank = (typeof BANKS)[number];
+
+/**
+ * ธนาคารที่เปิดปุ่ม "จ่ายผ่านแอปธนาคาร"
+ * คีย์ test: เปิดครบทุกธนาคาร (Omise ให้ลองได้เลย)
+ * คีย์จริง: เฉพาะที่ใส่ใน OMISE_BANKS (เช่น "kbank,scb") — ต้องตรงกับที่ Omise อนุมัติให้บัญชีร้าน
+ */
+export function enabledBanks(): Bank[] {
+  if (!omiseEnabled()) return [];
+  if (process.env.OMISE_SECRET_KEY!.trim().startsWith("skey_test_")) return [...BANKS];
+  const want = (process.env.OMISE_BANKS ?? "").split(",").map((b) => b.trim().toLowerCase());
+  return BANKS.filter((b) => want.includes(b));
+}
+
+/** จ่ายผ่านแอปธนาคาร — ได้ authorize_uri ให้ลูกค้าเปิด แล้วธนาคารส่งกลับมาที่ returnUri */
+export function createBankCharge(amountBaht: number, orderId: string, orderNo: string, bank: Bank, returnUri: string) {
+  return createCharge(amountBaht, orderId, orderNo, {
+    "source[type]": `mobile_banking_${bank}`,
+    return_uri: returnUri,
+  });
+}
+
+function createCharge(amountBaht: number, orderId: string, orderNo: string, extra: Record<string, string>) {
   const form = new URLSearchParams({
     amount: String(amountBaht * 100),
     currency: "THB",
-    "source[type]": "promptpay",
     description: `ออร์เดอร์ ${orderNo}`,
     "metadata[order_id]": orderId,
     "metadata[order_no]": orderNo,
-    // QR หมดอายุใน 30 นาที — ลูกค้าที่ทิ้งไว้แล้วกลับมาจ่ายทีหลังจะได้ไม่จ่ายออร์เดอร์ที่เลยรอบไปแล้ว
-    expires_at: new Date(Date.now() + 30 * 60_000).toISOString(),
+    ...extra,
   });
   return call<OmiseCharge>("/charges", {
     method: "POST",

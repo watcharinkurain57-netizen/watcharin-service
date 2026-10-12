@@ -23,18 +23,29 @@ type Config = {
   gateway: boolean;
   /** ออร์เดอร์ที่จ่ายแล้วของรอบรับของนี้ */
   roundOrders: number;
+  /** ธนาคารที่กดจ่ายผ่านแอปได้ (Omise mobile banking) ว่าง = มีแต่ QR */
+  banks: string[];
+};
+
+const BANK_NAMES: Record<string, string> = {
+  kbank: "กสิกรไทย",
+  scb: "ไทยพาณิชย์",
+  ktb: "กรุงไทย",
+  bbl: "กรุงเทพ",
+  bay: "กรุงศรี",
 };
 
 /** น้อยกว่านี้ไม่โชว์ — "สั่งแล้ว 1 ออร์เดอร์" ดูเงียบมากกว่าน่าเชื่อถือ */
 const SHOW_ROUND_FROM = 3;
+/** code/earned/points ไม่มี เมื่อธนาคารพากลับมาเปิดในเบราว์เซอร์ที่ไม่รู้จักลูกค้า */
 type Placed = {
   orderNo: string;
-  code: string;
-  token: string;
+  code?: string;
   pickupLabel: string;
+  slot?: string;
   total: number;
-  earned: number;
-  points: number;
+  earned?: number;
+  points?: number;
 };
 /** ออร์เดอร์ที่สร้างแล้ว รอเงินเข้า (โหมด Omise) — เก็บรายการไว้โชว์ เพราะตะกร้ายังไม่ล้างจนกว่าจะจ่าย */
 type Bill = {
@@ -110,6 +121,8 @@ export function ShopOrder() {
   const [bill, setBill] = useState<Bill | null>(null);
   const [qr, setQr] = useState("");
   const [expired, setExpired] = useState(false);
+  /** กลับมาจากแอปธนาคาร (/shop?paid=<order id>) — รอเช็กว่าจ่ายสำเร็จไหม */
+  const [back, setBack] = useState<{ orderId: string; failed: boolean } | null>(null);
   const checking = useRef(false);
 
   useEffect(() => {
@@ -120,6 +133,8 @@ export function ShopOrder() {
         if (!res.ok) throw new Error(body.error ?? "โหลดเมนูไม่สำเร็จ");
         setCfg(body);
         setSlot(body.slots[0] ?? "");
+        const paidId = new URLSearchParams(window.location.search).get("paid");
+        if (paidId) setBack({ orderId: paidId, failed: false });
         const known = load(NICK_KEY) || body.customer?.nickname || "";
         setNick(known);
         if (known) setEditNick(false);
@@ -176,7 +191,12 @@ export function ShopOrder() {
 
   function finish(result: Placed) {
     setPlaced(result);
-    setCfg((c) => (c ? { ...c, customer: { code: result.code, nickname: nick.trim(), points: result.points } } : c));
+    const { code, points } = result;
+    if (code && points !== undefined) {
+      setCfg((c) => (c ? { ...c, customer: { code, nickname: nick.trim(), points } } : c));
+    }
+    setBack(null);
+    if (window.location.search.includes("paid=")) window.history.replaceState(null, "", "/shop");
     setCart({});
     setUseReward(false);
     setBill(null);
@@ -261,6 +281,54 @@ export function ShopOrder() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bill]);
 
+  /** เปลี่ยนจาก QR ไปจ่ายในแอปธนาคาร — Omise พาเข้าแอปแล้วธนาคารส่งกลับมา /shop?paid=… */
+  async function payByBank(bank: string) {
+    if (!bill) return;
+    setSending(true);
+    setError("");
+    try {
+      const res = await fetch("/api/shop/pay/bank", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-shop-token": bill.token },
+        body: JSON.stringify({ order: bill.orderId, bank }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error);
+      window.location.href = body.url;
+    } catch (e) {
+      setError((e as Error).message || "เปิดแอปธนาคารไม่สำเร็จ ลองสแกน QR แทน");
+      setSending(false);
+    }
+  }
+
+  // กลับมาจากแอปธนาคาร: ถามสถานะจนรู้ผล (token อาจไม่มี ถ้าเปิดในเบราว์เซอร์อื่น)
+  useEffect(() => {
+    if (!back || back.failed) return;
+    let alive = true;
+    const token = load(TOKEN_KEY);
+    const ask = async () => {
+      try {
+        const res = await fetch(`/api/shop/pay/status?order=${back.orderId}`, {
+          headers: token ? { "x-shop-token": token } : {},
+          cache: "no-store",
+        });
+        const body = await res.json();
+        if (!alive) return;
+        if (body.status === "paid") finish(body);
+        else if (body.status === "expired" || res.status === 404) setBack({ ...back, failed: true });
+      } catch {
+        /* เน็ตสะดุด รอบหน้าค่อยถามใหม่ */
+      }
+    };
+    void ask();
+    const timer = setInterval(ask, 3000);
+    return () => {
+      alive = false;
+      clearInterval(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [back]);
+
   useEffect(() => {
     if (step !== "pay" || !bill || expired) return;
     const timer = setInterval(check, 3000);
@@ -286,7 +354,33 @@ export function ShopOrder() {
   return (
     <main id="main-content" className="shop-app">
       <div className="shop-wrap">
-        {step === "menu" && (
+        {back && step !== "done" && (
+          <section className="shop-pay">
+            {back.failed ? (
+              <>
+                <h2>ยังไม่ได้รับเงิน</h2>
+                <p className="shop-err">การจ่ายในแอปธนาคารไม่สำเร็จหรือถูกยกเลิก ออร์เดอร์นี้ยังไม่ถูกส่งให้ร้าน</p>
+                <button
+                  type="button"
+                  className="shop-btn"
+                  onClick={() => {
+                    setBack(null);
+                    window.history.replaceState(null, "", "/shop");
+                  }}
+                >
+                  กลับไปสั่งใหม่
+                </button>
+              </>
+            ) : (
+              <>
+                <h2>กำลังเช็กการจ่ายเงิน</h2>
+                <p className="shop-wait" role="status"><span className="shop-dot" aria-hidden="true" />รอธนาคารยืนยัน… หน้านี้เปลี่ยนเอง</p>
+              </>
+            )}
+          </section>
+        )}
+
+        {!back && step === "menu" && (
           <section>
             <header className="shop-head">
               <h1>{cfg.shopName}</h1>
@@ -382,7 +476,7 @@ export function ShopOrder() {
             <h2>สแกนจ่ายด้วยพร้อมเพย์</h2>
             <div className="shop-amount">{baht(bill.total)}</div>
             {expired ? (
-              <p className="shop-err">QR หมดอายุแล้ว (30 นาที) กดสร้างใหม่ได้เลย</p>
+              <p className="shop-err">QR หมดอายุ หรือการจ่ายไม่สำเร็จ กดสร้าง QR ใหม่ได้เลย</p>
             ) : qr ? (
               // eslint-disable-next-line @next/next/no-img-element -- PNG จาก canvas ต้องกดค้างบันทึกได้
               <img className="shop-qr is-gateway" src={qr} alt={`QR พร้อมเพย์ ${bill.total} บาท`} />
@@ -396,6 +490,18 @@ export function ShopOrder() {
                   <a className="shop-btn is-ghost" href={qr} download={`qr-${bill.total}.png`}>บันทึกรูป QR</a>
                 )}
                 <p className="shop-note">สั่งจากมือถือเครื่องเดียวกับที่จะโอน: บันทึกรูป QR → เปิดแอปธนาคาร → สแกนจากรูป แล้วกลับมาหน้านี้</p>
+                {cfg.banks.length > 0 && bill.total >= 20 && (
+                  <div className="shop-banks">
+                    <p className="shop-note">หรือกดจ่ายในแอปธนาคารเลย (บนมือถือ)</p>
+                    <div className="shop-bank-grid">
+                      {cfg.banks.map((b) => (
+                        <button key={b} type="button" className="shop-btn is-ghost" disabled={sending} onClick={() => payByBank(b)}>
+                          {BANK_NAMES[b] ?? b}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </>
             )}
             <div className="shop-lines">
@@ -450,20 +556,24 @@ export function ShopOrder() {
             <div className="shop-big">✓ รับออร์เดอร์แล้ว</div>
             <p>
               เลขออร์เดอร์ <b>{placed.orderNo}</b>
-              <br />รับ{placed.pickupLabel} เวลา {slot}
-              <br />รหัสลูกค้าของคุณ <b>{placed.code}</b>
+              <br />รับ{placed.pickupLabel} เวลา {placed.slot ?? slot}
+              {placed.code && <><br />รหัสลูกค้าของคุณ <b>{placed.code}</b></>}
             </p>
-            <div className="shop-points">
-              ได้ +{placed.earned} แต้ม รวมตอนนี้ <b>{placed.points}</b> แต้ม
-              {placed.points >= 10 && <><br />ครบ 10 แล้ว ครั้งหน้าแลกฟรีได้ 1 กล่อง</>}
-            </div>
+            {placed.points !== undefined ? (
+              <div className="shop-points">
+                ได้ +{placed.earned} แต้ม รวมตอนนี้ <b>{placed.points}</b> แต้ม
+                {placed.points >= 10 && <><br />ครบ 10 แล้ว ครั้งหน้าแลกฟรีได้ 1 กล่อง</>}
+              </div>
+            ) : (
+              <p className="shop-note">แต้มเข้าบัญชีแล้ว ดูแต้มได้ตอนเปิดหน้าร้านจากไลน์</p>
+            )}
             <p className="shop-note">ร้านสรุปออร์เดอร์ตอน {cfg.cutoffHour}:00 แล้วเตรียมของให้ตามเวลาที่เลือก</p>
             <button type="button" className="shop-btn is-ghost" onClick={() => setStep("menu")}>สั่งเพิ่ม</button>
           </section>
         )}
       </div>
 
-      {step === "menu" && (
+      {!back && step === "menu" && (
         <div className="shop-bar">
           <div className="shop-bar-in">
             <div className="shop-total">

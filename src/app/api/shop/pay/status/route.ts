@@ -1,5 +1,5 @@
-import { confirmFromCharge, getCharge, omiseEnabled } from "@/lib/shop/omise";
-import { ownOrder } from "@/lib/shop/pay.server";
+import { confirmFromCharge, getCharge, omiseEnabled, type PaidResult } from "@/lib/shop/omise";
+import { orderById, ownOrder } from "@/lib/shop/pay.server";
 import { closed, pickupLabel, readToken, shopDb } from "@/lib/shop/shop.server";
 
 export const runtime = "nodejs";
@@ -11,15 +11,22 @@ const NO_STORE = { headers: { "Cache-Control": "no-store" } };
 /**
  * หน้าจ่ายเงินถามทุกไม่กี่วินาทีว่าเงินเข้าหรือยัง
  * ถาม Omise ตรง ๆ ด้วย ไม่ต้องรอ webhook — ถ้า webhook มาก่อน ออร์เดอร์ก็เป็น paid อยู่แล้ว
+ *
+ * ไม่มี token (ธนาคารพากลับมาเปิดในเบราว์เซอร์อื่น): ยังเช็กและยืนยันได้
+ * แต่ตอบแค่เลขออร์เดอร์กับวันรับ ไม่ส่งรหัสลูกค้าหรือแต้มออกไป
  */
 export async function GET(req: Request) {
   const db = shopDb();
   if (!db || !omiseEnabled()) return closed();
-  const order = await ownOrder(db, new URL(req.url).searchParams.get("order"), readToken(req));
+  const id = new URL(req.url).searchParams.get("order");
+  const mine = await ownOrder(db, id, readToken(req));
+  const order = mine ?? (await orderById(db, id));
   if (!order) return Response.json({ error: "ไม่พบออร์เดอร์" }, { status: 404 });
 
-  const done = (r: { pickupDate: string }) =>
-    Response.json({ status: "paid", ...r, pickupLabel: pickupLabel(r.pickupDate) }, NO_STORE);
+  const done = (r: PaidResult) => {
+    const shown = mine ? r : { orderNo: r.orderNo, pickupDate: r.pickupDate, slot: r.slot, total: r.total };
+    return Response.json({ status: "paid", ...shown, pickupLabel: pickupLabel(r.pickupDate) }, NO_STORE);
+  };
 
   if (order.payment_status === "paid") {
     // จ่ายแล้ว (webhook มาก่อน) — เรียกซ้ำได้ ไม่นับแต้มซ้ำ แค่คืนผลเดิม
