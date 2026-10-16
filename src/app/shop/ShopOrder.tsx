@@ -435,7 +435,8 @@ export function ShopOrder({ branch }: { branch?: string }) {
               </p>
               {cfg.pickupLabel ? (
                 <>
-                  <p className="shop-sub">สั่งและโอนก่อน {cfg.cutoffHour}:00 รับของวันทำการถัดไป</p>
+                  {/* สาขาเปิดแค่บางวัน (เช่น เสาร์-อาทิตย์) "วันทำการถัดไป" ไม่ตรง — วันรับจริงอยู่ในป้ายข้างล่าง */}
+                  <p className="shop-sub">สั่งและโอนก่อน {cfg.cutoffHour}:00 ของวันก่อนรับของ</p>
                   <span className="shop-pill">ออร์เดอร์ตอนนี้ รับ{cfg.pickupLabel}</span>
                 </>
               ) : (
