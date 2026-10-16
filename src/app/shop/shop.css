@@ -1,0 +1,106 @@
+/* หน้าร้าน /shop — โทนเขียวอ่อนแบบหน้าแรกของเว็บ (.theme-soft) ให้รู้สึกเป็นร้านเดียวกัน
+   สว่างเสมอ ไม่ตามโหมดมืด: รูปอาหารดูน่ากินบนพื้นอ่อนมากกว่า และเปิดจากไลน์เป็นหลัก */
+.shop-app {
+  --s-bg: #f1f7f4; --s-card: #fff; --s-ink: #121a17; --s-muted: #55645f; --s-faint: #8a9a94;
+  --s-line: #e1eae6; --s-tint: #e4efea;
+  --s-accent: #059669; --s-accent-ink: #fff; --s-accent-soft: #d1fae5; --s-accent-text: #047857;
+  --s-warn: #b45309;
+  color-scheme: light;
+  min-height: 100dvh; background: var(--s-bg); color: var(--s-ink);
+  font-family: var(--font-ibm-thai), system-ui, sans-serif; font-size: 16px; line-height: 1.5;
+}
+/* body ถูกทาสีเข้มไว้ที่ layout — ทาทับไม่ให้เห็นแถบดำตอนดึงจอเกินขอบบนมือถือ */
+body:has(.shop-app) { background: #f1f7f4; }
+.shop-app * { box-sizing: border-box; }
+.shop-wrap { max-width: 520px; margin: 0 auto; padding-inline: 16px; padding-block: 24px 120px; }
+.shop-app h1 { font-size: 1.5rem; font-weight: 700; margin: 0; line-height: 1.2; text-wrap: balance; }
+.shop-app h2 { font-size: 1.05rem; font-weight: 700; margin: 0 0 4px; }
+.shop-head { display: grid; gap: 6px; margin-bottom: 20px; justify-items: start; }
+.shop-sub { color: var(--s-muted); margin: 0; font-size: .92rem; }
+.shop-pill { background: var(--s-accent-soft); border-radius: 999px; padding: 3px 12px; font-size: .85rem; color: var(--s-accent-text); font-weight: 600; margin-top: 4px; }
+
+/* ---------- เมนู: การ์ดสี่เหลี่ยม 2 คอลัมน์ รูปจัตุรัสด้านบน ---------- */
+.shop-menu { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.shop-card { background: var(--s-card); border: 1px solid var(--s-line); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
+.shop-card.is-picked { border-color: var(--s-accent); box-shadow: 0 0 0 1px var(--s-accent); }
+.shop-card.is-off { opacity: .5; }
+.shop-photo { aspect-ratio: 1 / 1; width: 100%; background: var(--s-tint); display: grid; place-items: center; position: relative; }
+.shop-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.shop-initial { font-size: 1.6rem; font-weight: 700; color: var(--s-faint); }
+.shop-badge { position: absolute; top: 8px; left: 8px; background: rgb(255 255 255 / .92); color: var(--s-accent-text); border-radius: 999px; padding: 1px 8px; font-size: .75rem; font-weight: 600; }
+.shop-info { padding: 10px 12px 12px; display: grid; gap: 2px; flex: 1; align-content: start; }
+.shop-name { font-weight: 600; font-size: .95rem; line-height: 1.35; }
+.shop-desc { color: var(--s-muted); font-size: .8rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.shop-foot { display: flex; align-items: center; justify-content: space-between; gap: 4px; padding: 0 10px 12px 12px; min-height: 42px; }
+.shop-price { font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
+.shop-qty { display: flex; align-items: center; gap: 4px; }
+.shop-qty button { width: 30px; height: 30px; border-radius: 10px; border: 1px solid var(--s-line); background: var(--s-card); color: var(--s-ink); font-size: 1.1rem; line-height: 1; cursor: pointer; }
+.shop-qty button.is-add { background: var(--s-accent); color: var(--s-accent-ink); border-color: var(--s-accent); }
+.shop-qty span { min-width: 1.2em; text-align: center; font-variant-numeric: tabular-nums; font-weight: 700; }
+.shop-note { color: var(--s-muted); font-size: .85rem; }
+
+/* ---------- ฟอร์มรับของ / แต้ม ---------- */
+.shop-section { margin-top: 24px; background: var(--s-card); border: 1px solid var(--s-line); border-radius: 16px; padding: 16px; }
+.shop-field { display: grid; gap: 4px; margin-top: 12px; }
+.shop-field label { font-weight: 500; font-size: .9rem; }
+.shop-app input:not([type="checkbox"]), .shop-app select { font: inherit; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--s-line); background: var(--s-bg); color: var(--s-ink); width: 100%; }
+.shop-app :focus-visible { outline: 3px solid var(--s-accent); outline-offset: 2px; }
+.shop-points { background: var(--s-bg); border-radius: 12px; padding: 10px 12px; margin-top: 14px; font-size: .92rem; width: 100%; }
+.shop-stamps { display: flex; gap: 4px; margin-top: 6px; flex-wrap: wrap; }
+.shop-stamps i { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--s-accent); }
+.shop-stamps i.is-on { background: var(--s-accent); }
+.shop-check { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+
+/* ---------- แถบล่าง ---------- */
+.shop-bar { position: fixed; left: 0; right: 0; bottom: 0; background: rgb(255 255 255 / .96); border-top: 1px solid var(--s-line); padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px)); }
+.shop-bar-in { max-width: 520px; margin: 0 auto; display: flex; gap: 12px; align-items: center; }
+.shop-total { flex: 1; min-width: 0; }
+.shop-total b { font-size: 1.25rem; font-variant-numeric: tabular-nums; }
+.shop-btn { font: inherit; font-weight: 600; border: 0; border-radius: 12px; padding: 12px 20px; background: var(--s-accent); color: var(--s-accent-ink); cursor: pointer; }
+.shop-btn[disabled] { opacity: .4; cursor: not-allowed; }
+.shop-btn.is-ghost { background: var(--s-card); color: var(--s-ink); border: 1px solid var(--s-line); }
+
+/* ---------- จ่ายเงิน / เสร็จ ---------- */
+.shop-pay { background: var(--s-card); border: 1px solid var(--s-line); border-radius: 16px; padding: 20px; display: grid; gap: 12px; justify-items: center; text-align: center; }
+.shop-qr { width: 240px; height: 240px; max-width: 100%; background: #fff; border-radius: 12px; border: 1px solid var(--s-line); }
+.shop-amount { font-size: 2rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.shop-lines { width: 100%; text-align: left; font-size: .9rem; border-top: 1px solid var(--s-line); padding-top: 8px; }
+.shop-lines div { display: flex; justify-content: space-between; gap: 8px; }
+.shop-row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.shop-done { text-align: center; display: grid; gap: 10px; justify-items: center; background: var(--s-card); border: 1px solid var(--s-line); border-radius: 16px; padding: 24px 16px; }
+.shop-big { font-size: 1.8rem; font-weight: 700; color: var(--s-accent-text); }
+.shop-err { color: var(--s-warn); font-weight: 500; }
+@media (prefers-reduced-motion: no-preference) {
+  .shop-btn:active, .shop-qty button:active { transform: scale(.96); }
+}
+
+/* ---------- จ่ายผ่าน Omise: QR สูงกว่าจัตุรัส (มีหัว Thai QR) + สถานะรอเงินเข้า ---------- */
+.shop-qr.is-gateway { width: 260px; height: auto; min-height: 260px; object-fit: contain; }
+.shop-qr.is-loading { height: 320px; background: var(--s-tint); }
+.shop-wait { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--s-accent-text); font-weight: 600; font-size: .92rem; }
+.shop-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--s-accent); }
+.shop-app a.shop-btn { text-decoration: none; display: inline-block; }
+@media (prefers-reduced-motion: no-preference) {
+  .shop-dot { animation: shop-pulse 1.2s ease-in-out infinite; }
+  .shop-qr.is-loading { animation: shop-pulse 1.2s ease-in-out infinite; }
+}
+@keyframes shop-pulse { 50% { opacity: .35; } }
+
+/* ชื่อที่รู้แล้ว (จำไว้ / จากไลน์) — บรรทัดเดียว ไม่ต้องพิมพ์ */
+.shop-name-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 12px; padding: 10px 12px; background: var(--s-bg); border-radius: 10px; }
+.shop-link { font: inherit; background: none; border: 0; color: var(--s-accent-text); font-weight: 600; text-decoration: underline; cursor: pointer; padding: 4px; }
+.shop-social { font-size: .88rem; font-weight: 600; color: var(--s-ink); }
+
+/* จ่ายผ่านแอปธนาคาร (Omise mobile banking) */
+.shop-banks { margin-top: 14px; }
+.shop-bank-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin-top: 6px; }
+.shop-bank-grid .shop-btn { width: 100%; }
+
+/* สาขา */
+.shop-where { margin: 0; font-weight: 600; color: var(--s-ink); }
+.shop-where span { font-weight: 400; color: var(--s-muted); }
+.shop-pill.is-closed { background: #fef3c7; color: var(--s-warn); }
+.shop-branches { display: grid; gap: 10px; }
+.shop-branch { display: grid; gap: 2px; padding: 14px 16px; border-radius: 14px; background: var(--s-card); border: 1px solid var(--s-line); color: var(--s-ink); text-decoration: none; }
+.shop-branch:hover, .shop-branch:focus-visible { border-color: var(--s-accent); }
+.shop-branch span { color: var(--s-muted); font-size: .9rem; }
