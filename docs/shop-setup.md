@@ -26,6 +26,8 @@ update public.shop_settings set promptpay_id = '0XXXXXXXXX' where id = 1;
 | `SHOP_LINE_CHANNEL_TOKEN` | LINE Developers → channel ของร้าน (สาขาแรก) → Messaging API → Channel access token · สาขาอื่นดู "หลายสาขา" |
 | `SHOP_LINE_TO` | LINE Developers → Basic settings → Your user ID (ขึ้นต้นด้วย U) · เป็นค่าเดียวกันทุก OA ที่อยู่ใต้ Provider เดียวกัน (Watcharin Service) |
 
+Channel ID กับ Channel secret (แท็บ Basic settings) **ไม่ต้องใส่** ระบบไม่ได้ใช้ ใช้แค่ Channel access token (แท็บ Messaging API → Channel access token (long-lived) → Issue)
+
 ทางเลือก: `SHOP_SUMMARY_EMAIL` ถ้าอยากได้สรุปทางอีเมลด้วย (ใช้ Resend ที่มีอยู่)
 
 ## 3. ตั้งเวลาสรุป
@@ -122,7 +124,7 @@ LINE Official Account Manager → หน้าแรก → Rich menus → Creat
 
 เพิ่มสาขาใหม่
 1. manager.line.biz → สร้างบัญชีไลน์ของสาขา → ตั้งค่า → Messaging API → เปิดใช้ โดยเลือก Provider **Watcharin Service** (ต้องเป็น provider เดียวกันทุกสาขา)
-2. LINE Developers → channel ของสาขา → Messaging API → Channel access token → Vercel env `SHOP_LINE_TOKEN_<SLUG>` (ติ๊ก Sensitive · SLUG ตัวใหญ่ ขีดเป็นขีดล่าง เช่น `SHOP_LINE_TOKEN_SILOM`) → redeploy · **ห้ามส่ง token ในแชท**
+2. LINE Developers → channel ของสาขา → แท็บ Messaging API → Channel access token (long-lived) → Issue → Vercel env `SHOP_LINE_TOKEN_<SLUG>` (ติ๊ก Sensitive · SLUG ตัวใหญ่ ขีดเป็นขีดล่าง เช่น `SHOP_LINE_TOKEN_SILOM`) → redeploy · **ห้ามส่ง token ในแชท**
 3. เจ้าของร้าน (หรือคนดูแลสาขา) แอดไลน์ของสาขาเป็นเพื่อน ไม่งั้นไม่ได้รับสรุป
    - ผู้รับสรุปของสาขา: `SHOP_LINE_TO_<SLUG>` (หลายคนคั่นด้วยจุลภาค) ไม่ใส่ = ส่งให้ `SHOP_LINE_TO`
 4. เพิ่มแถวใน `shop_branches` (หรือบอกข้อมูลสาขาให้ Claude ใส่ให้)
@@ -130,6 +132,15 @@ LINE Official Account Manager → หน้าแรก → Rich menus → Creat
 6. นามบัตรของสาขา: ใช้ QR เพิ่มเพื่อนของไลน์สาขานั้น
 
 ไม่ตั้ง token ของสาขา = สรุปของสาขานั้นส่งผ่านไลน์ตัวกลาง (`SHOP_LINE_CHANNEL_TOKEN`) แทน
+
+สาขาที่มีตอนนี้ (token ของแต่ละไลน์ → ชื่อใน Vercel)
+| สาขา | ไลน์ | หน้าร้าน (ปุ่ม "สั่งอาหาร") | token |
+|---|---|---|---|
+| ชินวัตร 3 (A) | @463zgiwx | `/shop/shinawatra3` | `SHOP_LINE_CHANNEL_TOKEN` (ตัวกลาง) |
+| บางกรวย (B) | @076utnyh | `/shop/bangkruai` | `SHOP_LINE_TOKEN_BANGKRUAI` |
+| ตลาดนัดจตุจักร (C) | @795lhqav | `/shop/chatuchak` | `SHOP_LINE_TOKEN_CHATUCHAK` |
+
+ผู้รับสรุปทุกสาขาใช้ `SHOP_LINE_TO` ตัวเดียว (Your user ID เหมือนกันทุกไลน์ใต้ Provider เดียวกัน)
 
 ## รูปเมนู
 1. Supabase → Storage → bucket `shop-menu` → Upload (jpg/png/webp ไม่เกิน 5 MB · รูปจัตุรัสสวยสุด)
