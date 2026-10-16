@@ -14,9 +14,11 @@ type MenuItem = {
 };
 type Config = {
   shopName: string;
+  branch: { slug: string; name: string; pickupNote: string; openchatUrl: string };
   cutoffHour: number;
   slots: string[];
-  pickupLabel: string;
+  /** null = สาขานี้ปิดรับออร์เดอร์อยู่ */
+  pickupLabel: string | null;
   menu: MenuItem[];
   customer: { code: string; nickname: string; points: number } | null;
   /** true = QR จาก Omise ระบบเช็กเงินเข้าเอง */
@@ -25,6 +27,13 @@ type Config = {
   roundOrders: number;
   /** ธนาคารที่กดจ่ายผ่านแอปได้ (Omise mobile banking) ว่าง = มีแต่ QR */
   banks: string[];
+  /** LIFF ของสาขา ไว้ดึงชื่อจากไลน์ — ว่าง = ลูกค้าพิมพ์ชื่อเอง */
+  liffId: string;
+};
+/** เปิด /shop เฉย ๆ ตอนมีหลายสาขา — ให้เลือกสาขาก่อน (ปกติลูกค้าเข้าทางปุ่มในไลน์ของสาขาอยู่แล้ว) */
+type Chooser = {
+  shopName: string;
+  branches: { slug: string; name: string; pickupNote: string }[];
 };
 
 const BANK_NAMES: Record<string, string> = {
@@ -55,6 +64,8 @@ type Bill = {
   lines: { name: string; qty: number; price: number }[];
   discount: number;
   freeName: string;
+  /** วันรับของจริงของออร์เดอร์ (คิดตอนสั่ง) */
+  pickupLabel: string;
 };
 
 const TOKEN_KEY = "shop-token";
@@ -105,8 +116,10 @@ async function qrToPng(url: string): Promise<string> {
   }
 }
 
-export function ShopOrder() {
+/** branch = slug จาก /shop/<slug> · ไม่ส่ง = /shop (สาขาเดียวใช้สาขานั้น หลายสาขาให้เลือก) */
+export function ShopOrder({ branch }: { branch?: string }) {
   const [cfg, setCfg] = useState<Config | null>(null);
+  const [choose, setChoose] = useState<Chooser | null>(null);
   const [loadError, setLoadError] = useState("");
   const [cart, setCart] = useState<Record<string, number>>({});
   const [nick, setNick] = useState("");
@@ -121,16 +134,21 @@ export function ShopOrder() {
   const [bill, setBill] = useState<Bill | null>(null);
   const [qr, setQr] = useState("");
   const [expired, setExpired] = useState(false);
-  /** กลับมาจากแอปธนาคาร (/shop?paid=<order id>) — รอเช็กว่าจ่ายสำเร็จไหม */
+  /** กลับมาจากแอปธนาคาร (/shop/<สาขา>?paid=<order id>) — รอเช็กว่าจ่ายสำเร็จไหม */
   const [back, setBack] = useState<{ orderId: string; failed: boolean } | null>(null);
   const checking = useRef(false);
 
   useEffect(() => {
     const token = load(TOKEN_KEY);
-    fetch("/api/shop/config", { headers: token ? { "x-shop-token": token } : {} })
+    const query = branch ? `?branch=${encodeURIComponent(branch)}` : "";
+    fetch(`/api/shop/config${query}`, { headers: token ? { "x-shop-token": token } : {} })
       .then(async (res) => {
         const body = await res.json();
         if (!res.ok) throw new Error(body.error ?? "โหลดเมนูไม่สำเร็จ");
+        if (body.branches) {
+          setChoose(body);
+          return;
+        }
         setCfg(body);
         setSlot(body.slots[0] ?? "");
         const paidId = new URLSearchParams(window.location.search).get("paid");
@@ -140,7 +158,7 @@ export function ShopOrder() {
         if (known) setEditNick(false);
         // เปิดจากไลน์และยังไม่เคยมีชื่อ — ใช้ชื่อที่แสดงในไลน์ (ถ้ายังไม่ได้เริ่มพิมพ์เอง)
         else
-          lineDisplayName().then((n) => {
+          lineDisplayName(body.liffId).then((n) => {
             if (!n) return;
             setNick((cur) => {
               if (cur) return cur;
@@ -150,7 +168,7 @@ export function ShopOrder() {
           });
       })
       .catch((e: Error) => setLoadError(e.message || "โหลดเมนูไม่สำเร็จ ลองรีเฟรช"));
-  }, []);
+  }, [branch]);
 
   const points = cfg?.customer?.points ?? 0;
 
@@ -173,6 +191,10 @@ export function ShopOrder() {
     setCart((c) => ({ ...c, [name]: Math.min(20, Math.max(0, (c[name] ?? 0) + delta)) }));
 
   function goPay() {
+    if (!cfg?.pickupLabel) {
+      setError("สาขานี้ปิดรับออร์เดอร์อยู่");
+      return;
+    }
     if (!nick.trim()) {
       setError("กรอกชื่อเล่นก่อนนะคะ");
       setEditNick(true);
@@ -196,7 +218,7 @@ export function ShopOrder() {
       setCfg((c) => (c ? { ...c, customer: { code, nickname: nick.trim(), points } } : c));
     }
     setBack(null);
-    if (window.location.search.includes("paid=")) window.history.replaceState(null, "", "/shop");
+    if (window.location.search.includes("paid=")) window.history.replaceState(null, "", window.location.pathname);
     setCart({});
     setUseReward(false);
     setBill(null);
@@ -215,6 +237,7 @@ export function ShopOrder() {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(token ? { "x-shop-token": token } : {}) },
         body: JSON.stringify({
+          branch: cfg?.branch.slug,
           nickname: nick.trim(),
           slot,
           items: sum.lines.map((l) => ({ name: l.name, qty: l.qty })),
@@ -232,6 +255,7 @@ export function ShopOrder() {
           lines: sum.lines.map((l) => ({ name: l.name, qty: l.qty, price: l.price })),
           discount: sum.discount,
           freeName: sum.freeName,
+          pickupLabel: body.pickupLabel,
         });
         setQr("");
         setExpired(false);
@@ -340,6 +364,27 @@ export function ShopOrder() {
     };
   }, [step, bill, expired, check]);
 
+  if (choose) {
+    return (
+      <main id="main-content" className="shop-app">
+        <div className="shop-wrap">
+          <header className="shop-head">
+            <h1>{choose.shopName}</h1>
+            <p className="shop-sub">เลือกสาขาที่จะรับของ</p>
+          </header>
+          <nav className="shop-branches" aria-label="สาขา">
+            {choose.branches.map((b) => (
+              <a key={b.slug} className="shop-branch" href={`/shop/${b.slug}`}>
+                <b>สาขา{b.name}</b>
+                {b.pickupNote && <span>{b.pickupNote}</span>}
+              </a>
+            ))}
+          </nav>
+        </div>
+      </main>
+    );
+  }
+
   if (!cfg) {
     return (
       <main id="main-content" className="shop-app">
@@ -365,7 +410,7 @@ export function ShopOrder() {
                   className="shop-btn"
                   onClick={() => {
                     setBack(null);
-                    window.history.replaceState(null, "", "/shop");
+                    window.history.replaceState(null, "", window.location.pathname);
                   }}
                 >
                   กลับไปสั่งใหม่
@@ -384,10 +429,25 @@ export function ShopOrder() {
           <section>
             <header className="shop-head">
               <h1>{cfg.shopName}</h1>
-              <p className="shop-sub">สั่งและโอนก่อน {cfg.cutoffHour}:00 รับของวันทำการถัดไป</p>
-              <span className="shop-pill">ออร์เดอร์ตอนนี้ รับ{cfg.pickupLabel}</span>
-              {cfg.roundOrders >= SHOW_ROUND_FROM && (
+              <p className="shop-where">
+                สาขา{cfg.branch.name}
+                {cfg.branch.pickupNote && <span> · รับของที่ {cfg.branch.pickupNote}</span>}
+              </p>
+              {cfg.pickupLabel ? (
+                <>
+                  <p className="shop-sub">สั่งและโอนก่อน {cfg.cutoffHour}:00 รับของวันทำการถัดไป</p>
+                  <span className="shop-pill">ออร์เดอร์ตอนนี้ รับ{cfg.pickupLabel}</span>
+                </>
+              ) : (
+                <span className="shop-pill is-closed">ตอนนี้สาขานี้ปิดรับออร์เดอร์</span>
+              )}
+              {cfg.pickupLabel && cfg.roundOrders >= SHOW_ROUND_FROM && (
                 <span className="shop-social">🔥 รอบนี้สั่งแล้ว {cfg.roundOrders} ออร์เดอร์</span>
+              )}
+              {cfg.branch.openchatUrl && (
+                <a className="shop-link" href={cfg.branch.openchatUrl} target="_blank" rel="noopener noreferrer">
+                  เข้ากลุ่มลูกค้าของสาขา (OpenChat)
+                </a>
               )}
             </header>
 
@@ -509,7 +569,7 @@ export function ShopOrder() {
                 <div key={l.name}><span>{l.name} × {l.qty}</span><span>{baht(l.price * l.qty)}</span></div>
               ))}
               {bill.discount > 0 && <div><span>แลกแต้ม ฟรี {bill.freeName}</span><span>−{baht(bill.discount)}</span></div>}
-              <div><span>รับ{cfg.pickupLabel} เวลา {slot}</span><span /></div>
+              <div><span>รับ{bill.pickupLabel} เวลา {slot}</span><span /></div>
             </div>
             {error && <p className="shop-err">{error}</p>}
             <div className="shop-row">
@@ -582,8 +642,8 @@ export function ShopOrder() {
               </div>
               <b>{baht(sum.total)}</b>
             </div>
-            <button type="button" className="shop-btn" disabled={!sum.count || sending} onClick={goPay}>
-              {sending ? "กำลังสร้าง QR…" : "ไปจ่ายเงิน"}
+            <button type="button" className="shop-btn" disabled={!sum.count || sending || !cfg.pickupLabel} onClick={goPay}>
+              {!cfg.pickupLabel ? "ปิดรับออร์เดอร์" : sending ? "กำลังสร้าง QR…" : "ไปจ่ายเงิน"}
             </button>
           </div>
         </div>

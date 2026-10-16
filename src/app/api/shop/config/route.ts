@@ -1,20 +1,50 @@
 import { enabledBanks, omiseEnabled } from "@/lib/shop/omise";
-import { closed, pickupLabel, readSettings, readToken, shopDb } from "@/lib/shop/shop.server";
+import {
+  branchSlug,
+  closed,
+  pickupLabel,
+  readBranches,
+  readSettings,
+  readToken,
+  shopDb,
+} from "@/lib/shop/shop.server";
 
 export const runtime = "nodejs";
 /** วันรับของเปลี่ยนตามเวลา และเมนูเปิด/ปิดได้ทุกเมื่อ */
 export const dynamic = "force-dynamic";
 
-/** เมนู ราคา รอบเวลารับ วันรับของ + แต้มของลูกค้า (ถ้ามือถือจำ token ไว้) */
+const NO_STORE = { headers: { "Cache-Control": "no-store" } };
+
+/**
+ * เมนู ราคา รอบเวลารับ วันรับของของสาขา + แต้มของลูกค้า (ถ้ามือถือจำ token ไว้)
+ *
+ * ?branch=<slug> มาจากหน้า /shop/<slug> (ปุ่มในไลน์ของสาขา)
+ * ไม่ส่ง branch: มีสาขาเดียว = ใช้สาขานั้น · หลายสาขา = ตอบรายชื่อสาขาให้เลือก
+ */
 export async function GET(req: Request) {
   const db = shopDb();
   if (!db) return closed();
   const settings = await readSettings(db);
   if (!settings?.promptpay_id) return closed();
+  const branches = await readBranches(db);
+  if (!branches.length) return closed();
+
+  const slug = branchSlug(new URL(req.url).searchParams.get("branch"));
+  const branch = slug ? branches.find((b) => b.slug === slug) : branches.length === 1 ? branches[0] : undefined;
+  if (slug && !branch) return Response.json({ error: "ไม่พบสาขานี้" }, { status: 404 });
+  if (!branch) {
+    return Response.json(
+      {
+        shopName: settings.shop_name,
+        branches: branches.map((b) => ({ slug: b.slug, name: b.name, pickupNote: b.pickup_note })),
+      },
+      NO_STORE,
+    );
+  }
 
   const [menu, pickup, customer] = await Promise.all([
     db.from("shop_menu").select("name, description, price, points, redeemable, available, image_url").order("sort"),
-    db.rpc("shop_next_pickup"),
+    db.rpc("shop_branch_pickup", { p_branch: branch.id }),
     (async () => {
       const token = readToken(req);
       if (!token) return null;
@@ -23,29 +53,44 @@ export async function GET(req: Request) {
     })(),
   ]);
   if (menu.error || pickup.error) return Response.json({ error: "โหลดเมนูไม่สำเร็จ" }, { status: 500 });
+  // null = สาขาปิดรับออร์เดอร์อยู่ (ปิดชั่วคราว หรือไม่มีวันเปิดข้างหน้า)
+  const pickupDate = (pickup.data as string | null) ?? null;
 
-  // นับเฉพาะออร์เดอร์ที่จ่ายแล้วของรอบรับของเดียวกัน — โชว์บนหน้าร้านว่ามีคนสั่งจริง ไม่บอกว่าใคร
-  const { count } = await db
-    .from("shop_orders")
-    .select("id", { count: "exact", head: true })
-    .eq("pickup_date", pickup.data as string)
-    .eq("payment_status", "paid")
-    .neq("status", "cancelled");
+  // นับเฉพาะออร์เดอร์ที่จ่ายแล้วของรอบรับของเดียวกันในสาขานี้ — โชว์ว่ามีคนสั่งจริง ไม่บอกว่าใคร
+  let roundOrders = 0;
+  if (pickupDate) {
+    const { count } = await db
+      .from("shop_orders")
+      .select("id", { count: "exact", head: true })
+      .eq("branch_id", branch.id)
+      .eq("pickup_date", pickupDate)
+      .eq("payment_status", "paid")
+      .neq("status", "cancelled");
+    roundOrders = count ?? 0;
+  }
 
   return Response.json(
     {
       shopName: settings.shop_name,
-      cutoffHour: settings.cutoff_hour,
-      slots: settings.pickup_slots,
-      pickupLabel: pickupLabel(pickup.data as string),
+      branch: {
+        slug: branch.slug,
+        name: branch.name,
+        pickupNote: branch.pickup_note,
+        openchatUrl: branch.openchat_url,
+      },
+      cutoffHour: branch.cutoff_hour,
+      slots: branch.pickup_slots,
+      pickupLabel: pickupDate ? pickupLabel(pickupDate) : null,
       menu: menu.data,
       customer,
       // true = QR จาก Omise ระบบรู้เองว่าเงินเข้า · false = QR พร้อมเพย์ของร้าน ลูกค้ากด "โอนแล้ว"
       gateway: omiseEnabled(),
       // ปุ่ม "จ่ายผ่านแอปธนาคาร" — ว่าง = มีแต่ QR
       banks: enabledBanks(),
-      roundOrders: count ?? 0,
+      roundOrders,
+      // LIFF ของสาขา (ดึงชื่อจากไลน์) — ไม่ตั้งที่สาขา ใช้ตัวกลางจาก env ถ้ามี
+      liffId: branch.liff_id || process.env.NEXT_PUBLIC_SHOP_LIFF_ID?.trim() || "",
     },
-    { headers: { "Cache-Control": "no-store" } },
+    NO_STORE,
   );
 }

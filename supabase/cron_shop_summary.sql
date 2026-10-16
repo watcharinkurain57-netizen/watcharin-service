@@ -1,13 +1,17 @@
 -- ============================================================================
--- cron_shop_summary — สรุปออร์เดอร์ร้านแซลดอง กุ้งแช่ ทุกวัน 19:05 (เวลาไทย)
+-- cron_shop_summary — สรุปออร์เดอร์ร้านแซลดอง กุ้งแช่ แยกสาขา
+--
+-- เรียก /api/shop/summary ทุกชั่วโมง นาทีที่ 5 แล้ว route เลือกเองว่าสาขาไหนเพิ่งปิดรับ
+-- (แต่ละสาขาปิดรับคนละเวลาได้ ตั้งที่ shop_branches.cutoff_hour) สาขาไหนไม่ถึงเวลา/ไม่มีออร์เดอร์ = ไม่ส่ง
 --
 -- 🔴 รันหลัง migration 0024_shop_orders และหลังตั้ง env บน Vercel (Production)
 --    แล้ว redeploy: SUPABASE_SECRET_KEY, CRON_SECRET และอย่างน้อยหนึ่งช่องทาง
---    (SHOP_LINE_CHANNEL_TOKEN + SHOP_LINE_TO หรือ SHOP_SUMMARY_EMAIL)
+--    (ไลน์ของสาขา SHOP_LINE_TOKEN_<SLUG> หรือตัวกลาง SHOP_LINE_CHANNEL_TOKEN + SHOP_LINE_TO
+--     หรือ SHOP_SUMMARY_EMAIL)
 --
 -- ⚠️ แก้ <CRON_SECRET> ข้างล่างเป็นค่าเดียวกับบน Vercel ก่อน Run
 --
--- pg_cron ใช้เวลา UTC → 19:05 ไทย = 12:05 UTC
+-- pg_cron ใช้เวลา UTC แต่ทุกชั่วโมงเหมือนกัน — route คิดชั่วโมงเป็นเวลาไทยเอง
 -- หา schema ของ http_post เองตอนรัน (บทเรียนใน cron_meeting_reminders.sql)
 -- ============================================================================
 
@@ -47,7 +51,7 @@ begin
   exception when others then null;
   end;
 
-  perform cron.schedule('shop-summary', '5 12 * * *', v_cmd);
+  perform cron.schedule('shop-summary', '5 * * * *', v_cmd);
 end $$;
 
 select jobname, schedule, active, left(command, 60) as คำสั่ง
@@ -55,11 +59,11 @@ from cron.job
 where jobname = 'shop-summary';
 
 -- ---------------------------------------------------------------------------
--- ทดสอบเองโดยไม่ต้องรอ (ต้องมีออร์เดอร์ที่รับพรุ่งนี้อย่างน้อย 1 รายการ):
---   curl -X POST https://watcharin-service.com/api/shop/summary \
+-- ทดสอบเองโดยไม่ต้องรอเวลา (ต้องมีออร์เดอร์ที่จ่ายแล้วของวันนั้นอย่างน้อย 1 รายการ):
+--   curl -X POST "https://watcharin-service.com/api/shop/summary?branch=shinawatra3&date=2026-10-19" \
 --        -H "Authorization: Bearer <CRON_SECRET>"
--- ควรได้ {"date":"…","orders":n,"sent":["line:200"],"failed":[]}
--- ไม่มีออร์เดอร์ = {"orders":0,"sent":[]} และไม่มีอะไรส่งออกไป (ตั้งใจ)
+-- ควรได้ {"date":"…","branches":[{"branch":"shinawatra3","orders":n,"sent":["line:200"],"failed":[]}]}
+-- ไม่มีออร์เดอร์ = "orders":0 และไม่มีอะไรส่งออกไป (ตั้งใจ)
 --
 -- เลิกใช้:  select cron.unschedule('shop-summary');
 -- ============================================================================

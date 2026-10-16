@@ -1,14 +1,15 @@
 # ร้านแซลดอง กุ้งแช่ — เปิดระบบสั่งซื้อ /shop
 
-ลูกค้า: ปุ่ม "สั่งอาหาร" ในไลน์ร้าน → `watcharin-service.com/shop` → เลือกเมนู → สแกน QR พร้อมเพย์ (ยอดขึ้นเอง) → จ่ายแล้วหน้าเว็บขึ้น "รับออร์เดอร์แล้ว" เอง (ผ่าน Omise)
+ลูกค้า: ปุ่ม "สั่งอาหาร" ในไลน์ของสาขา → `watcharin-service.com/shop/<สาขา>` → เลือกเมนู → สแกน QR พร้อมเพย์ (ยอดขึ้นเอง) → จ่ายแล้วหน้าเว็บขึ้น "รับออร์เดอร์แล้ว" เอง (ผ่าน Omise)
 ยังไม่ตั้ง Omise: ใช้ QR พร้อมเพย์ของร้านแทน ลูกค้ากด "โอนแล้ว" แล้วร้านเช็กยอดเอง
-ร้าน: 19:05 ได้สรุปเข้าไลน์ (เฉพาะวันที่พรุ่งนี้มีของต้องส่ง) · ข้อมูลทั้งหมดอยู่ใน Supabase
+ร้าน: ได้สรุปเข้าไลน์ตอนปิดรับของแต่ละสาขา (เฉพาะวันที่พรุ่งนี้มีของต้องส่ง) · ข้อมูลทั้งหมดอยู่ใน Supabase
+แต่ละสาขามีไลน์ร้าน (LINE OA) ของตัวเอง ดูหัวข้อ "หลายสาขา" ข้างล่าง
 
 > ลำดับสำคัญ: ทำข้อ 1–3 ก่อน merge ไม่งั้น /shop ขึ้นว่ายังไม่เปิด (ไม่พัง แต่ใช้ไม่ได้)
 
 ## 1. ฐานข้อมูล
 Supabase (prod) → SQL Editor → วาง `supabase/migrations/0024_shop_orders.sql` ทั้งไฟล์ → Run
-ตามด้วย `0025_shop_menu_images.sql` และ `0026_shop_gateway.sql`
+ตามด้วย `0025_shop_menu_images.sql`, `0026_shop_gateway.sql` และ `0027_shop_branches.sql`
 (ต้องมี `is_app_admin()` จาก 0003 อยู่แล้ว)
 
 แล้วใส่เลขพร้อมเพย์:
@@ -22,21 +23,22 @@ update public.shop_settings set promptpay_id = '0XXXXXXXXX' where id = 1;
 | `NEXT_PUBLIC_SUPABASE_URL` | URL ของ project (ถ้ายังไม่มี) |
 | `SUPABASE_SECRET_KEY` | Settings → API Keys → secret key (**ห้ามขึ้นต้นด้วย NEXT_PUBLIC_**) |
 | `CRON_SECRET` | ตั้งเอง ยาว ๆ (ถ้ามีอยู่แล้วจาก meeting-reminders ใช้ตัวเดิม) |
-| `SHOP_LINE_CHANNEL_TOKEN` | LINE Developers → channel ของร้าน → Messaging API → Channel access token |
+| `SHOP_LINE_CHANNEL_TOKEN` | LINE Developers → channel ของร้าน (สาขาแรก) → Messaging API → Channel access token · สาขาอื่นดู "หลายสาขา" |
 | `SHOP_LINE_TO` | LINE Developers → Basic settings → Your user ID (ขึ้นต้นด้วย U) · เป็นค่าเดียวกันทุก OA ที่อยู่ใต้ Provider เดียวกัน (Watcharin Service) |
 
 ทางเลือก: `SHOP_SUMMARY_EMAIL` ถ้าอยากได้สรุปทางอีเมลด้วย (ใช้ Resend ที่มีอยู่)
 
 ## 3. ตั้งเวลาสรุป
 แก้ `<CRON_SECRET>` ใน `supabase/cron_shop_summary.sql` → วางใน SQL Editor → Run
+(เรียกทุกชั่วโมง ระบบส่งเฉพาะสาขาที่เพิ่งถึงเวลาปิดรับ)
 
 ## 4. LINE Official Account
 1. manager.line.biz → สร้างบัญชีร้าน (แพ็กเกจ Free)
 2. ตั้งค่า → Messaging API → เปิดใช้งาน (ได้ channel สำหรับข้อ 2)
-3. Rich menu → ปุ่ม "สั่งอาหาร" → ลิงก์ `https://watcharin-service.com/shop` → แสดงตลอด
+3. Rich menu → ปุ่ม "สั่งอาหาร" → ลิงก์ `https://watcharin-service.com/shop/<สาขา>` → แสดงตลอด
 4. นามบัตร: ใช้ QR เพิ่มเพื่อนของไลน์ร้าน
 
-แพ็กเกจฟรีส่ง push ได้ 200 ข้อความ/เดือน สรุปวันละ 1 ข้อความใช้ ~22
+แพ็กเกจฟรีส่ง push ได้ 200 ข้อความ/เดือน (นับแยกแต่ละ OA) สรุปวันละ 2 ข้อความ (สรุป + ข้อความ OpenChat) ใช้ ~44
 
 ไม่ต้องตั้ง webhook: ระบบไม่ได้อ่านแชท แค่ push สรุปออกไป
 
@@ -44,8 +46,8 @@ update public.shop_settings set promptpay_id = '0XXXXXXXXX' where id = 1;
 1. ใส่ env ข้อ 2 ที่ Vercel โดยเลือก environment **Preview** แล้ว redeploy preview ของ PR
    - Preview ของเว็บนี้ต่อ Supabase โปรเจกต์ dev แต่ `SUPABASE_SECRET_KEY` เป็นของ prod → เพิ่ม `SHOP_SUPABASE_URL` (Preview) = `https://ouhinfbpsuhuzsyuqwbl.supabase.co` ให้ร้านต่อโปรเจกต์เดียวกับ key
 2. ริชเมนูชั่วคราวลิงก์ไป `<ลิงก์ preview>/shop` แล้วลองสั่งจากมือถือ
-3. ยิงสรุปเองไม่ต้องรอ 1 ทุ่ม (สรุปจะแสดงออเดอร์ที่รับ "พรุ่งนี้"):
-   `curl -X POST <ลิงก์ preview>/api/shop/summary -H "Authorization: Bearer <CRON_SECRET>"`
+3. ยิงสรุปเองไม่ต้องรอเวลาปิดรับ (ไม่ใส่ `date` = ออร์เดอร์ที่รับ "พรุ่งนี้"):
+   `curl -X POST "<ลิงก์ preview>/api/shop/summary?branch=shinawatra3&date=YYYY-MM-DD" -H "Authorization: Bearer <CRON_SECRET>"`
 4. ผ่านแล้วค่อยใส่ env ฝั่ง Production และเปลี่ยนลิงก์ริชเมนูเป็นเว็บจริง
 
 ## เช็กเงินเข้าอัตโนมัติ (Omise)
@@ -63,7 +65,7 @@ update public.shop_settings set promptpay_id = '0XXXXXXXXX' where id = 1;
 - เงินพักใน Omise 7 วัน แล้วถอนเข้าบัญชีได้ (ตั้งโอนอัตโนมัติได้)
 
 ### จ่ายผ่านแอปธนาคาร (Mobile Banking)
-ใต้ QR มีปุ่มธนาคาร กดแล้วเด้งเข้าแอปธนาคารบนมือถือ จ่ายเสร็จธนาคารพากลับมา `/shop?paid=…` แล้วขึ้น "รับออร์เดอร์แล้ว"
+ใต้ QR มีปุ่มธนาคาร กดแล้วเด้งเข้าแอปธนาคารบนมือถือ จ่ายเสร็จธนาคารพากลับมา `/shop/<สาขา>?paid=…` แล้วขึ้น "รับออร์เดอร์แล้ว"
 - คีย์ test: ปุ่มขึ้นครบ 5 ธนาคาร (กสิกร ไทยพาณิชย์ กรุงไทย กรุงเทพ กรุงศรี) · กดแล้วไปหน้าทดสอบของ Omise ให้เลือกสำเร็จ/ไม่สำเร็จ
 - คีย์จริง: ต้องเลือก Mobile Banking ตอนสมัครบัญชีจริงใน Omise Dashboard (ขอทางอีเมลไม่ได้) แล้วใส่ env `OMISE_BANKS` = ธนาคารที่อนุมัติ เช่น `kbank,scb,ktb,bbl,bay` · ไม่ใส่ = มีแต่ QR
 - ยอดขั้นต่ำ 20 บาท · ค่าธรรมเนียมดูที่ omise.co/th/pricing/thailand
@@ -71,11 +73,12 @@ update public.shop_settings set promptpay_id = '0XXXXXXXXX' where id = 1;
 ## ชื่อลูกค้าจากไลน์ (LIFF)
 ลูกค้ากดปุ่ม "สั่งอาหาร" ในไลน์ร้าน → ชื่อที่แสดงในไลน์ขึ้นให้เอง ไม่ต้องพิมพ์ (กด "แก้" เปลี่ยนเป็นชื่อเล่นได้)
 1. LINE Developers → Provider "Watcharin Service" → Create a new channel → **LINE Login** (ต้องอยู่ provider เดียวกับ OA ร้าน)
-2. ในช่อง LINE Login → แท็บ LIFF → Add
-   - Size: **Full** · Endpoint URL: `https://watcharin-service.com/shop` (ทดสอบ: ลิงก์ preview + `/shop`)
-   - Scopes: ติ๊ก **profile** · Bot link feature: **On (Normal)** แล้วเลือก OA ร้าน
-3. คัดลอก **LIFF ID** → Vercel env `NEXT_PUBLIC_SHOP_LIFF_ID` (ไม่ใช่ความลับ) → redeploy
-4. ปุ่มในเมนูไลน์ใช้ลิงก์ `https://liff.line.me/<LIFF ID>` แทนลิงก์เว็บตรง ๆ
+2. ในช่อง LINE Login → แท็บ LIFF → Add **สาขาละ 1 อัน** (ช่องเดียวมีได้ 30 อัน)
+   - Size: **Full** · Endpoint URL: `https://watcharin-service.com/shop/<สาขา>` (ทดสอบ: ลิงก์ preview + `/shop/<สาขา>`)
+   - Scopes: ติ๊ก **profile** · Bot link feature: **On (Normal)** แล้วเลือก OA ของสาขานั้น
+3. คัดลอก **LIFF ID** → ใส่ในช่อง `liff_id` ของสาขาใน `shop_branches` (ไม่ใช่ความลับ ส่งในแชทได้)
+   - ร้านที่มีสาขาเดียวใส่ Vercel env `NEXT_PUBLIC_SHOP_LIFF_ID` แทนได้ (ใช้เมื่อสาขาไม่มี `liff_id`)
+4. ปุ่มในเมนูไลน์ของสาขาใช้ลิงก์ `https://liff.line.me/<LIFF ID ของสาขา>` แทนลิงก์เว็บตรง ๆ
 5. Channel ของ LINE Login ต้องกด **Publish** (สถานะ Developing ใช้ได้แค่บัญชีที่เป็น admin/tester)
 
 ไม่ตั้ง = ลูกค้าพิมพ์ชื่อเองครั้งแรก มือถือจำไว้ครั้งต่อไป
@@ -83,14 +86,50 @@ update public.shop_settings set promptpay_id = '0XXXXXXXXX' where id = 1;
 ## เมนูไลน์ (Rich menu)
 LINE Official Account Manager → หน้าแรก → Rich menus → Create
 - เทมเพลต: แบบ 2 ช่อง ซ้ายใหญ่ ขวาเล็ก (ขนาด 2500×843) · อัปโหลดรูป `line-richmenu-2500x843.jpg`
-- ช่องซ้าย "สั่งอาหาร" → Link → `https://liff.line.me/<LIFF ID>` (ยังไม่มี LIFF ใช้ `https://watcharin-service.com/shop`)
+- ช่องซ้าย "สั่งอาหาร" → Link → `https://liff.line.me/<LIFF ID ของสาขา>` (ยังไม่มี LIFF ใช้ `https://watcharin-service.com/shop/<สาขา>`)
+- ทำแยกในไลน์ของแต่ละสาขา (รูปเดียวกันได้ ต่างกันแค่ลิงก์)
 - ช่องขวา "ทักแอดมิน" → Text → `ขอสอบถามค่ะ/ครับ`
 - Menu bar text: `สั่งอาหาร` · Default behavior: Shown
 
 ## กลุ่ม OpenChat (ให้เห็นว่ามีคนสั่งจริง)
-สรุป 19:00 ในไลน์เจ้าของร้านมี 2 ข้อความ: ข้อความแรกสำหรับร้าน (ชื่อลูกค้า เมนูที่ต้องเตรียม)
-ข้อความที่ 2 ไม่มีชื่อลูกค้า/ยอดเงิน → กดค้าง → ส่งต่อ → เลือก OpenChat ของร้าน
-(ไลน์ไม่เปิดให้บอทโพสต์ใน OpenChat เอง) · หน้าร้านโชว์ "รอบนี้สั่งแล้ว N ออร์เดอร์" เองเมื่อมีตั้งแต่ 3 ออร์เดอร์
+สรุปตอนปิดรับในไลน์ของสาขามี 2 ข้อความ: ข้อความแรกสำหรับร้าน (ชื่อลูกค้า เมนูที่ต้องเตรียม)
+ข้อความที่ 2 ไม่มีชื่อลูกค้า/ยอดเงิน → กดค้าง → ส่งต่อ → เลือก OpenChat ของสาขานั้น
+(ไลน์ไม่เปิดให้บอทโพสต์ใน OpenChat เอง) · หน้าร้านโชว์ "รอบนี้สั่งแล้ว N ออร์เดอร์" (นับแยกสาขา) เมื่อมีตั้งแต่ 3 ออร์เดอร์
+ใส่ลิงก์ OpenChat ในช่อง `openchat_url` ของสาขา → หน้าร้านของสาขาขึ้นปุ่มเข้ากลุ่มให้เอง
+
+## หลายสาขา (แต่ละสาขามีไลน์ของตัวเอง)
+นามบัตรแต่ละที่ = QR ไลน์ของสาขานั้น · ลูกค้ากด "สั่งอาหาร" แล้วเข้าหน้าร้านของสาขานั้นเลย ไม่ต้องเลือกสาขา
+ใช้ร่วมกันทุกสาขา: เมนู ราคา พร้อมเพย์/Omise (เงินเข้าบัญชีเดียว) ลูกค้าและแต้มสะสม
+แยกกันแต่ละสาขา: ไลน์ร้าน เวลาปิดรับ วันเปิด วันหยุด รอบเวลารับ จุดรับของ สรุปออร์เดอร์ OpenChat เลขออร์เดอร์ (A1016-03, B1016-01)
+
+ตาราง `shop_branches` (Supabase → Table Editor) แถวละสาขา
+| ช่อง | ความหมาย | ตัวอย่าง |
+|---|---|---|
+| `slug` | ท้ายลิงก์หน้าร้าน `/shop/<slug>` (ตัวเล็ก ตัวเลข ขีด) | `shinawatra3` |
+| `code` | ตัวอักษรหน้าเลขออร์เดอร์ (ตัวใหญ่ 1–2 ตัว ไม่ซ้ำกัน) | `A` |
+| `name` | ชื่อสาขา ไม่ต้องมีคำว่า "สาขา" | `ชินวัตร 3` |
+| `line_id` | ไลน์ของสาขา (ใช้ในข้อความ OpenChat) | `@463zgiwx` |
+| `cutoff_hour` | ปิดรับออร์เดอร์ของ "พรุ่งนี้" กี่โมง (0–23) | `19` |
+| `open_days` | วันที่รับของได้ 0=อาทิตย์ 1=จันทร์ … 6=เสาร์ | `{1,2,3,4,5}` |
+| `closed_dates` | วันหยุดพิเศษ ไม่รับของ | `{2026-12-31,2027-01-01}` |
+| `pickup_slots` | รอบเวลารับให้ลูกค้าเลือก | `{11:00,12:00,17:00}` |
+| `pickup_note` | จุดรับของ (โชว์บนหน้าร้าน) | `ล็อบบี้ชั้น 1` |
+| `accepting` | เอาติ๊กออก = ปิดรับออร์เดอร์ชั่วคราว | |
+| `liff_id` / `openchat_url` | ดูหัวข้อ LIFF / OpenChat | |
+
+วันรับของ: สั่งก่อนเวลาปิดรับ = วันเปิดถัดไปตั้งแต่พรุ่งนี้ · หลังเวลาปิดรับ = ตั้งแต่มะรืน · ข้ามวันที่ไม่เปิดและวันหยุด
+เช่น เปิด จ–ศ ปิดรับ 19:00 → สั่งศุกร์ 20:00 / เสาร์ / อาทิตย์ก่อน 19:00 = รับวันจันทร์ · สรุปของวันจันทร์ส่งอาทิตย์ 19:05
+
+เพิ่มสาขาใหม่
+1. manager.line.biz → สร้างบัญชีไลน์ของสาขา → ตั้งค่า → Messaging API → เปิดใช้ โดยเลือก Provider **Watcharin Service** (ต้องเป็น provider เดียวกันทุกสาขา)
+2. LINE Developers → channel ของสาขา → Messaging API → Channel access token → Vercel env `SHOP_LINE_TOKEN_<SLUG>` (ติ๊ก Sensitive · SLUG ตัวใหญ่ ขีดเป็นขีดล่าง เช่น `SHOP_LINE_TOKEN_SILOM`) → redeploy · **ห้ามส่ง token ในแชท**
+3. เจ้าของร้าน (หรือคนดูแลสาขา) แอดไลน์ของสาขาเป็นเพื่อน ไม่งั้นไม่ได้รับสรุป
+   - ผู้รับสรุปของสาขา: `SHOP_LINE_TO_<SLUG>` (หลายคนคั่นด้วยจุลภาค) ไม่ใส่ = ส่งให้ `SHOP_LINE_TO`
+4. เพิ่มแถวใน `shop_branches` (หรือบอกข้อมูลสาขาให้ Claude ใส่ให้)
+5. ทำ LIFF + Rich menu ของสาขา (หัวข้อข้างบน) และ OpenChat ของสาขาถ้าต้องการ
+6. นามบัตรของสาขา: ใช้ QR เพิ่มเพื่อนของไลน์สาขานั้น
+
+ไม่ตั้ง token ของสาขา = สรุปของสาขานั้นส่งผ่านไลน์ตัวกลาง (`SHOP_LINE_CHANNEL_TOKEN`) แทน
 
 ## รูปเมนู
 1. Supabase → Storage → bucket `shop-menu` → Upload (jpg/png/webp ไม่เกิน 5 MB · รูปจัตุรัสสวยสุด)
@@ -101,7 +140,8 @@ LINE Official Account Manager → หน้าแรก → Rich menus → Creat
 - `shop_menu`: แก้ราคา · เอาติ๊ก `available` ออกวันที่ไม่ทำเมนูนั้น
 - `shop_orders`: (ไม่มี Omise) เทียบยอดกับแอปธนาคาร ติ๊ก `payment_checked` · ยกเลิก → `status = cancelled` (แต้มคืนให้อัตโนมัติ)
 - `shop_customers`: ดูแต้ม รหัสลูกค้า · เติม `note` เรื่องแพ้อาหาร
-- `shop_settings`: เวลาปิดรับ วันรับของ (`open_days` 0=อาทิตย์) รอบเวลารับ
+- `shop_branches`: เวลาปิดรับ วันรับของ วันหยุด รอบเวลารับ ของแต่ละสาขา (ดู "หลายสาขา")
+- `shop_settings`: ชื่อร้าน เลขพร้อมเพย์ (ใช้ร่วมกันทุกสาขา)
 
 ## สิ่งที่ระบบไม่ได้ทำ
 - ไม่มี Omise = ไม่ตรวจเงินเข้า — แต้มเข้าทันที ยกเลิกแล้วคืนเอง

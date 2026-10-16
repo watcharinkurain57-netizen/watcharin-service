@@ -28,23 +28,53 @@ export function shopDb(): SupabaseClient | null {
 export const closed = () =>
   Response.json({ error: "ร้านยังไม่เปิดรับออร์เดอร์ออนไลน์" }, { status: 503 });
 
+/** ใช้ร่วมกันทุกสาขา — เวลาปิดรับ วันเปิด รอบรับของ อยู่ที่ shop_branches แล้ว */
 export type ShopSettings = {
   shop_name: string;
   promptpay_id: string;
-  cutoff_hour: number;
-  open_days: number[];
-  pickup_slots: string[];
 };
 
 export async function readSettings(db: SupabaseClient): Promise<ShopSettings | null> {
   const { data, error } = await db
     .from("shop_settings")
-    .select("shop_name, promptpay_id, cutoff_hour, open_days, pickup_slots")
+    .select("shop_name, promptpay_id")
     .eq("id", 1)
     .maybeSingle();
   // ไม่งั้นหน้าร้านขึ้นแค่ "ยังไม่เปิด" แล้วไม่รู้ว่าเพราะ key ผิดหรือยังไม่ใส่พร้อมเพย์
   if (error) console.error("[shop] readSettings:", error.message);
   return data;
+}
+
+/** สาขา (0027_shop_branches) — แต่ละสาขามีไลน์ร้านของตัวเอง เวลาปิดรับ วันเปิด และรอบรับของเอง */
+export type ShopBranch = {
+  id: string;
+  slug: string;
+  code: string;
+  name: string;
+  line_id: string;
+  liff_id: string;
+  openchat_url: string;
+  pickup_note: string;
+  cutoff_hour: number;
+  open_days: number[];
+  closed_dates: string[];
+  pickup_slots: string[];
+  accepting: boolean;
+};
+
+const BRANCH_COLS =
+  "id, slug, code, name, line_id, liff_id, openchat_url, pickup_note, cutoff_hour, open_days, closed_dates, pickup_slots, accepting";
+
+export async function readBranches(db: SupabaseClient): Promise<ShopBranch[]> {
+  const { data, error } = await db.from("shop_branches").select(BRANCH_COLS).order("sort").order("created_at");
+  if (error) console.error("[shop] readBranches:", error.message);
+  return (data ?? []) as ShopBranch[];
+}
+
+/** slug จาก URL/body — ไม่ตรงรูปแบบ = "" */
+export function branchSlug(value: unknown): string {
+  const s = typeof value === "string" ? value.trim().toLowerCase() : "";
+  return /^[a-z0-9][a-z0-9-]{0,29}$/.test(s) ? s : "";
 }
 
 const DAYS = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัส", "ศุกร์", "เสาร์"];
@@ -60,6 +90,11 @@ export function pickupLabel(isoDate: string): string {
 /** วันที่ตามเวลาไทย บวก n วัน → "YYYY-MM-DD" */
 export function bangkokDate(addDays = 0, now = Date.now()): string {
   return new Date(now + 7 * 3600_000 + addDays * 86400_000).toISOString().slice(0, 10);
+}
+
+/** ชั่วโมงตอนนี้ตามเวลาไทย (0-23) */
+export function bangkokHour(now = Date.now()): number {
+  return new Date(now + 7 * 3600_000).getUTCHours();
 }
 
 /** token ลูกค้าจาก header — uuid เท่านั้น */

@@ -1,8 +1,9 @@
 /**
- * ชื่อจากไลน์ — เมื่อเปิด /shop จากปุ่มในไลน์ร้าน (ลิงก์ https://liff.line.me/<LIFF ID>)
+ * ชื่อจากไลน์ — เมื่อเปิดหน้าร้านจากปุ่มในไลน์ของสาขา (ลิงก์ https://liff.line.me/<LIFF ID>)
  * ไลน์ล็อกอินให้เองในแอป ไม่มีหน้าขออนุญาตเพิ่ม เราอ่านแค่ชื่อที่แสดงในไลน์ไปเติมช่องชื่อเล่น
  *
- * ไม่ตั้ง NEXT_PUBLIC_SHOP_LIFF_ID หรือเปิดจากเบราว์เซอร์ทั่วไป = คืน null (ลูกค้าพิมพ์ชื่อเอง)
+ * LIFF ID มาจาก /api/shop/config (shop_branches.liff_id หรือ NEXT_PUBLIC_SHOP_LIFF_ID)
+ * ไม่มี หรือเปิดจากเบราว์เซอร์ทั่วไป = คืน null (ลูกค้าพิมพ์ชื่อเอง)
  * LIFF ID ไม่ใช่ความลับ — อยู่ในลิงก์ที่ลูกค้ากดอยู่แล้ว
  */
 type Liff = {
@@ -26,8 +27,7 @@ function loadSdk(): Promise<Liff> {
   });
 }
 
-export async function lineDisplayName(): Promise<string | null> {
-  const liffId = process.env.NEXT_PUBLIC_SHOP_LIFF_ID?.trim();
+export async function lineDisplayName(liffId: string): Promise<string | null> {
   if (!liffId) return null;
   try {
     const liff = await loadSdk();

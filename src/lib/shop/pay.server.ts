@@ -9,9 +9,10 @@ export type OwnOrder = {
   charge_id: string | null;
   payment_status: "pending" | "paid";
   total: number;
+  branch_id: string;
 };
 
-const COLS = "id, order_no, charge_id, payment_status, total";
+const COLS = "id, order_no, charge_id, payment_status, total, branch_id";
 
 /** ออร์เดอร์ของลูกค้าเจ้าของ token เท่านั้น — กันคนเดาเลขออร์เดอร์คนอื่นมาดู QR/สถานะ */
 export async function ownOrder(db: SupabaseClient, orderId: string | null, token: string | null): Promise<OwnOrder | null> {

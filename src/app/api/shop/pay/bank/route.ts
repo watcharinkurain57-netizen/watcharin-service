@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 /**
  * เปลี่ยนออร์เดอร์ที่รอจ่ายจาก QR เป็นจ่ายผ่านแอปธนาคาร
  * สร้าง charge ใหม่แทนตัว QR (charge_id ของออร์เดอร์ชี้ไปตัวใหม่) แล้วคืนลิงก์ให้หน้าเว็บพาไปเปิด
- * จ่ายเสร็จธนาคารพากลับมาที่ /shop?paid=<order id> ซึ่งอาจเปิดในเบราว์เซอร์อื่นที่ไม่ใช่ในไลน์
+ * จ่ายเสร็จธนาคารพากลับมาที่ /shop/<สาขา>?paid=<order id> ซึ่งอาจเปิดในเบราว์เซอร์อื่นที่ไม่ใช่ในไลน์
  */
 export async function POST(req: Request) {
   const db = shopDb();
@@ -26,7 +26,9 @@ export async function POST(req: Request) {
   if (order.payment_status !== "pending") return Response.json({ error: "ออร์เดอร์นี้จ่ายแล้ว" }, { status: 409 });
   if (order.total < 20) return Response.json({ error: "ยอดขั้นต่ำคือ 20 บาท" }, { status: 400 });
 
-  const back = new URL(`/shop?paid=${order.id}`, req.url).toString();
+  // กลับมาหน้าร้านของสาขาเดิม
+  const { data: branch } = await db.from("shop_branches").select("slug").eq("id", order.branch_id).maybeSingle();
+  const back = new URL(`/shop${branch ? `/${branch.slug}` : ""}?paid=${order.id}`, req.url).toString();
   try {
     const charge = await createBankCharge(order.total, order.id, order.order_no, bank, back);
     if (!charge.authorize_uri) throw new Error("no authorize_uri");

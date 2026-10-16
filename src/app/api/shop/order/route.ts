@@ -1,9 +1,10 @@
 import { createPromptPayCharge, omiseEnabled } from "@/lib/shop/omise";
-import { closed, pickupLabel, readToken, shopDb } from "@/lib/shop/shop.server";
+import { branchSlug, closed, pickupLabel, readToken, shopDb } from "@/lib/shop/shop.server";
 
 export const runtime = "nodejs";
 
 type Body = {
+  branch?: unknown;
   nickname?: unknown;
   slot?: unknown;
   items?: unknown;
@@ -12,7 +13,8 @@ type Body = {
 
 /**
  * รับออร์เดอร์ — ราคาและแต้มคิดใน shop_place_order() จาก shop_menu
- * สิ่งที่เบราว์เซอร์ส่งมาใช้แค่ชื่อเมนูกับจำนวน
+ * สิ่งที่เบราว์เซอร์ส่งมาใช้แค่สาขา ชื่อเมนูกับจำนวน
+ * วันรับของ รอบเวลารับ และเลขออร์เดอร์ (A1016-03) ตามสาขา คิดในฐานข้อมูลเช่นกัน
  *
  * มี OMISE_SECRET_KEY: ออร์เดอร์เป็น pending + สร้าง charge พร้อมเพย์ที่ Omise
  *   → หน้าเว็บโชว์ QR จาก /api/shop/pay แล้วรอ /api/shop/pay/status หรือ webhook ยืนยัน
@@ -28,6 +30,7 @@ export async function POST(req: Request) {
   } catch {
     return Response.json({ error: "ข้อมูลไม่ถูกต้อง" }, { status: 400 });
   }
+  const branch = branchSlug(body.branch);
   const nickname = typeof body.nickname === "string" ? body.nickname.trim().slice(0, 30) : "";
   const slot = typeof body.slot === "string" ? body.slot : "";
   const items = Array.isArray(body.items)
@@ -35,6 +38,7 @@ export async function POST(req: Request) {
         .filter((i): i is { name: string; qty: number } => typeof i?.name === "string" && Number.isInteger(i?.qty))
         .map((i) => ({ name: i.name, qty: i.qty }))
     : [];
+  if (!branch) return Response.json({ error: "ไม่พบสาขา ลองเปิดจากปุ่มในไลน์ร้านอีกครั้ง" }, { status: 400 });
   if (!nickname) return Response.json({ error: "กรอกชื่อเล่นก่อนนะคะ" }, { status: 400 });
   if (!items.length) return Response.json({ error: "ยังไม่ได้เลือกเมนู" }, { status: 400 });
 
@@ -45,16 +49,19 @@ export async function POST(req: Request) {
     p_slot: slot,
     p_items: items,
     p_use_reward: body.useReward === true,
-    ...(gateway ? { p_pending: true } : {}),
+    p_pending: gateway,
+    p_branch: branch,
   });
   if (error) {
     // ข้อความจาก raise exception ขึ้นต้นด้วย "shop:" — ไม่ส่งรายละเอียดภายในออกไป
     const known = error.message.startsWith("shop:");
     if (!known) console.error("[shop] place_order:", error.message);
-    return Response.json(
-      { error: known ? "เมนูหรือเวลารับเปลี่ยนไปแล้ว ลองรีเฟรชแล้วสั่งใหม่" : "ส่งออร์เดอร์ไม่สำเร็จ ลองอีกครั้ง" },
-      { status: known ? 409 : 500 },
-    );
+    const message = !known
+      ? "ส่งออร์เดอร์ไม่สำเร็จ ลองอีกครั้ง"
+      : error.message.includes("branch closed")
+        ? "สาขานี้ปิดรับออร์เดอร์อยู่"
+        : "เมนูหรือเวลารับเปลี่ยนไปแล้ว ลองรีเฟรชแล้วสั่งใหม่";
+    return Response.json({ error: message }, { status: known ? 409 : 500 });
   }
   const placed = { ...data, pickupLabel: pickupLabel(data.pickupDate) };
   if (!gateway) return Response.json({ ...placed, payment: "manual" });

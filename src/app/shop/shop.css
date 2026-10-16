@@ -95,3 +95,12 @@ body:has(.shop-app) { background: #f1f7f4; }
 .shop-banks { margin-top: 14px; }
 .shop-bank-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin-top: 6px; }
 .shop-bank-grid .shop-btn { width: 100%; }
+
+/* สาขา */
+.shop-where { margin: 0; font-weight: 600; color: var(--s-ink); }
+.shop-where span { font-weight: 400; color: var(--s-muted); }
+.shop-pill.is-closed { background: #fef3c7; color: var(--s-warn); }
+.shop-branches { display: grid; gap: 10px; }
+.shop-branch { display: grid; gap: 2px; padding: 14px 16px; border-radius: 14px; background: var(--s-card); border: 1px solid var(--s-line); color: var(--s-ink); text-decoration: none; }
+.shop-branch:hover, .shop-branch:focus-visible { border-color: var(--s-accent); }
+.shop-branch span { color: var(--s-muted); font-size: .9rem; }
