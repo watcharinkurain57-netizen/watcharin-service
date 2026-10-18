@@ -26,6 +26,10 @@ import { buildCommunityPost, buildSummary, type SummaryRow } from "@/lib/shop/su
  * ทดสอบเองไม่ต้องรอเวลา: ?branch=<slug> (ส่งเลย) และ &date=YYYY-MM-DD (ไม่ใส่ = พรุ่งนี้)
  *
  * ⚠️ กันด้วย CRON_SECRET ตัวเดียวกับ meeting-reminders ไม่ตั้ง = ปฏิเสธทุกคำขอ
+ *
+ * ทดสอบไลน์ของทุกสาขา: ?test=1 [&branch=<slug>] — เฉพาะเว็บ Preview ของ Vercel (ต้องล็อกอิน Vercel
+ * ก่อนถึงจะเปิดได้) ไม่ต้องใช้ CRON_SECRET · ส่งข้อความสั้นๆ ผ่านไลน์ของแต่ละสาขาถึงผู้รับสรุป
+ * แล้วตอบเป็นภาษาไทยว่าสาขาไหนส่งได้/ไม่ได้ เพราะอะไร · ไม่แตะออร์เดอร์
  */
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,12 +44,32 @@ function safeEqual(a: string, b: string): boolean {
 /** คีย์ไลน์ของสาขา — ไม่ตั้งแยก ใช้ตัวกลาง (สาขาแรกที่ตั้งไว้ก่อนมีระบบสาขา) */
 function lineFor(slug: string) {
   const key = slug.toUpperCase().replace(/-/g, "_");
-  const token = (process.env[`SHOP_LINE_TOKEN_${key}`] || process.env.SHOP_LINE_CHANNEL_TOKEN || "").trim();
+  const ownVar = `SHOP_LINE_TOKEN_${key}`;
+  const own = process.env[ownVar]?.trim();
+  const token = own || process.env.SHOP_LINE_CHANNEL_TOKEN?.trim() || "";
   const to = (process.env[`SHOP_LINE_TO_${key}`] || process.env.SHOP_LINE_TO || "")
     .split(",")
     .map((t) => t.trim())
     .filter(Boolean);
-  return { token, to };
+  return { token, to, ownVar, tokenVar: own ? ownVar : token ? "SHOP_LINE_CHANNEL_TOKEN" : "" };
+}
+
+/** ผู้รับในไลน์: user ID (U…) กลุ่ม (C…) ห้อง (R…) ตามด้วย hex 32 ตัว — Channel ID (ตัวเลขล้วน) ใช้ไม่ได้ */
+const LINE_TO = /^[UCR][0-9a-f]{32}$/i;
+
+type Push = { ok: boolean; status: number; error: string };
+
+async function pushLine(token: string, to: string[], texts: string[]): Promise<Push> {
+  const many = to.length > 1;
+  const res = await fetch(`https://api.line.me/v2/bot/message/${many ? "multicast" : "push"}`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ to: many ? to : to[0], messages: texts.map((text) => ({ type: "text", text })) }),
+  });
+  if (res.ok) return { ok: true, status: res.status, error: "" };
+  // ไลน์บอกเหตุผลมาใน {"message": "..."} เช่น token ผิด / ผู้รับผิด / เกินโควตา
+  const body = (await res.json().catch(() => null)) as { message?: string } | null;
+  return { ok: false, status: res.status, error: body?.message ?? "" };
 }
 
 type Result = { branch: string; orders: number; sent: string[]; failed: string[] };
@@ -76,20 +100,13 @@ async function summarize(db: SupabaseClient, b: ShopBranch, date: string): Promi
 
   const line = lineFor(b.slug);
   if (line.token && line.to.length) {
-    const many = line.to.length > 1;
-    const res = await fetch(`https://api.line.me/v2/bot/message/${many ? "multicast" : "push"}`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${line.token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        to: many ? line.to : line.to[0],
-        messages: [
-          { type: "text", text: text.slice(0, 4900) },
-          // ข้อความที่ 2: กดค้าง → ส่งต่อ → เลือก OpenChat ของสาขา
-          { type: "text", text: buildCommunityPost(label, rows, b.line_id) },
-        ],
-      }),
-    });
-    (res.ok ? result.sent : result.failed).push(`line:${res.status}`);
+    const r = await pushLine(line.token, line.to, [
+      text.slice(0, 4900),
+      // ข้อความที่ 2: กดค้าง → ส่งต่อ → เลือก OpenChat ของสาขา
+      buildCommunityPost(label, rows, b.line_id),
+    ]);
+    if (!r.ok) console.error("[shop] summary line:", b.slug, r.status, r.error);
+    (r.ok ? result.sent : result.failed).push(`line:${r.status}`);
   }
 
   const mailTo = process.env.SHOP_SUMMARY_EMAIL?.trim();
@@ -108,18 +125,71 @@ async function summarize(db: SupabaseClient, b: ShopBranch, date: string): Promi
   return result;
 }
 
+/** ?test=1 — ส่งข้อความทดสอบผ่านไลน์ของแต่ละสาขา แล้วบอกผลเป็นภาษาไทยให้เจ้าของร้านอ่านเอง */
+async function testLine(branches: ShopBranch[], all: ShopBranch[]): Promise<string> {
+  const out = ["ทดสอบส่งสรุปเข้าไลน์ (เว็บทดสอบ)", ""];
+  for (const b of branches) {
+    const head = `สาขา${b.name}${b.line_id ? ` (${b.line_id})` : ""}`;
+    const line = lineFor(b.slug);
+    if (!line.token) {
+      out.push(`❌ ${head}: ยังไม่ได้ใส่ token ใน Vercel (${line.ownVar} หรือ SHOP_LINE_CHANNEL_TOKEN)`);
+      continue;
+    }
+    if (!line.to.length) {
+      out.push(`❌ ${head}: ยังไม่ได้ใส่ SHOP_LINE_TO ใน Vercel`);
+      continue;
+    }
+    if (!line.to.every((t) => LINE_TO.test(t))) {
+      const digits = line.to.some((t) => /^\d+$/.test(t));
+      out.push(
+        `❌ ${head}: SHOP_LINE_TO ไม่ใช่ user ID ต้องขึ้นต้นด้วย U ยาว 33 ตัว` +
+          (digits ? " (ตอนนี้เป็นตัวเลขล้วน น่าจะเป็น Channel ID)" : ""),
+      );
+      continue;
+    }
+    const r = await pushLine(line.token, line.to, [
+      `✅ ทดสอบระบบส่งสรุป ${head} สำเร็จ\nสรุปออร์เดอร์ของสาขานี้ตอน ${b.cutoff_hour}:00 จะมาที่แชทนี้`,
+    ]);
+    // สาขาอื่นที่ยังไม่มี token ของตัวเอง ข้อความจะไปโผล่ในแชทของไลน์สาขาแรก
+    const via =
+      line.tokenVar !== line.ownVar && b.id !== all[0]?.id
+        ? ` · ยังไม่ได้ใส่ ${line.ownVar} ข้อความจึงมาทางไลน์ของสาขา${all[0]?.name}`
+        : "";
+    if (r.ok) {
+      out.push(`✅ ${head}: ส่งแล้ว (ใช้ ${line.tokenVar}${via}) ถ้าไม่เห็นข้อความ ให้แอดไลน์นี้เป็นเพื่อนก่อน`);
+    } else if (r.status === 401) {
+      out.push(`❌ ${head}: token ไม่ถูกต้อง (ไลน์ตอบ 401) เช็ก ${line.tokenVar} ว่าเป็น Channel access token ตัวยาว`);
+    } else {
+      out.push(`❌ ${head}: ไลน์ตอบ ${r.status} ${r.error}`.trim());
+    }
+  }
+  return out.join("\n");
+}
+
 async function handle(req: Request) {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return Response.json({ error: "ยังไม่ได้ตั้ง CRON_SECRET" }, { status: 503 });
-  const auth = req.headers.get("authorization") ?? "";
-  if (!auth.startsWith("Bearer ") || !safeEqual(auth.slice(7), secret)) {
-    return Response.json({ error: "unauthorized" }, { status: 401 });
+  const q = new URL(req.url).searchParams;
+  // เว็บ Preview ของ Vercel เปิดได้เฉพาะคนที่ล็อกอิน Vercel → ให้เจ้าของร้านกดลิงก์ทดสอบเองได้ ไม่ต้องรู้ CRON_SECRET
+  const testing = q.get("test") === "1" && process.env.VERCEL_ENV === "preview";
+  if (!testing) {
+    const secret = process.env.CRON_SECRET;
+    if (!secret) return Response.json({ error: "ยังไม่ได้ตั้ง CRON_SECRET" }, { status: 503 });
+    const auth = req.headers.get("authorization") ?? "";
+    if (!auth.startsWith("Bearer ") || !safeEqual(auth.slice(7), secret)) {
+      return Response.json({ error: "unauthorized" }, { status: 401 });
+    }
   }
   const db = shopDb();
   if (!db) return Response.json({ error: "ยังไม่ได้ตั้ง SUPABASE_SECRET_KEY" }, { status: 503 });
 
-  const q = new URL(req.url).searchParams;
   const only = branchSlug(q.get("branch"));
+  if (testing) {
+    const all = await readBranches(db);
+    const picked = only ? all.filter((b) => b.slug === only) : all;
+    if (!picked.length) return Response.json({ error: "ไม่พบสาขานี้" }, { status: 404 });
+    return new Response(await testLine(picked, all), {
+      headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" },
+    });
+  }
   const date = q.get("date")?.trim() ?? "";
   if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     return Response.json({ error: "date ต้องเป็น YYYY-MM-DD" }, { status: 400 });
