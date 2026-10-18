@@ -158,6 +158,8 @@ async function testLine(branches: ShopBranch[], all: ShopBranch[]): Promise<stri
   for (const b of branches) lines.push(await testBranch(b, all));
   // ค่าใน Vercel ถูกอ่านตอนสร้างเว็บ แก้แล้วไม่ Redeploy = หน้านี้ยังเห็นค่าเก่า → บอกเวลาสร้างไว้ให้เทียบ
   const built = process.env.SHOP_BUILT_AT;
+  // แถวที่ต้อง Redeploy ในหน้า Deployments ของ Vercel (มีชื่อ commit กำกับ)
+  const commit = process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? "";
   const when = built
     ? new Intl.DateTimeFormat("th-TH", {
         timeZone: "Asia/Bangkok",
@@ -177,6 +179,7 @@ async function testLine(branches: ShopBranch[], all: ShopBranch[]): Promise<stri
     out.push(
       "",
       "แก้ค่าแล้วยังขึ้นแบบเดิม เช็ก 2 อย่าง: แก้ช่องที่ติ๊ก Preview ไว้ (ไม่ใช่แค่ Production) และ Redeploy ตัว Preview หลังแก้ " +
+        `(Vercel → Deployments → แถว Preview${commit ? ` ของ commit ${commit}` : ""} → ⋯ → Redeploy) ` +
         "โดยเวลา “สร้างเมื่อ” ด้านบนต้องหลังเวลาที่แก้",
     );
   }
@@ -206,7 +209,11 @@ async function testBranch(b: ShopBranch, all: ShopBranch[]): Promise<string> {
   // token ต้องเป็นของไลน์สาขานี้ ไม่งั้นสรุปจะไปโผล่ผิดแชท
   const want = (b.line_id || "").toLowerCase();
   if (own && want && info.ids.length && !info.ids.some((id) => id.toLowerCase() === want)) {
-    return `❌ ${head}: ${line.tokenVar} เป็น token ของไลน์ ${info.ids[0]} ไม่ใช่ ${b.line_id} ให้ก๊อป token ของ ${b.line_id} มาใส่แทน`;
+    return (
+      `❌ ${head}: ${line.tokenVar} เป็น token ของไลน์ ${info.ids[0]} ไม่ใช่ ${b.line_id} · ` +
+      `ใน LINE Developers ให้เข้า channel ที่แท็บ Messaging API ขึ้น Bot basic ID ${b.line_id} ` +
+      "แล้วก๊อป Channel access token จากหน้านั้นมาใส่แทน"
+    );
   }
 
   const r = await pushLine(line.token, line.to, [
