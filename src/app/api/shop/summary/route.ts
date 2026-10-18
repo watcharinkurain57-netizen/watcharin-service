@@ -27,9 +27,11 @@ import { buildCommunityPost, buildSummary, type SummaryRow } from "@/lib/shop/su
  *
  * ⚠️ กันด้วย CRON_SECRET ตัวเดียวกับ meeting-reminders ไม่ตั้ง = ปฏิเสธทุกคำขอ
  *
- * ทดสอบไลน์ของทุกสาขา: ?test=1 [&branch=<slug>] — เฉพาะเว็บ Preview ของ Vercel (ต้องล็อกอิน Vercel
- * ก่อนถึงจะเปิดได้) ไม่ต้องใช้ CRON_SECRET · ส่งข้อความสั้นๆ ผ่านไลน์ของแต่ละสาขาถึงผู้รับสรุป
- * แล้วตอบเป็นภาษาไทยว่าสาขาไหนส่งได้/ไม่ได้ เพราะอะไร · ไม่แตะออร์เดอร์
+ * ทดสอบไลน์ของทุกสาขา: ?test=1 [&branch=<slug>] ไม่ต้องใช้ CRON_SECRET · ไม่แตะออร์เดอร์
+ *   เว็บ Preview (ต้องล็อกอิน Vercel ก่อนถึงจะเปิดได้): ส่งข้อความสั้นๆ ผ่านไลน์ของแต่ละสาขาถึงผู้รับสรุปจริง
+ *   เว็บจริง (ใครก็เปิดได้): ไม่ส่งข้อความ แค่ถามไลน์ว่า token เป็นของไลน์สาขานั้น และผู้รับสรุปแอดไลน์นั้น
+ *     เป็นเพื่อนแล้ว — ไม่กินโควตา ไม่โชว์ค่า token/ID · ไว้เช็กค่าฝั่ง Production ตอนเปิดร้าน
+ *   ตอบเป็นภาษาไทยว่าสาขาไหนพร้อม/ไม่พร้อม เพราะอะไร
  */
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -152,10 +154,37 @@ async function botInfo(token: string): Promise<{ status: number; ids: string[] }
   return { status: res.status, ids: [j?.basicId, j?.premiumId].filter((x): x is string => !!x) };
 }
 
-/** ?test=1 — ส่งข้อความทดสอบผ่านไลน์ของแต่ละสาขา แล้วบอกผลเป็นภาษาไทยให้เจ้าของร้านอ่านเอง */
-async function testLine(branches: ShopBranch[], all: ShopBranch[]): Promise<string> {
+/**
+ * ผู้รับคนนี้แอดไลน์ของ token นี้เป็นเพื่อนแล้วหรือยัง: 200 = แอดแล้ว, 404 = ยังไม่แอด หรือ ID มาจาก provider อื่น
+ * ไม่ใช่การส่งข้อความ ไม่กินโควตา · ไม่อ่านเนื้อหา (มีชื่อในไลน์ของผู้รับ)
+ */
+async function profileStatus(token: string, userId: string): Promise<number> {
+  const res = await fetch(`https://api.line.me/v2/bot/profile/${encodeURIComponent(userId)}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  await res.body?.cancel().catch(() => {});
+  return res.status;
+}
+
+/**
+ * ?test=1 — บอกผลทีละสาขาเป็นภาษาไทยให้เจ้าของร้านอ่านเอง
+ * dry (เว็บจริง) = เช็กอย่างเดียว ไม่ส่งข้อความ · ไม่ dry (เว็บ Preview) = ส่งข้อความทดสอบจริง
+ */
+async function testLine(branches: ShopBranch[], all: ShopBranch[], dry: boolean): Promise<string> {
   const lines: string[] = [];
-  for (const b of branches) lines.push(await testBranch(b, all));
+  for (const b of branches) lines.push(await testBranch(b, all, dry));
+  if (dry) {
+    // เว็บจริงไม่ได้ฝังเวลาสร้างเว็บไว้ (next.config.ts) → บอกให้ Redeploy หลังแก้แทน
+    const out = ["เช็กไลน์ของเว็บจริง (ไม่ส่งข้อความ ไม่กินโควตา)", "อ่านค่าที่ตั้งไว้สำหรับ Production ใน Vercel", "", ...lines];
+    if (lines.some((l) => l.startsWith("❌"))) {
+      out.push(
+        "",
+        "แก้ค่าในช่องที่ติ๊ก Production แล้วต้อง Redeploy เว็บจริงก่อน " +
+          "(Vercel → Deployments → แถว Production บนสุด → ⋯ → Redeploy) แล้วค่อยเปิดหน้านี้ใหม่",
+      );
+    }
+    return out.join("\n");
+  }
   // ค่าใน Vercel ถูกอ่านตอนสร้างเว็บ แก้แล้วไม่ Redeploy = หน้านี้ยังเห็นค่าเก่า → บอกเวลาสร้างไว้ให้เทียบ
   const built = process.env.SHOP_BUILT_AT;
   // แถวที่ต้อง Redeploy ในหน้า Deployments ของ Vercel (มีชื่อ commit กำกับ)
@@ -187,7 +216,7 @@ async function testLine(branches: ShopBranch[], all: ShopBranch[]): Promise<stri
 }
 
 /** ผลของสาขาเดียว หนึ่งบรรทัด ขึ้นต้นด้วย ✅ หรือ ❌ */
-async function testBranch(b: ShopBranch, all: ShopBranch[]): Promise<string> {
+async function testBranch(b: ShopBranch, all: ShopBranch[], dry: boolean): Promise<string> {
   const head = `สาขา${b.name}${b.line_id ? ` (${b.line_id})` : ""}`;
   const line = lineFor(b.slug);
   if (!line.token) return `❌ ${head}: ยังไม่ได้ใส่ token ใน Vercel (${line.ownVar} หรือ SHOP_LINE_CHANNEL_TOKEN)`;
@@ -216,6 +245,25 @@ async function testBranch(b: ShopBranch, all: ShopBranch[]): Promise<string> {
     );
   }
 
+  if (dry) {
+    // ถามไลน์ว่าผู้รับเป็นเพื่อนกับไลน์นี้ไหม แทนการส่งจริง — กลุ่ม/ห้อง (C…/R…) เช็กแบบนี้ไม่ได้ ข้ามไป
+    const oa = info.ids[0] ?? "";
+    for (const u of line.to.filter((t) => /^U/i.test(t))) {
+      const s = await profileStatus(line.token, u);
+      if (s === 401) return `❌ ${head}: ${badToken}`;
+      if (s === 404) {
+        return (
+          `❌ ${head}: token ใช้ได้ แต่ผู้รับสรุปใน SHOP_LINE_TO ยังไม่ได้แอดไลน์ ${oa || "นี้"} เป็นเพื่อน ` +
+          "(หรือเป็น user ID จาก provider อื่น) · ใช้บัญชีไลน์ที่จะรับสรุป แอดไลน์นี้เป็นเพื่อน แล้วเปิดหน้านี้ใหม่"
+        );
+      }
+      if (s !== 200) return `❌ ${head}: ไลน์ตอบ ${s} ตอนเช็กผู้รับสรุป ลองเปิดหน้านี้ใหม่อีกครั้ง`;
+    }
+    const from = oa ? ` token เป็นของไลน์ ${oa}` : "";
+    const via = own ? "" : ` · ยังไม่ได้ใส่ ${line.ownVar} สรุปจะมาทางไลน์ของสาขา${all[0]?.name}`;
+    return `✅ ${head}: พร้อมส่ง${from} (ใช้ ${line.tokenVar}${via}) และผู้รับสรุปแอดไลน์นี้เป็นเพื่อนแล้ว`;
+  }
+
   const r = await pushLine(line.token, line.to, [
     `✅ ทดสอบระบบส่งสรุป ${head} สำเร็จ\nสรุปออร์เดอร์ของสาขานี้ตอน ${b.cutoff_hour}:00 จะมาที่แชทนี้`,
   ]);
@@ -234,8 +282,12 @@ async function testBranch(b: ShopBranch, all: ShopBranch[]): Promise<string> {
 
 async function handle(req: Request) {
   const q = new URL(req.url).searchParams;
-  // เว็บ Preview ของ Vercel เปิดได้เฉพาะคนที่ล็อกอิน Vercel → ให้เจ้าของร้านกดลิงก์ทดสอบเองได้ ไม่ต้องรู้ CRON_SECRET
-  const testing = q.get("test") === "1" && process.env.VERCEL_ENV === "preview";
+  // ?test=1 ให้เจ้าของร้านกดลิงก์เองได้ ไม่ต้องรู้ CRON_SECRET
+  // เว็บ Preview เปิดได้เฉพาะคนที่ล็อกอิน Vercel → ส่งข้อความทดสอบจริง
+  // เว็บจริงใครก็เปิดได้ → เช็กอย่างเดียว ไม่ส่งข้อความ (คนกดเล่นจะได้ไม่เผาโควตาข้อความของร้าน)
+  const env = process.env.VERCEL_ENV;
+  const testing = q.get("test") === "1" && (env === "preview" || env === "production");
+  const dry = env === "production";
   if (!testing) {
     const secret = process.env.CRON_SECRET;
     if (!secret) return Response.json({ error: "ยังไม่ได้ตั้ง CRON_SECRET" }, { status: 503 });
@@ -252,7 +304,7 @@ async function handle(req: Request) {
     const all = await readBranches(db);
     const picked = only ? all.filter((b) => b.slug === only) : all;
     if (!picked.length) return Response.json({ error: "ไม่พบสาขานี้" }, { status: 404 });
-    return new Response(await testLine(picked, all), {
+    return new Response(await testLine(picked, all, dry), {
       headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" },
     });
   }

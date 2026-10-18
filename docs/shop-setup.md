@@ -28,8 +28,10 @@ update public.shop_settings set promptpay_id = '0XXXXXXXXX' where id = 1;
 
 Channel ID กับ Channel secret (แท็บ Basic settings) **ไม่ต้องใส่** ระบบไม่ได้ใช้ ใช้แค่ Channel access token (แท็บ Messaging API → Channel access token (long-lived) → Issue)
 
-ทดสอบไลน์ทุกสาขา (เฉพาะเว็บ Preview ต้องล็อกอิน Vercel): เปิด `<ลิงก์ Preview>/api/shop/summary?test=1` → หน้าเว็บบอกทีละสาขาว่าส่งได้ (✅) หรือไม่ได้ (❌) เพราะอะไร และมีข้อความทดสอบเข้าแชทไลน์ของร้าน · ไม่แตะออร์เดอร์
-ถ้าไลน์ไม่รับ token หน้าเว็บจะบอกว่าค่าที่ใส่ไว้หน้าตาเป็นอะไร (เช่น Channel secret ยาว 32 ตัว หรือ Channel ID ตัวเลขล้วน) โดยไม่โชว์ค่าจริง และเช็กว่า token ของแต่ละสาขาเป็นของไลน์สาขานั้นจริง · แก้ค่าใน Vercel แล้วต้อง Redeploy เว็บ Preview ก่อนเปิดหน้านี้ใหม่
+ทดสอบไลน์ทุกสาขา: เปิด `/api/shop/summary?test=1` → หน้าเว็บบอกทีละสาขาว่าพร้อม (✅) หรือไม่พร้อม (❌) เพราะอะไร · ไม่แตะออร์เดอร์
+- เว็บ Preview (ต้องล็อกอิน Vercel) `<ลิงก์ Preview>/api/shop/summary?test=1`: ส่งข้อความทดสอบเข้าแชทไลน์ของร้านจริง
+- เว็บจริง `https://watcharin-service.com/api/shop/summary?test=1` (ใครก็เปิดได้): **ไม่ส่งข้อความ ไม่กินโควตา** แค่เช็กว่า token เป็นของไลน์สาขานั้น และผู้รับสรุปแอดไลน์นั้นเป็นเพื่อนแล้ว · ใช้เช็กค่าฝั่ง Production ตอนเปิดร้าน
+ถ้าไลน์ไม่รับ token หน้าเว็บจะบอกว่าค่าที่ใส่ไว้หน้าตาเป็นอะไร (เช่น Channel secret ยาว 32 ตัว หรือ Channel ID ตัวเลขล้วน) โดยไม่โชว์ค่าจริง และเช็กว่า token ของแต่ละสาขาเป็นของไลน์สาขานั้นจริง · แก้ค่าใน Vercel แล้วต้อง Redeploy (Preview หรือ Production ตามช่องที่แก้) ก่อนเปิดหน้านี้ใหม่
 
 ทางเลือก: `SHOP_SUMMARY_EMAIL` ถ้าอยากได้สรุปทางอีเมลด้วย (ใช้ Resend ที่มีอยู่)
 
@@ -77,11 +79,12 @@ Channel ID กับ Channel secret (แท็บ Basic settings) **ไม่ต
 
 ## ชื่อลูกค้าจากไลน์ (LIFF)
 ลูกค้ากดปุ่ม "สั่งอาหาร" ในไลน์ร้าน → ชื่อที่แสดงในไลน์ขึ้นให้เอง ไม่ต้องพิมพ์ (กด "แก้" เปลี่ยนเป็นชื่อเล่นได้)
-1. LINE Developers → Provider "Watcharin Service" → Create a new channel → **LINE Login** (ต้องอยู่ provider เดียวกับ OA ร้าน)
+1. LINE Developers → Provider "Watcharin Service" → Create a new channel → **LINE Login** (ช่องเดียวพอสำหรับทุกสาขา · ต้องอยู่ provider เดียวกับ OA ร้าน · ถ้าถาม App types ให้ติ๊ก Web app)
 2. ในช่อง LINE Login → แท็บ LIFF → Add **สาขาละ 1 อัน** (ช่องเดียวมีได้ 30 อัน)
-   - Size: **Full** · Endpoint URL: `https://watcharin-service.com/shop/<สาขา>` (ทดสอบ: ลิงก์ preview + `/shop/<สาขา>`)
-   - Scopes: ติ๊ก **profile** · Bot link feature: **On (Normal)** แล้วเลือก OA ของสาขานั้น
-3. คัดลอก **LIFF ID** → ใส่ในช่อง `liff_id` ของสาขาใน `shop_branches` (ไม่ใช่ความลับ ส่งในแชทได้)
+   - Size: **Full** · Endpoint URL ของแต่ละสาขา:
+     ชินวัตร 3 `https://watcharin-service.com/shop/shinawatra3` · บางกรวย `https://watcharin-service.com/shop/bangkruai` · ตลาดนัดจตุจักร `https://watcharin-service.com/shop/chatuchak`
+   - Scopes: ติ๊ก **profile** · Add friend option: **Off** (ลูกค้ากดมาจากเมนูในไลน์ของสาขา เป็นเพื่อนกันอยู่แล้ว)
+3. คัดลอก **LIFF ID** ของแต่ละสาขา → ใส่ในช่อง `liff_id` ของสาขานั้นใน `shop_branches` (ไม่ใช่ความลับ ส่งในแชทให้ Claude ใส่ให้ได้)
    - ร้านที่มีสาขาเดียวใส่ Vercel env `NEXT_PUBLIC_SHOP_LIFF_ID` แทนได้ (ใช้เมื่อสาขาไม่มี `liff_id`)
 4. ปุ่มในเมนูไลน์ของสาขาใช้ลิงก์ `https://liff.line.me/<LIFF ID ของสาขา>` แทนลิงก์เว็บตรง ๆ
 5. Channel ของ LINE Login ต้องกด **Publish** (สถานะ Developing ใช้ได้แค่บัญชีที่เป็น admin/tester)
@@ -89,12 +92,13 @@ Channel ID กับ Channel secret (แท็บ Basic settings) **ไม่ต
 ไม่ตั้ง = ลูกค้าพิมพ์ชื่อเองครั้งแรก มือถือจำไว้ครั้งต่อไป
 
 ## เมนูไลน์ (Rich menu)
-LINE Official Account Manager → หน้าแรก → Rich menus → Create
-- เทมเพลต: แบบ 2 ช่อง ซ้ายใหญ่ ขวาเล็ก (ขนาด 2500×843) · อัปโหลดรูป `line-richmenu-2500x843.jpg`
-- ช่องซ้าย "สั่งอาหาร" → Link → `https://liff.line.me/<LIFF ID ของสาขา>` (ยังไม่มี LIFF ใช้ `https://watcharin-service.com/shop/<สาขา>`)
-- ทำแยกในไลน์ของแต่ละสาขา (รูปเดียวกันได้ ต่างกันแค่ลิงก์)
-- ช่องขวา "ทักแอดมิน" → Text → `ขอสอบถามค่ะ/ครับ`
+รูป: `shop/brand/ริชเมนู-LINE-2500x843.jpg` ในโฟลเดอร์ไฟล์ของโปรเจกต์ (ตามแบรนด์หลัก ใช้รูปเดียวกันทุกสาขา · สร้างใหม่ด้วย `shop/brand/สคริปต์ริชเมนู.py`)
+LINE Official Account Manager (ของแต่ละสาขา) → หน้าแรก → Rich menus → Create
+- เทมเพลต: ขนาดเล็ก (2500×843) แบบ 2 ช่อง ซ้ายใหญ่ ขวาเล็ก · ถ้าไม่มีแบบนี้ ใช้แบบ 3 ช่องเท่ากัน แล้วตั้งช่อง A กับ B เป็นลิงก์สั่งอาหารเหมือนกัน
+- ช่อง "สั่งอาหาร" → Link → `https://liff.line.me/<LIFF ID ของสาขา>` (ยังไม่มี LIFF ใช้ลิงก์หน้าร้านของสาขาในตาราง "สาขาที่มีตอนนี้") · Action label: `สั่งอาหาร`
+- ช่อง "ทักแอดมิน" → Text → `ขอสอบถามค่ะ/ครับ`
 - Menu bar text: `สั่งอาหาร` · Default behavior: Shown
+- ทำในไลน์ของทุกสาขา (รูปเดียวกัน ต่างกันแค่ลิงก์) · ตั้งตอนเปิดร้าน เพราะก่อน merge ลิงก์หน้าร้านยังเปิดไม่ได้
 
 ## กลุ่ม OpenChat (ให้เห็นว่ามีคนสั่งจริง)
 สรุปตอนปิดรับในไลน์ของสาขามี 2 ข้อความ: ข้อความแรกสำหรับร้าน (ชื่อลูกค้า เมนูที่ต้องเตรียม)
