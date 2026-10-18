@@ -9,6 +9,7 @@ import {
   shopDb,
   type ShopBranch,
 } from "@/lib/shop/shop.server";
+import { enabledBanks, omiseEnabled, omiseTestKeyIgnored } from "@/lib/shop/omise";
 import { buildCommunityPost, buildSummary, type SummaryRow } from "@/lib/shop/summary";
 
 /**
@@ -31,6 +32,7 @@ import { buildCommunityPost, buildSummary, type SummaryRow } from "@/lib/shop/su
  *   เว็บ Preview (ต้องล็อกอิน Vercel ก่อนถึงจะเปิดได้): ส่งข้อความสั้นๆ ผ่านไลน์ของแต่ละสาขาถึงผู้รับสรุปจริง
  *   เว็บจริง (ใครก็เปิดได้): ไม่ส่งข้อความ แค่ถามไลน์ว่า token เป็นของไลน์สาขานั้น และผู้รับสรุปแอดไลน์นั้น
  *     เป็นเพื่อนแล้ว — ไม่กินโควตา ไม่โชว์ค่า token/ID · ไว้เช็กค่าฝั่ง Production ตอนเปิดร้าน
+ *     บอกด้วยว่าเว็บจริงรับเงินแบบไหน (QR พร้อมเพย์ของร้าน หรือ Omise บัญชีจริง) โดยไม่โชว์คีย์
  *   ตอบเป็นภาษาไทยว่าสาขาไหนพร้อม/ไม่พร้อม เพราะอะไร
  */
 export const runtime = "nodejs";
@@ -175,7 +177,14 @@ async function testLine(branches: ShopBranch[], all: ShopBranch[], dry: boolean)
   for (const b of branches) lines.push(await testBranch(b, all, dry));
   if (dry) {
     // เว็บจริงไม่ได้ฝังเวลาสร้างเว็บไว้ (next.config.ts) → บอกให้ Redeploy หลังแก้แทน
-    const out = ["เช็กไลน์ของเว็บจริง (ไม่ส่งข้อความ ไม่กินโควตา)", "อ่านค่าที่ตั้งไว้สำหรับ Production ใน Vercel", "", ...lines];
+    const out = [
+      "เช็กไลน์ของเว็บจริง (ไม่ส่งข้อความ ไม่กินโควตา)",
+      "อ่านค่าที่ตั้งไว้สำหรับ Production ใน Vercel",
+      "",
+      ...lines,
+      "",
+      paymentLine(),
+    ];
     if (lines.some((l) => l.startsWith("❌"))) {
       out.push(
         "",
@@ -213,6 +222,20 @@ async function testLine(branches: ShopBranch[], all: ShopBranch[], dry: boolean)
     );
   }
   return out.join("\n");
+}
+
+/** เว็บจริงรับเงินแบบไหน — บรรทัดเดียว ไม่โชว์ค่าคีย์ (ลูกค้าเห็นแบบเดียวกันอยู่แล้วตอนจ่าย) */
+function paymentLine(): string {
+  const manual = "การจ่ายเงิน: QR พร้อมเพย์ของร้าน ลูกค้ากด “โอนแล้ว” เอง เจ้าของร้านเช็กยอดในแอปธนาคาร";
+  if (omiseTestKeyIgnored()) {
+    return `${manual} · ช่อง Production มีคีย์ทดสอบของ Omise (skey_test_…) เว็บจริงไม่ใช้คีย์นี้ ลบออกจากช่อง Production ได้`;
+  }
+  if (!omiseEnabled()) return `${manual} (ยังไม่ได้ใส่คีย์ Omise บัญชีจริง)`;
+  const banks = enabledBanks();
+  return (
+    "การจ่ายเงิน: Omise บัญชีจริง เงินเข้าแล้วออร์เดอร์ยืนยันเอง · " +
+    (banks.length ? `ปุ่มจ่ายผ่านแอปธนาคาร: ${banks.join(", ")}` : "ยังไม่เปิดปุ่มจ่ายผ่านแอปธนาคาร (ใส่ OMISE_BANKS)")
+  );
 }
 
 /** ผลของสาขาเดียว หนึ่งบรรทัด ขึ้นต้นด้วย ✅ หรือ ❌ */

@@ -12,12 +12,29 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  */
 const API = "https://api.omise.co";
 
+/**
+ * เว็บจริงไม่ใช้คีย์ทดสอบ: ถ้าช่อง Production ใน Vercel มี skey_test_… ติดมาด้วย
+ * ลูกค้าจะได้ QR ทดสอบ เงินไม่เข้าร้านจริง และออร์เดอร์ค้างรอจ่ายตลอด
+ * → ทำเหมือนยังไม่ได้ใส่คีย์ (ใช้ QR พร้อมเพย์ของร้าน) จนกว่าจะใส่คีย์จริง skey_…
+ */
+export function omiseTestKeyIgnored(): boolean {
+  return process.env.VERCEL_ENV === "production" && secretKeyRaw().startsWith("skey_test_");
+}
+
+function secretKeyRaw(): string {
+  return process.env.OMISE_SECRET_KEY?.trim() ?? "";
+}
+
+function secretKey(): string {
+  return omiseTestKeyIgnored() ? "" : secretKeyRaw();
+}
+
 export function omiseEnabled(): boolean {
-  return Boolean(process.env.OMISE_SECRET_KEY?.trim());
+  return Boolean(secretKey());
 }
 
 function auth(): string {
-  return "Basic " + Buffer.from(`${process.env.OMISE_SECRET_KEY!.trim()}:`).toString("base64");
+  return "Basic " + Buffer.from(`${secretKey()}:`).toString("base64");
 }
 
 export type OmiseCharge = {
@@ -64,7 +81,7 @@ export type Bank = (typeof BANKS)[number];
  */
 export function enabledBanks(): Bank[] {
   if (!omiseEnabled()) return [];
-  if (process.env.OMISE_SECRET_KEY!.trim().startsWith("skey_test_")) return [...BANKS];
+  if (secretKey().startsWith("skey_test_")) return [...BANKS];
   const want = (process.env.OMISE_BANKS ?? "").split(",").map((b) => b.trim().toLowerCase());
   return BANKS.filter((b) => want.includes(b));
 }
