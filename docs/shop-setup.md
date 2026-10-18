@@ -29,6 +29,7 @@ update public.shop_settings set promptpay_id = '0XXXXXXXXX' where id = 1;
 Channel ID กับ Channel secret (แท็บ Basic settings) **ไม่ต้องใส่** ระบบไม่ได้ใช้ ใช้แค่ Channel access token (แท็บ Messaging API → Channel access token (long-lived) → Issue)
 
 ทดสอบไลน์ทุกสาขา (เฉพาะเว็บ Preview ต้องล็อกอิน Vercel): เปิด `<ลิงก์ Preview>/api/shop/summary?test=1` → หน้าเว็บบอกทีละสาขาว่าส่งได้ (✅) หรือไม่ได้ (❌) เพราะอะไร และมีข้อความทดสอบเข้าแชทไลน์ของร้าน · ไม่แตะออร์เดอร์
+ถ้าไลน์ไม่รับ token หน้าเว็บจะบอกว่าค่าที่ใส่ไว้หน้าตาเป็นอะไร (เช่น Channel secret ยาว 32 ตัว หรือ Channel ID ตัวเลขล้วน) โดยไม่โชว์ค่าจริง และเช็กว่า token ของแต่ละสาขาเป็นของไลน์สาขานั้นจริง · แก้ค่าใน Vercel แล้วต้อง Redeploy เว็บ Preview ก่อนเปิดหน้านี้ใหม่
 
 ทางเลือก: `SHOP_SUMMARY_EMAIL` ถ้าอยากได้สรุปทางอีเมลด้วย (ใช้ Resend ที่มีอยู่)
 

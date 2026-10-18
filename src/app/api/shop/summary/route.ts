@@ -41,12 +41,17 @@ function safeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
+/** ค่าที่วางใน Vercel: ตัดช่องว่างหัวท้าย เครื่องหมายคำพูด และคำว่า Bearer ที่เผลอก๊อปมาด้วย */
+function cleanToken(v: string | undefined): string {
+  return (v ?? "").trim().replace(/^["']|["']$/g, "").replace(/^Bearer\s+/i, "").trim();
+}
+
 /** คีย์ไลน์ของสาขา — ไม่ตั้งแยก ใช้ตัวกลาง (สาขาแรกที่ตั้งไว้ก่อนมีระบบสาขา) */
 function lineFor(slug: string) {
   const key = slug.toUpperCase().replace(/-/g, "_");
   const ownVar = `SHOP_LINE_TOKEN_${key}`;
-  const own = process.env[ownVar]?.trim();
-  const token = own || process.env.SHOP_LINE_CHANNEL_TOKEN?.trim() || "";
+  const own = cleanToken(process.env[ownVar]);
+  const token = own || cleanToken(process.env.SHOP_LINE_CHANNEL_TOKEN);
   const to = (process.env[`SHOP_LINE_TO_${key}`] || process.env.SHOP_LINE_TO || "")
     .split(",")
     .map((t) => t.trim())
@@ -125,45 +130,79 @@ async function summarize(db: SupabaseClient, b: ShopBranch, date: string): Promi
   return result;
 }
 
+/** หน้าตาของค่าที่ใส่ไว้ โดยไม่โชว์ค่าจริง — token ตัวจริงยาวราว 170 ตัว */
+function describeToken(v: string): string {
+  if (/^[0-9a-f]{32}$/i.test(v)) return "ค่าที่ใส่ยาว 32 ตัว น่าจะเป็น Channel secret";
+  if (/^\d+$/.test(v)) return `ค่าที่ใส่เป็นตัวเลข ${v.length} ตัว น่าจะเป็น Channel ID`;
+  if (LINE_TO.test(v)) return "ค่าที่ใส่น่าจะเป็น user ID";
+  if (/\s/.test(v)) return "ค่าที่ใส่มีช่องว่างหรือขึ้นบรรทัดปนอยู่ ให้วางใหม่ให้ติดกันบรรทัดเดียว";
+  if (v.length >= 150) {
+    return `ค่าที่ใส่ยาว ${v.length} ตัว หน้าตาเหมือน token แล้ว แต่อาจก๊อปมาไม่ครบหรือถูก Reissue ไปแล้ว ให้ก๊อปตัวล่าสุดมาใส่ใหม่`;
+  }
+  return `ค่าที่ใส่ยาว ${v.length} ตัว แต่ token ตัวจริงยาวราว 170 ตัว`;
+}
+
+/** token นี้เป็นของไลน์ร้านไหน (ไม่ใช่การส่งข้อความ ไม่กินโควตา) */
+async function botInfo(token: string): Promise<{ status: number; ids: string[] }> {
+  const res = await fetch("https://api.line.me/v2/bot/info", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) return { status: res.status, ids: [] };
+  const j = (await res.json().catch(() => null)) as { basicId?: string; premiumId?: string } | null;
+  return { status: res.status, ids: [j?.basicId, j?.premiumId].filter((x): x is string => !!x) };
+}
+
 /** ?test=1 — ส่งข้อความทดสอบผ่านไลน์ของแต่ละสาขา แล้วบอกผลเป็นภาษาไทยให้เจ้าของร้านอ่านเอง */
 async function testLine(branches: ShopBranch[], all: ShopBranch[]): Promise<string> {
-  const out = ["ทดสอบส่งสรุปเข้าไลน์ (เว็บทดสอบ)", ""];
-  for (const b of branches) {
-    const head = `สาขา${b.name}${b.line_id ? ` (${b.line_id})` : ""}`;
-    const line = lineFor(b.slug);
-    if (!line.token) {
-      out.push(`❌ ${head}: ยังไม่ได้ใส่ token ใน Vercel (${line.ownVar} หรือ SHOP_LINE_CHANNEL_TOKEN)`);
-      continue;
-    }
-    if (!line.to.length) {
-      out.push(`❌ ${head}: ยังไม่ได้ใส่ SHOP_LINE_TO ใน Vercel`);
-      continue;
-    }
-    if (!line.to.every((t) => LINE_TO.test(t))) {
-      const digits = line.to.some((t) => /^\d+$/.test(t));
-      out.push(
-        `❌ ${head}: SHOP_LINE_TO ไม่ใช่ user ID ต้องขึ้นต้นด้วย U ยาว 33 ตัว` +
-          (digits ? " (ตอนนี้เป็นตัวเลขล้วน น่าจะเป็น Channel ID)" : ""),
-      );
-      continue;
-    }
-    const r = await pushLine(line.token, line.to, [
-      `✅ ทดสอบระบบส่งสรุป ${head} สำเร็จ\nสรุปออร์เดอร์ของสาขานี้ตอน ${b.cutoff_hour}:00 จะมาที่แชทนี้`,
-    ]);
-    // สาขาอื่นที่ยังไม่มี token ของตัวเอง ข้อความจะไปโผล่ในแชทของไลน์สาขาแรก
-    const via =
-      line.tokenVar !== line.ownVar && b.id !== all[0]?.id
-        ? ` · ยังไม่ได้ใส่ ${line.ownVar} ข้อความจึงมาทางไลน์ของสาขา${all[0]?.name}`
-        : "";
-    if (r.ok) {
-      out.push(`✅ ${head}: ส่งแล้ว (ใช้ ${line.tokenVar}${via}) ถ้าไม่เห็นข้อความ ให้แอดไลน์นี้เป็นเพื่อนก่อน`);
-    } else if (r.status === 401) {
-      out.push(`❌ ${head}: token ไม่ถูกต้อง (ไลน์ตอบ 401) เช็ก ${line.tokenVar} ว่าเป็น Channel access token ตัวยาว`);
-    } else {
-      out.push(`❌ ${head}: ไลน์ตอบ ${r.status} ${r.error}`.trim());
-    }
+  const lines: string[] = [];
+  for (const b of branches) lines.push(await testBranch(b, all));
+  const out = ["ทดสอบส่งสรุปเข้าไลน์ (เว็บทดสอบ)", "", ...lines];
+  if (lines.some((l) => l.startsWith("❌"))) {
+    out.push("", "แก้ค่าใน Vercel แล้ว ต้อง Redeploy เว็บ Preview ก่อน ค่าใหม่ถึงจะมีผล แล้วค่อยเปิดหน้านี้ใหม่");
   }
   return out.join("\n");
+}
+
+/** ผลของสาขาเดียว หนึ่งบรรทัด ขึ้นต้นด้วย ✅ หรือ ❌ */
+async function testBranch(b: ShopBranch, all: ShopBranch[]): Promise<string> {
+  const head = `สาขา${b.name}${b.line_id ? ` (${b.line_id})` : ""}`;
+  const line = lineFor(b.slug);
+  if (!line.token) return `❌ ${head}: ยังไม่ได้ใส่ token ใน Vercel (${line.ownVar} หรือ SHOP_LINE_CHANNEL_TOKEN)`;
+  if (!line.to.length) return `❌ ${head}: ยังไม่ได้ใส่ SHOP_LINE_TO ใน Vercel`;
+  if (!line.to.every((t) => LINE_TO.test(t))) {
+    const digits = line.to.some((t) => /^\d+$/.test(t));
+    return (
+      `❌ ${head}: SHOP_LINE_TO ไม่ใช่ user ID ต้องขึ้นต้นด้วย U ยาว 33 ตัว` +
+      (digits ? " (ตอนนี้เป็นตัวเลขล้วน น่าจะเป็น Channel ID)" : "")
+    );
+  }
+  // token ของสาขานี้เอง (หรือตัวกลางของสาขาแรก) — สาขาอื่นที่ยังไม่มีของตัวเองจะยืมตัวกลางไปก่อน
+  const own = line.tokenVar === line.ownVar || b.id === all[0]?.id;
+  const borrowed = own ? "" : ` (ยังไม่ได้ใส่ ${line.ownVar} เลยใช้ตัวนี้แทน)`;
+  const badToken = `ไลน์ไม่รับ token (401) ${describeToken(line.token)} · แก้ที่ ${line.tokenVar}${borrowed}`;
+
+  const info = await botInfo(line.token);
+  if (info.status === 401) return `❌ ${head}: ${badToken}`;
+  // token ต้องเป็นของไลน์สาขานี้ ไม่งั้นสรุปจะไปโผล่ผิดแชท
+  const want = (b.line_id || "").toLowerCase();
+  if (own && want && info.ids.length && !info.ids.some((id) => id.toLowerCase() === want)) {
+    return `❌ ${head}: ${line.tokenVar} เป็น token ของไลน์ ${info.ids[0]} ไม่ใช่ ${b.line_id} ให้ก๊อป token ของ ${b.line_id} มาใส่แทน`;
+  }
+
+  const r = await pushLine(line.token, line.to, [
+    `✅ ทดสอบระบบส่งสรุป ${head} สำเร็จ\nสรุปออร์เดอร์ของสาขานี้ตอน ${b.cutoff_hour}:00 จะมาที่แชทนี้`,
+  ]);
+  if (r.status === 401) return `❌ ${head}: ${badToken}`;
+  if (!r.ok) {
+    const hint =
+      r.status === 400 && /'to'/.test(r.error)
+        ? " · เช็ก SHOP_LINE_TO ว่าเป็น Your user ID จาก provider เดียวกับไลน์ร้าน"
+        : "";
+    return `❌ ${head}: ไลน์ตอบ ${r.status} ${r.error}${hint}`.trim();
+  }
+  const from = info.ids[0] ? ` จากไลน์ ${info.ids[0]}` : "";
+  const via = own ? "" : ` · ยังไม่ได้ใส่ ${line.ownVar} ข้อความจึงมาทางไลน์ของสาขา${all[0]?.name}`;
+  return `✅ ${head}: ส่งแล้ว${from} (ใช้ ${line.tokenVar}${via}) ถ้าไม่เห็นข้อความ ให้แอดไลน์นี้เป็นเพื่อนก่อน`;
 }
 
 async function handle(req: Request) {
