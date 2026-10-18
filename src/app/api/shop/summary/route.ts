@@ -156,9 +156,29 @@ async function botInfo(token: string): Promise<{ status: number; ids: string[] }
 async function testLine(branches: ShopBranch[], all: ShopBranch[]): Promise<string> {
   const lines: string[] = [];
   for (const b of branches) lines.push(await testBranch(b, all));
-  const out = ["ทดสอบส่งสรุปเข้าไลน์ (เว็บทดสอบ)", "", ...lines];
+  // ค่าใน Vercel ถูกอ่านตอนสร้างเว็บ แก้แล้วไม่ Redeploy = หน้านี้ยังเห็นค่าเก่า → บอกเวลาสร้างไว้ให้เทียบ
+  const built = process.env.SHOP_BUILT_AT;
+  const when = built
+    ? new Intl.DateTimeFormat("th-TH", {
+        timeZone: "Asia/Bangkok",
+        day: "numeric",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+      }).format(new Date(built))
+    : "";
+  const out = [
+    "ทดสอบส่งสรุปเข้าไลน์ (เว็บทดสอบ)",
+    `อ่านค่าที่ตั้งไว้สำหรับ Preview ใน Vercel${when ? ` · เว็บนี้สร้างเมื่อ ${when} น.` : ""}`,
+    "",
+    ...lines,
+  ];
   if (lines.some((l) => l.startsWith("❌"))) {
-    out.push("", "แก้ค่าใน Vercel แล้ว ต้อง Redeploy เว็บ Preview ก่อน ค่าใหม่ถึงจะมีผล แล้วค่อยเปิดหน้านี้ใหม่");
+    out.push(
+      "",
+      "แก้ค่าแล้วยังขึ้นแบบเดิม เช็ก 2 อย่าง: แก้ช่องที่ติ๊ก Preview ไว้ (ไม่ใช่แค่ Production) และ Redeploy ตัว Preview หลังแก้ " +
+        "โดยเวลา “สร้างเมื่อ” ด้านบนต้องหลังเวลาที่แก้",
+    );
   }
   return out.join("\n");
 }
