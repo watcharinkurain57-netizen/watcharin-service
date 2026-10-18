@@ -9,7 +9,7 @@
 
 ## 1. ฐานข้อมูล
 Supabase (prod) → SQL Editor → วาง `supabase/migrations/0024_shop_orders.sql` ทั้งไฟล์ → Run
-ตามด้วย `0025_shop_menu_images.sql`, `0026_shop_gateway.sql` และ `0027_shop_branches.sql`
+ตามด้วย `0025_shop_menu_images.sql`, `0026_shop_gateway.sql`, `0027_shop_branches.sql` และ `0028_shop_cron_auth.sql`
 (ต้องมี `is_app_admin()` จาก 0003 อยู่แล้ว)
 
 แล้วใส่เลขพร้อมเพย์:
@@ -22,7 +22,7 @@ update public.shop_settings set promptpay_id = '0XXXXXXXXX' where id = 1;
 |---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | URL ของ project (ถ้ายังไม่มี) |
 | `SUPABASE_SECRET_KEY` | Settings → API Keys → secret key (**ห้ามขึ้นต้นด้วย NEXT_PUBLIC_**) |
-| `CRON_SECRET` | ตั้งเอง ยาว ๆ (ถ้ามีอยู่แล้วจาก meeting-reminders ใช้ตัวเดิม) |
+| `CRON_SECRET` | ไม่ต้องตั้งสำหรับสรุปอัตโนมัติ (ใช้รหัสใน Vault ดูข้อ 3) · ตั้งไว้ถ้าอยากยิงสรุปเองด้วย curl |
 | `SHOP_LINE_CHANNEL_TOKEN` | LINE Developers → channel ของร้าน (สาขาแรก) → Messaging API → Channel access token · สาขาอื่นดู "หลายสาขา" |
 | `SHOP_LINE_TO` | LINE Developers → Basic settings → Your user ID (ขึ้นต้นด้วย U) · เป็นค่าเดียวกันทุก OA ที่อยู่ใต้ Provider เดียวกัน (Watcharin Service) |
 
@@ -35,9 +35,11 @@ Channel ID กับ Channel secret (แท็บ Basic settings) **ไม่ต
 
 ทางเลือก: `SHOP_SUMMARY_EMAIL` ถ้าอยากได้สรุปทางอีเมลด้วย (ใช้ Resend ที่มีอยู่)
 
-## 3. ตั้งเวลาสรุป
-แก้ `<CRON_SECRET>` ใน `supabase/cron_shop_summary.sql` → วางใน SQL Editor → Run
+## 3. ตั้งเวลาสรุป (หลังหน้าร้านขึ้นเว็บจริงแล้ว)
+รัน migration `0028_shop_cron_auth.sql` แล้ววาง `supabase/cron_shop_summary.sql` ทั้งไฟล์ใน SQL Editor → Run · **ไม่ต้องแก้อะไรในไฟล์**
 (เรียกทุกชั่วโมง ระบบส่งเฉพาะสาขาที่เพิ่งถึงเวลาปิดรับ)
+รหัสลับสร้างสุ่มเก็บใน Vault ของ Supabase เอง (`shop_cron_secret`) cron อ่านจาก Vault ตอนยิง เว็บเช็กกับ Vault ผ่าน `shop_cron_ok()` → ไม่มีใครต้องก๊อปรหัส ไม่ต้องตั้ง `CRON_SECRET` ใน Vercel
+ท้ายไฟล์มีคำสั่งเช็กว่ายิงผ่าน (เลือกวันที่ไม่มีออร์เดอร์ ไม่ส่งไลน์) และดูผลรอบที่ผ่านมา
 
 ## 4. LINE Official Account
 1. manager.line.biz → สร้างบัญชีร้าน (แพ็กเกจ Free)

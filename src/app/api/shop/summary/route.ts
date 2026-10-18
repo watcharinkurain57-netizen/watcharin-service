@@ -26,7 +26,10 @@ import { buildCommunityPost, buildSummary, type SummaryRow } from "@/lib/shop/su
  *
  * ทดสอบเองไม่ต้องรอเวลา: ?branch=<slug> (ส่งเลย) และ &date=YYYY-MM-DD (ไม่ใส่ = พรุ่งนี้)
  *
- * ⚠️ กันด้วย CRON_SECRET ตัวเดียวกับ meeting-reminders ไม่ตั้ง = ปฏิเสธทุกคำขอ
+ * ⚠️ กันด้วยรหัสลับ (Authorization: Bearer …) อย่างใดอย่างหนึ่ง ไม่ตรงทั้งคู่ = 401
+ *   - shop_cron_secret ใน Vault ของ Supabase: pg_cron อ่านไปส่งเอง เว็บเช็กผ่าน shop_cron_ok() (0028)
+ *     ไม่มีใครต้องก๊อปรหัส ไม่ต้องตั้งอะไรใน Vercel (supabase/cron_shop_summary.sql)
+ *   - CRON_SECRET บน Vercel (ตัวเดียวกับ meeting-reminders) ไว้ยิงเองด้วย curl
  *
  * ทดสอบไลน์ของทุกสาขา: ?test=1 [&branch=<slug>] ไม่ต้องใช้ CRON_SECRET · ไม่แตะออร์เดอร์
  *   เว็บ Preview (ต้องล็อกอิน Vercel ก่อนถึงจะเปิดได้): ส่งข้อความสั้นๆ ผ่านไลน์ของแต่ละสาขาถึงผู้รับสรุปจริง
@@ -303,6 +306,22 @@ async function testBranch(b: ShopBranch, all: ShopBranch[], dry: boolean): Promi
   return `✅ ${head}: ส่งแล้ว${from} (ใช้ ${line.tokenVar}${via}) ถ้าไม่เห็นข้อความ ให้แอดไลน์นี้เป็นเพื่อนก่อน`;
 }
 
+/**
+ * รหัสที่ส่งมาตรงกับ CRON_SECRET บน Vercel หรือกับ shop_cron_secret ใน Vault
+ * ถามฐานข้อมูลเฉพาะรหัสที่ยาวพอ (รหัสใน Vault ยาว 64 ตัว) คนยิงมั่ว ๆ เลยไม่ไปถึงฐานข้อมูล
+ */
+async function cronAuthorized(token: string, db: SupabaseClient | null): Promise<boolean> {
+  const secret = process.env.CRON_SECRET;
+  if (secret && token && safeEqual(token, secret)) return true;
+  if (!db || token.length < 32) return false;
+  const { data, error } = await db.rpc("shop_cron_ok", { p_token: token });
+  if (error) {
+    console.error("[shop] summary auth:", error.message);
+    return false;
+  }
+  return data === true;
+}
+
 async function handle(req: Request) {
   const q = new URL(req.url).searchParams;
   // ?test=1 ให้เจ้าของร้านกดลิงก์เองได้ ไม่ต้องรู้ CRON_SECRET
@@ -311,15 +330,13 @@ async function handle(req: Request) {
   const env = process.env.VERCEL_ENV;
   const testing = q.get("test") === "1" && (env === "preview" || env === "production");
   const dry = env === "production";
+  const db = shopDb();
   if (!testing) {
-    const secret = process.env.CRON_SECRET;
-    if (!secret) return Response.json({ error: "ยังไม่ได้ตั้ง CRON_SECRET" }, { status: 503 });
     const auth = req.headers.get("authorization") ?? "";
-    if (!auth.startsWith("Bearer ") || !safeEqual(auth.slice(7), secret)) {
+    if (!(await cronAuthorized(auth.startsWith("Bearer ") ? auth.slice(7) : "", db))) {
       return Response.json({ error: "unauthorized" }, { status: 401 });
     }
   }
-  const db = shopDb();
   if (!db) return Response.json({ error: "ยังไม่ได้ตั้ง SUPABASE_SECRET_KEY" }, { status: 503 });
 
   const only = branchSlug(q.get("branch"));
