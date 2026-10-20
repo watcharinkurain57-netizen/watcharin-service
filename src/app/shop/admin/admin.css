@@ -6,6 +6,9 @@
 .adm-warn { color: var(--s-amber-text); font-weight: 600; }
 .adm-break { overflow-wrap: anywhere; margin: 0; }
 .adm-retry { display: grid; gap: 10px; justify-items: start; }
+.adm a.shop-btn.adm-google { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; }
+.adm-gmark { width: 20px; height: 20px; flex: none; background: #fff; border-radius: 50%; padding: 2px; box-sizing: content-box; }
+.adm-or { margin-top: 10px; border-top: 1px solid var(--s-line); padding-top: 14px; }
 .adm-retry .shop-err { margin: 0; }
 
 /* หัว + แท็บ ติดบนจอ */

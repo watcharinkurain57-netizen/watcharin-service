@@ -80,7 +80,8 @@ export async function POST(req: Request) {
   const base = process.env.VERCEL_ENV === "production" ? SITE : new URL(req.url).origin;
   const text = [
     "🔑 ลิงก์เข้าหลังบ้านร้าน (ใช้ได้ครั้งเดียว ภายใน 15 นาที)",
-    `${base}/shop/admin?login=${token}`,
+    // openExternalBrowser=1: ไลน์เปิดลิงก์ใน Safari/Chrome — เข้าระบบค้างไว้ในเบราว์เซอร์ปกติ ไม่ใช่ในแอปไลน์
+    `${base}/shop/admin?login=${token}&openExternalBrowser=1`,
     "ถ้าไม่ได้กดขอเอง ไม่ต้องทำอะไร",
   ].join("\n");
   const status = await pushText(line.token, line.to, text);

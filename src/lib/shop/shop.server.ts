@@ -25,12 +25,18 @@ export const DB_TIMEOUT_MS = 20_000;
 export const shopFetch: typeof fetch = (input, init) =>
   fetch(input, { ...init, signal: init?.signal ?? AbortSignal.timeout(DB_TIMEOUT_MS) });
 
+/** โปรเจกต์ Supabase ของร้าน (ไม่ครบ = null) — ใช้ทั้งฐานข้อมูลและเข้าหลังบ้านด้วย Google */
+export function shopSupabaseEnv(): { url: string; key: string } | null {
+  const url = (process.env.SHOP_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL)?.trim().replace(/\/+$/, "");
+  const key = process.env.SUPABASE_SECRET_KEY?.trim();
+  return url && key ? { url, key } : null;
+}
+
 let client: SupabaseClient | null | undefined;
 export function shopDb(): SupabaseClient | null {
   if (client === undefined) {
-    const url = (process.env.SHOP_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL)?.trim();
-    const key = process.env.SUPABASE_SECRET_KEY?.trim();
-    client = url && key ? createClient(url, key, { auth: { persistSession: false }, global: { fetch: shopFetch } }) : null;
+    const env = shopSupabaseEnv();
+    client = env ? createClient(env.url, env.key, { auth: { persistSession: false }, global: { fetch: shopFetch } }) : null;
   }
   return client;
 }

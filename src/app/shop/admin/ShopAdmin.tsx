@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { api, authLost } from "./api";
 import { BranchesTab } from "./BranchesTab";
+import { GoogleMark } from "@/components/auth/GoogleMark";
 import { CustomersTab } from "./CustomersTab";
 import { Loading } from "./Loading";
 import { MenuTab } from "./MenuTab";
@@ -24,6 +25,16 @@ const TAB_KEY = "shop-admin-tab";
  * ?login=<รหัส> มาจากลิงก์ในไลน์: ต้องกดปุ่มยืนยันก่อน (ไลน์แอบเปิดลิงก์ไปทำตัวอย่างลิงก์ ถ้าใช้ตอนเปิดจะเสียลิงก์)
  */
 /** แท็บที่เปิดค้างไว้ครั้งก่อน (หน้าแรกขึ้น "กำลังโหลด" ก่อนเสมอ ค่าจากเบราว์เซอร์จึงไม่ทำให้หน้าเพี้ยนตอนโหลด) */
+/** ผลจากการเข้าด้วย Google (/api/shop/admin/google ส่งกลับมาเป็น ?google=…) */
+const GOOGLE_RESULT: Record<string, string> = {
+  denied: "บัญชี Google นี้ไม่ได้เป็นแอดมินของเว็บ ลองเลือกบัญชีอื่น",
+  cancelled: "ยกเลิกการเข้าด้วย Google แล้ว",
+  failed: "เข้าด้วย Google ไม่สำเร็จ ลองอีกครั้ง",
+};
+
+/** แอปไลน์ (เปิดลิงก์ในแชท) — Google ไม่ให้ล็อกอินในเบราว์เซอร์ของแอป */
+const inLineApp = () => typeof navigator !== "undefined" && / Line\//i.test(navigator.userAgent);
+
 function savedTab(): Tab {
   try {
     const saved = typeof window === "undefined" ? null : localStorage.getItem(TAB_KEY);
@@ -41,7 +52,10 @@ export function ShopAdmin() {
   const [tab, setTab] = useState<Tab>(savedTab);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
-  const [err, setErr] = useState("");
+  const [err, setErr] = useState(() =>
+    typeof window === "undefined" ? "" : (GOOGLE_RESULT[new URLSearchParams(window.location.search).get("google") ?? ""] ?? ""),
+  );
+  const [lineApp] = useState(inLineApp);
   /** เช็กว่าเข้าระบบอยู่ไหมไม่สำเร็จ (เน็ต/เว็บช้า) — ขึ้นปุ่มลองใหม่ ไม่เด้งไปหน้าขอลิงก์ */
   const [bootErr, setBootErr] = useState("");
   const [boot, setBoot] = useState(0);
@@ -55,6 +69,13 @@ export function ShopAdmin() {
       alive = false;
     };
   }, [boot]);
+
+  useEffect(() => {
+    // ?google=… อ่านแล้ว ลบออกจากแถบที่อยู่ (กดรีเฟรชแล้วข้อความไม่ค้าง)
+    if (new URLSearchParams(window.location.search).has("google")) {
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, []);
 
   useEffect(() => {
     const lost = () => setAdmin(false);
@@ -145,11 +166,26 @@ export function ShopAdmin() {
             </>
           ) : (
             <>
-              <p className="shop-sub">
-                ไม่ต้องใช้รหัสผ่าน กดปุ่มแล้วระบบจะส่งลิงก์เข้าระบบไปที่ไลน์ร้านของเจ้าของร้าน
-                (คนอื่นกดได้ แต่ลิงก์ไม่ไปถึงเขา)
-              </p>
-              <button type="button" className="shop-btn" disabled={busy} onClick={sendLink}>
+              {lineApp ? (
+                <>
+                  <p className="shop-sub">
+                    Google ไม่ให้เข้าสู่ระบบในแอปไลน์ เปิดหน้านี้ใน Safari หรือ Chrome ก่อน
+                    (กดปุ่มเมนูของหน้านี้ แล้วเลือกเปิดในเบราว์เซอร์)
+                  </p>
+                  {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- ต้องโหลดใหม่ทั้งหน้า ไลน์ถึงจะเปิดออกไปเบราว์เซอร์ */}
+                  <a className="shop-btn adm-google" href="/shop/admin?openExternalBrowser=1">เปิดใน Safari / Chrome</a>
+                </>
+              ) : (
+                <>
+                  <p className="shop-sub">เข้าด้วยบัญชี Google ที่เป็นแอดมินของเว็บ เครื่องนี้จะจำไว้ 30 วัน</p>
+                  <a className="shop-btn adm-google" href="/api/shop/admin/google">
+                    <GoogleMark className="adm-gmark" />
+                    เข้าสู่ระบบด้วย Google
+                  </a>
+                </>
+              )}
+              <p className="shop-sub adm-or">หรือให้ระบบส่งลิงก์เข้าระบบไปที่ไลน์ร้านของเจ้าของร้าน (คนอื่นกดได้ แต่ลิงก์ไม่ไปถึงเขา)</p>
+              <button type="button" className="shop-btn is-ghost" disabled={busy} onClick={sendLink}>
                 {busy ? "กำลังส่ง…" : "ส่งลิงก์เข้าระบบไปที่ไลน์ร้าน"}
               </button>
             </>
