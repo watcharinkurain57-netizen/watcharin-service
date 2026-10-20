@@ -149,12 +149,32 @@ function describeToken(v: string): string {
   return `ค่าที่ใส่ยาว ${v.length} ตัว แต่ token ตัวจริงยาวราว 170 ตัว`;
 }
 
+/**
+ * ถามไลน์แบบเช็กอย่างเดียว (GET) — ใส่ signal ทุกครั้ง: บน Vercel ตัว fetch ของ Next.js
+ * จะแอบก๊อปคำตอบ GET ที่ไม่มี signal เก็บไว้อีกชุด ทำให้ทิ้งคำตอบแล้วรอค้าง (หน้าเช็กเว็บจริงเคยค้าง 20 ต.ค.)
+ * ไลน์ไม่ตอบใน 10 วินาที = status 0
+ */
+async function lineGet(url: string, token: string): Promise<Response | null> {
+  try {
+    return await fetch(url, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+      signal: AbortSignal.timeout(10_000),
+    });
+  } catch (e) {
+    console.error("[shop] LINE check:", (e as Error).message);
+    return null;
+  }
+}
+
 /** token นี้เป็นของไลน์ร้านไหน (ไม่ใช่การส่งข้อความ ไม่กินโควตา) */
 async function botInfo(token: string): Promise<{ status: number; ids: string[] }> {
-  const res = await fetch("https://api.line.me/v2/bot/info", {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!res.ok) return { status: res.status, ids: [] };
+  const res = await lineGet("https://api.line.me/v2/bot/info", token);
+  if (!res) return { status: 0, ids: [] };
+  if (!res.ok) {
+    await res.arrayBuffer().catch(() => {});
+    return { status: res.status, ids: [] };
+  }
   const j = (await res.json().catch(() => null)) as { basicId?: string; premiumId?: string } | null;
   return { status: res.status, ids: [j?.basicId, j?.premiumId].filter((x): x is string => !!x) };
 }
@@ -164,10 +184,10 @@ async function botInfo(token: string): Promise<{ status: number; ids: string[] }
  * ไม่ใช่การส่งข้อความ ไม่กินโควตา · ไม่อ่านเนื้อหา (มีชื่อในไลน์ของผู้รับ)
  */
 async function profileStatus(token: string, userId: string): Promise<number> {
-  const res = await fetch(`https://api.line.me/v2/bot/profile/${encodeURIComponent(userId)}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  await res.body?.cancel().catch(() => {});
+  const res = await lineGet(`https://api.line.me/v2/bot/profile/${encodeURIComponent(userId)}`, token);
+  if (!res) return 0;
+  // อ่านทิ้งให้จบ (ไม่ใช้ body.cancel() — ตอนมีอีกชุดค้างอยู่ cancel จะรอไม่จบ)
+  await res.arrayBuffer().catch(() => {});
   return res.status;
 }
 
@@ -261,6 +281,7 @@ async function testBranch(b: ShopBranch, all: ShopBranch[], dry: boolean): Promi
 
   const info = await botInfo(line.token);
   if (info.status === 401) return `❌ ${head}: ${badToken}`;
+  if (info.status === 0) return `❌ ${head}: ไลน์ไม่ตอบตอนเช็ก token ลองเปิดหน้านี้ใหม่อีกครั้ง`;
   // token ต้องเป็นของไลน์สาขานี้ ไม่งั้นสรุปจะไปโผล่ผิดแชท
   const want = (b.line_id || "").toLowerCase();
   if (own && want && info.ids.length && !info.ids.some((id) => id.toLowerCase() === want)) {
@@ -283,6 +304,7 @@ async function testBranch(b: ShopBranch, all: ShopBranch[], dry: boolean): Promi
           "(หรือเป็น user ID จาก provider อื่น) · ใช้บัญชีไลน์ที่จะรับสรุป แอดไลน์นี้เป็นเพื่อน แล้วเปิดหน้านี้ใหม่"
         );
       }
+      if (s === 0) return `❌ ${head}: ไลน์ไม่ตอบตอนเช็กผู้รับสรุป ลองเปิดหน้านี้ใหม่อีกครั้ง`;
       if (s !== 200) return `❌ ${head}: ไลน์ตอบ ${s} ตอนเช็กผู้รับสรุป ลองเปิดหน้านี้ใหม่อีกครั้ง`;
     }
     const from = oa ? ` token เป็นของไลน์ ${oa}` : "";
