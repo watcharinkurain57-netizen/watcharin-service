@@ -26,11 +26,14 @@ update public.shop_settings set promptpay_id = '0XXXXXXXXX' where id = 1;
 | `SHOP_LINE_CHANNEL_TOKEN` | LINE Developers → channel ของร้าน (สาขาแรก) → Messaging API → Channel access token · สาขาอื่นดู "หลายสาขา" |
 | `SHOP_LINE_TO` | LINE Developers → Basic settings → Your user ID (ขึ้นต้นด้วย U) · เป็นค่าเดียวกันทุก OA ที่อยู่ใต้ Provider เดียวกัน (Watcharin Service) |
 
+ทุกตัวต้องติ๊กช่อง **Production** (เว็บจริง) ไม่ใช่แค่ Preview — ตอนเปิดร้าน (20 ต.ค. 2026) ค่าไลน์มีแค่ช่อง Preview เว็บจริงเลยไม่มี token ทั้ง 3 สาขา · แก้ค่าแล้วต้องสร้างเว็บจริงใหม่ (Redeploy หรือ push เข้า main) ค่าใหม่ถึงจะมีผล
+
 Channel ID กับ Channel secret (แท็บ Basic settings) **ไม่ต้องใส่** ระบบไม่ได้ใช้ ใช้แค่ Channel access token (แท็บ Messaging API → Channel access token (long-lived) → Issue)
 
 ทดสอบไลน์ทุกสาขา: เปิด `/api/shop/summary?test=1` → หน้าเว็บบอกทีละสาขาว่าพร้อม (✅) หรือไม่พร้อม (❌) เพราะอะไร · ไม่แตะออร์เดอร์
 - เว็บ Preview (ต้องล็อกอิน Vercel) `<ลิงก์ Preview>/api/shop/summary?test=1`: ส่งข้อความทดสอบเข้าแชทไลน์ของร้านจริง
 - เว็บจริง `https://watcharin-service.com/api/shop/summary?test=1` (ใครก็เปิดได้): **ไม่ส่งข้อความ ไม่กินโควตา** แค่เช็กว่า token เป็นของไลน์สาขานั้น และผู้รับสรุปแอดไลน์นั้นเป็นเพื่อนแล้ว · บรรทัดสุดท้ายบอกว่าเว็บจริงรับเงินแบบไหน (QR พร้อมเพย์ของร้าน หรือ Omise บัญชีจริง) · ใช้เช็กค่าฝั่ง Production ตอนเปิดร้าน
+  เช็กจาก Supabase ได้ด้วย (ไม่ต้องเปิดเบราว์เซอร์): `select net.http_get(url := 'https://watcharin-service.com/api/shop/summary?test=1', timeout_milliseconds := 30000);` แล้วอ่านคำตอบใน `net._http_response` (แถวล่าสุด)
 ถ้าไลน์ไม่รับ token หน้าเว็บจะบอกว่าค่าที่ใส่ไว้หน้าตาเป็นอะไร (เช่น Channel secret ยาว 32 ตัว หรือ Channel ID ตัวเลขล้วน) โดยไม่โชว์ค่าจริง และเช็กว่า token ของแต่ละสาขาเป็นของไลน์สาขานั้นจริง · แก้ค่าใน Vercel แล้วต้อง Redeploy (Preview หรือ Production ตามช่องที่แก้) ก่อนเปิดหน้านี้ใหม่
 
 ทางเลือก: `SHOP_SUMMARY_EMAIL` ถ้าอยากได้สรุปทางอีเมลด้วย (ใช้ Resend ที่มีอยู่)
