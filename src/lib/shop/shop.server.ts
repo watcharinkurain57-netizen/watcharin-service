@@ -60,10 +60,12 @@ export type ShopBranch = {
   closed_dates: string[];
   pickup_slots: string[];
   accepting: boolean;
+  /** true = ส่งถึงที่ (0029) ลูกค้าใส่ที่อยู่ + เบอร์โทร · pickup_slots = เวลาส่ง */
+  delivery: boolean;
 };
 
 const BRANCH_COLS =
-  "id, slug, code, name, line_id, liff_id, openchat_url, pickup_note, cutoff_hour, open_days, closed_dates, pickup_slots, accepting";
+  "id, slug, code, name, line_id, liff_id, openchat_url, pickup_note, cutoff_hour, open_days, closed_dates, pickup_slots, accepting, delivery";
 
 export async function readBranches(db: SupabaseClient): Promise<ShopBranch[]> {
   const { data, error } = await db.from("shop_branches").select(BRANCH_COLS).order("sort").order("created_at");

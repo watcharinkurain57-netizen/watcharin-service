@@ -11,7 +11,7 @@ import {
 } from "@/lib/shop/shop.server";
 import { bearer, cronAuthorized, lineFor } from "@/lib/shop/line.server";
 import { enabledBanks, omiseEnabled, omiseTestKeyIgnored } from "@/lib/shop/omise";
-import { buildCommunityPost, buildSummary, type SummaryRow } from "@/lib/shop/summary";
+import { buildCommunityPost, buildSummary, splitText, type SummaryRow } from "@/lib/shop/summary";
 
 /**
  * สรุปออร์เดอร์ตอนปิดรับของแต่ละสาขา — pg_cron เรียกทุกชั่วโมง นาทีที่ 5 (supabase/cron_shop_summary.sql)
@@ -66,7 +66,9 @@ async function summarize(db: SupabaseClient, b: ShopBranch, date: string): Promi
   const result: Result = { branch: b.slug, orders: 0, sent: [], failed: [] };
   const { data, error } = await db
     .from("shop_orders")
-    .select("order_no, nickname, pickup_slot, items, total, discount, payment_checked")
+    .select(
+      "order_no, nickname, pickup_slot, items, total, discount, payment_checked, delivery_address, delivery_phone, delivery_map",
+    )
     .eq("branch_id", b.id)
     .eq("pickup_date", date)
     .neq("status", "cancelled")
@@ -84,14 +86,17 @@ async function summarize(db: SupabaseClient, b: ShopBranch, date: string): Promi
 
   const rows = data as SummaryRow[];
   const label = pickupLabel(date);
-  const text = buildSummary(label, rows, b.name);
+  const text = buildSummary(label, rows, b.name, b.delivery);
 
   const line = lineFor(b.slug);
   if (line.token && line.to.length) {
+    // ไลน์ส่งได้ครั้งละ 5 ข้อความ: สรุป (ยาวก็แบ่งได้ถึง 4 ข้อความ) + ข้อความสำหรับ OpenChat
+    const parts = splitText(text);
+    if (parts.length > 4) console.error("[shop] summary too long:", b.slug, parts.length);
     const r = await pushLine(line.token, line.to, [
-      text.slice(0, 4900),
-      // ข้อความที่ 2: กดค้าง → ส่งต่อ → เลือก OpenChat ของสาขา
-      buildCommunityPost(label, rows, b.line_id),
+      ...parts.slice(0, 4),
+      // ข้อความสุดท้าย: กดค้าง → ส่งต่อ → เลือก OpenChat ของสาขา (ไม่มีชื่อ ที่อยู่ ยอดเงิน)
+      buildCommunityPost(label, rows, b.line_id, b.delivery),
     ]);
     if (!r.ok) console.error("[shop] summary line:", b.slug, r.status, r.error);
     (r.ok ? result.sent : result.failed).push(`line:${r.status}`);
@@ -102,7 +107,7 @@ async function summarize(db: SupabaseClient, b: ShopBranch, date: string): Promi
     const { error: mailError } = await new Resend(process.env.RESEND_API_KEY).emails.send({
       from: process.env.RESEND_FROM,
       to: mailTo,
-      subject: `สรุปออร์เดอร์ สาขา${b.name} รับ${label}`,
+      subject: `สรุปออร์เดอร์ สาขา${b.name} ${b.delivery ? "ส่ง" : "รับ"}${label}`,
       text,
     });
     (mailError ? result.failed : result.sent).push("email");

@@ -9,11 +9,34 @@ type Body = {
   slot?: unknown;
   items?: unknown;
   useReward?: unknown;
+  delivery?: unknown;
 };
+
+/** ข้อความสั้น ๆ จากหน้าร้าน (ตัดความยาวไว้ก่อน ฐานข้อมูลเช็กซ้ำอีกที) */
+const text = (v: unknown, max: number) => (typeof v === "string" ? v.slice(0, max) : "");
+
+/**
+ * ที่อยู่ส่งของ — สาขาที่ส่งถึงที่ (shop_branches.delivery) ฐานข้อมูลบังคับที่อยู่ + เบอร์โทร
+ * สาขาที่ลูกค้ามารับเอง ฐานข้อมูลไม่สนค่านี้
+ */
+function readDelivery(v: unknown): { address: string; phone: string; map: string } | null {
+  if (!v || typeof v !== "object") return null;
+  const d = v as Record<string, unknown>;
+  return { address: text(d.address, 600), phone: text(d.phone, 20), map: text(d.map, 40) };
+}
+
+/** ข้อความ "shop: ..." จาก shop_place_order() → ข้อความให้ลูกค้า (ไม่ส่งรายละเอียดภายในออกไป) */
+function placeError(message: string): { error: string; status: number } {
+  if (!message.startsWith("shop:")) return { error: "ส่งออร์เดอร์ไม่สำเร็จ ลองอีกครั้ง", status: 500 };
+  if (message.includes("branch closed")) return { error: "สาขานี้ปิดรับออร์เดอร์อยู่", status: 409 };
+  if (message.includes("address required")) return { error: "กรอกที่อยู่สำหรับส่งของก่อนนะคะ", status: 400 };
+  if (message.includes("invalid phone")) return { error: "เบอร์โทรไม่ถูกต้อง ใส่เบอร์มือถือ 10 หลัก", status: 400 };
+  return { error: "เมนูหรือเวลารับเปลี่ยนไปแล้ว ลองรีเฟรชแล้วสั่งใหม่", status: 409 };
+}
 
 /**
  * รับออร์เดอร์ — ราคาและแต้มคิดใน shop_place_order() จาก shop_menu
- * สิ่งที่เบราว์เซอร์ส่งมาใช้แค่สาขา ชื่อเมนูกับจำนวน
+ * สิ่งที่เบราว์เซอร์ส่งมาใช้แค่สาขา ชื่อเมนูกับจำนวน (และที่อยู่ เบอร์โทร ถ้าสาขาส่งถึงที่)
  * วันรับของ รอบเวลารับ และเลขออร์เดอร์ (A1016-03) ตามสาขา คิดในฐานข้อมูลเช่นกัน
  *
  * มี OMISE_SECRET_KEY: ออร์เดอร์เป็น pending + สร้าง charge พร้อมเพย์ที่ Omise
@@ -43,6 +66,7 @@ export async function POST(req: Request) {
   if (!items.length) return Response.json({ error: "ยังไม่ได้เลือกเมนู" }, { status: 400 });
 
   const gateway = omiseEnabled();
+  // ตัว 8 พารามิเตอร์ (0029) — สาขาส่งถึงที่เช็กและเก็บที่อยู่ในคำสั่งเดียวกับที่สร้างออร์เดอร์
   const { data, error } = await db.rpc("shop_place_order", {
     p_token: readToken(req),
     p_nickname: nickname,
@@ -51,17 +75,12 @@ export async function POST(req: Request) {
     p_use_reward: body.useReward === true,
     p_pending: gateway,
     p_branch: branch,
+    p_delivery: readDelivery(body.delivery),
   });
   if (error) {
-    // ข้อความจาก raise exception ขึ้นต้นด้วย "shop:" — ไม่ส่งรายละเอียดภายในออกไป
-    const known = error.message.startsWith("shop:");
-    if (!known) console.error("[shop] place_order:", error.message);
-    const message = !known
-      ? "ส่งออร์เดอร์ไม่สำเร็จ ลองอีกครั้ง"
-      : error.message.includes("branch closed")
-        ? "สาขานี้ปิดรับออร์เดอร์อยู่"
-        : "เมนูหรือเวลารับเปลี่ยนไปแล้ว ลองรีเฟรชแล้วสั่งใหม่";
-    return Response.json({ error: message }, { status: known ? 409 : 500 });
+    const e = placeError(error.message);
+    if (e.status === 500) console.error("[shop] place_order:", error.message);
+    return Response.json({ error: e.error }, { status: e.status });
   }
   const placed = { ...data, pickupLabel: pickupLabel(data.pickupDate) };
   if (!gateway) return Response.json({ ...placed, payment: "manual" });

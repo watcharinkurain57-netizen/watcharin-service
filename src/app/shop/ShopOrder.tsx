@@ -14,7 +14,8 @@ type MenuItem = {
 };
 type Config = {
   shopName: string;
-  branch: { slug: string; name: string; pickupNote: string; openchatUrl: string };
+  /** delivery = ส่งถึงที่ ลูกค้าใส่ที่อยู่ + เบอร์โทร · slots = เวลาส่ง */
+  branch: { slug: string; name: string; pickupNote: string; openchatUrl: string; delivery: boolean };
   cutoffHour: number;
   slots: string[];
   /** null = สาขานี้ปิดรับออร์เดอร์อยู่ */
@@ -33,7 +34,7 @@ type Config = {
 /** เปิด /shop เฉย ๆ ตอนมีหลายสาขา — ให้เลือกสาขาก่อน (ปกติลูกค้าเข้าทางปุ่มในไลน์ของสาขาอยู่แล้ว) */
 type Chooser = {
   shopName: string;
-  branches: { slug: string; name: string; pickupNote: string }[];
+  branches: { slug: string; name: string; pickupNote: string; delivery?: boolean }[];
 };
 
 const BANK_NAMES: Record<string, string> = {
@@ -70,6 +71,17 @@ type Bill = {
 
 const TOKEN_KEY = "shop-token";
 const NICK_KEY = "shop-nick";
+/** สาขาส่งถึงที่: จำที่อยู่ เบอร์ ตำแหน่ง ไว้ในเครื่อง ครั้งหน้าไม่ต้องพิมพ์ใหม่ */
+const ADDR_KEY = "shop-addr";
+const PHONE_KEY = "shop-phone";
+const PIN_KEY = "shop-pin";
+
+/** เบอร์ที่พิมพ์มา → ตัวเลขล้วน 0xxxxxxxxx (+66 → 0) · ไม่ใช่เบอร์ไทย = "" */
+function cleanPhone(v: string): string {
+  let d = v.replace(/[^0-9]/g, "");
+  if (/^66[0-9]{8,9}$/.test(d)) d = `0${d.slice(2)}`;
+  return /^0[0-9]{8,9}$/.test(d) ? d : "";
+}
 
 /** localStorage อาจโยน error ได้ (โหมดไม่ระบุตัวตน, LINE in-app browser บางรุ่น) */
 function load(key: string): string {
@@ -126,6 +138,11 @@ export function ShopOrder({ branch }: { branch?: string }) {
   /** มีชื่อแล้ว (จำไว้ / จากไลน์) โชว์เป็นบรรทัดเดียว กด "แก้" ถึงจะเป็นช่องพิมพ์ */
   const [editNick, setEditNick] = useState(true);
   const [slot, setSlot] = useState("");
+  const [address, setAddress] = useState("");
+  const [phone, setPhone] = useState("");
+  /** "lat,lng" จากปุ่มใช้ตำแหน่งตอนนี้ (ไม่บังคับ) */
+  const [pin, setPin] = useState("");
+  const [locating, setLocating] = useState(false);
   const [useReward, setUseReward] = useState(false);
   const [step, setStep] = useState<"menu" | "pay" | "done">("menu");
   const [sending, setSending] = useState(false);
@@ -151,6 +168,11 @@ export function ShopOrder({ branch }: { branch?: string }) {
         }
         setCfg(body);
         setSlot(body.slots[0] ?? "");
+        if (body.branch?.delivery) {
+          setAddress(load(ADDR_KEY));
+          setPhone(load(PHONE_KEY));
+          setPin(load(PIN_KEY));
+        }
         const paidId = new URLSearchParams(window.location.search).get("paid");
         if (paidId) setBack({ orderId: paidId, failed: false });
         const known = load(NICK_KEY) || body.customer?.nickname || "";
@@ -201,6 +223,22 @@ export function ShopOrder({ branch }: { branch?: string }) {
       document.getElementById("shop-nick")?.focus();
       return;
     }
+    if (cfg.branch.delivery) {
+      if (address.trim().length < 5) {
+        setError("กรอกที่อยู่สำหรับส่งของก่อนนะคะ");
+        document.getElementById("shop-addr")?.focus();
+        return;
+      }
+      const p = cleanPhone(phone);
+      if (!p) {
+        setError("เบอร์โทรไม่ถูกต้อง ใส่เบอร์มือถือ 10 หลัก");
+        document.getElementById("shop-phone")?.focus();
+        return;
+      }
+      save(ADDR_KEY, address.trim());
+      save(PHONE_KEY, p);
+      save(PIN_KEY, pin);
+    }
     setError("");
     save(NICK_KEY, nick.trim());
     if (cfg?.gateway) {
@@ -242,6 +280,7 @@ export function ShopOrder({ branch }: { branch?: string }) {
           slot,
           items: sum.lines.map((l) => ({ name: l.name, qty: l.qty })),
           useReward: sum.discount > 0,
+          ...(cfg?.branch.delivery ? { delivery: { address: address.trim(), phone: cleanPhone(phone), map: pin } } : {}),
         }),
       });
       const body = await res.json();
@@ -269,6 +308,27 @@ export function ShopOrder({ branch }: { branch?: string }) {
     } finally {
       setSending(false);
     }
+  }
+
+  /** ปักหมุดจากตำแหน่งมือถือ — ไลน์/เบราว์เซอร์ถามขออนุญาตก่อน ไม่ให้ก็ใช้ที่อยู่ที่พิมพ์อย่างเดียว */
+  function locate() {
+    if (!navigator.geolocation) {
+      setError("มือถือนี้ใช้ตำแหน่งไม่ได้ พิมพ์ที่อยู่อย่างเดียวก็พอค่ะ");
+      return;
+    }
+    setLocating(true);
+    setError("");
+    navigator.geolocation.getCurrentPosition(
+      (p) => {
+        setPin(`${p.coords.latitude.toFixed(6)},${p.coords.longitude.toFixed(6)}`);
+        setLocating(false);
+      },
+      () => {
+        setError("เปิดตำแหน่งไม่ได้ (ไม่ได้อนุญาต หรือสัญญาณไม่พอ) พิมพ์ที่อยู่อย่างเดียวก็พอค่ะ");
+        setLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 15_000, maximumAge: 60_000 },
+    );
   }
 
   // QR ของออร์เดอร์ → PNG ให้กดค้างบันทึกได้ (แปลงไม่ได้ก็ใช้ SVG ตรง ๆ)
@@ -376,7 +436,7 @@ export function ShopOrder({ branch }: { branch?: string }) {
             {choose.branches.map((b) => (
               <a key={b.slug} className="shop-branch" href={`/shop/${b.slug}`}>
                 <b>สาขา{b.name}</b>
-                {b.pickupNote && <span>{b.pickupNote}</span>}
+                {b.delivery ? <span>ส่งถึงที่</span> : b.pickupNote && <span>{b.pickupNote}</span>}
               </a>
             ))}
           </nav>
@@ -395,6 +455,9 @@ export function ShopOrder({ branch }: { branch?: string }) {
       </main>
     );
   }
+
+  /** สาขาส่งถึงที่เขียนว่า "ส่ง…" แทน "รับ…" */
+  const verb = cfg.branch.delivery ? "ส่ง" : "รับ";
 
   return (
     <main id="main-content" className="shop-app">
@@ -431,13 +494,17 @@ export function ShopOrder({ branch }: { branch?: string }) {
               <h1>{cfg.shopName}</h1>
               <p className="shop-where">
                 สาขา{cfg.branch.name}
-                {cfg.branch.pickupNote && <span> · รับของที่ {cfg.branch.pickupNote}</span>}
+                {cfg.branch.delivery ? (
+                  <span> · ส่งถึงที่</span>
+                ) : (
+                  cfg.branch.pickupNote && <span> · รับของที่ {cfg.branch.pickupNote}</span>
+                )}
               </p>
               {cfg.pickupLabel ? (
                 <>
                   {/* สาขาเปิดแค่บางวัน (เช่น เสาร์-อาทิตย์) "วันทำการถัดไป" ไม่ตรง — วันรับจริงอยู่ในป้ายข้างล่าง */}
-                  <p className="shop-sub">สั่งและโอนก่อน {cfg.cutoffHour}:00 ของวันก่อนรับของ</p>
-                  <span className="shop-pill">ออร์เดอร์ตอนนี้ รับ{cfg.pickupLabel}</span>
+                  <p className="shop-sub">สั่งและโอนก่อน {cfg.cutoffHour}:00 ของวันก่อน{cfg.branch.delivery ? "ส่ง" : "รับของ"}</p>
+                  <span className="shop-pill">ออร์เดอร์ตอนนี้ {verb}{cfg.pickupLabel}</span>
                 </>
               ) : (
                 <span className="shop-pill is-closed">ตอนนี้สาขานี้ปิดรับออร์เดอร์</span>
@@ -495,7 +562,7 @@ export function ShopOrder({ branch }: { branch?: string }) {
             </div>
 
             <div className="shop-section">
-              <h2>รับของ</h2>
+              <h2>{cfg.branch.delivery ? "ส่งถึงที่" : "รับของ"}</h2>
               {nick.trim() && !editNick ? (
                 <div className="shop-name-row">
                   <span>สั่งในชื่อ <b>{nick}</b></span>
@@ -507,8 +574,50 @@ export function ShopOrder({ branch }: { branch?: string }) {
                   <input id="shop-nick" value={nick} maxLength={30} autoComplete="nickname" placeholder="เช่น ต้น" onChange={(e) => setNick(e.target.value)} />
                 </div>
               )}
+              {cfg.branch.delivery && (
+                <>
+                  <div className="shop-field">
+                    <label htmlFor="shop-addr">ที่อยู่สำหรับส่ง</label>
+                    <textarea
+                      id="shop-addr"
+                      value={address}
+                      rows={3}
+                      maxLength={300}
+                      autoComplete="street-address"
+                      placeholder="บ้านเลขที่ ซอย ถนน หมู่บ้าน/คอนโด และจุดสังเกต"
+                      onChange={(e) => setAddress(e.target.value)}
+                    />
+                  </div>
+                  <div className="shop-field">
+                    <label htmlFor="shop-phone">เบอร์โทร (ไว้โทรตอนไปส่ง)</label>
+                    <input
+                      id="shop-phone"
+                      type="tel"
+                      inputMode="tel"
+                      value={phone}
+                      maxLength={15}
+                      autoComplete="tel"
+                      placeholder="08x-xxx-xxxx"
+                      onChange={(e) => setPhone(e.target.value)}
+                    />
+                  </div>
+                  {pin ? (
+                    <div className="shop-name-row">
+                      <span>
+                        📍 ปักหมุดแล้ว ·{" "}
+                        <a href={`https://www.google.com/maps?q=${pin}`} target="_blank" rel="noopener noreferrer">ดูแผนที่</a>
+                      </span>
+                      <button type="button" className="shop-link" onClick={() => setPin("")}>เอาออก</button>
+                    </div>
+                  ) : (
+                    <button type="button" className="shop-link shop-locate" disabled={locating} onClick={locate}>
+                      {locating ? "กำลังหาตำแหน่ง…" : "📍 ใช้ตำแหน่งตอนนี้ปักหมุด (ไม่บังคับ)"}
+                    </button>
+                  )}
+                </>
+              )}
               <div className="shop-field">
-                <label htmlFor="shop-slot">เวลารับ</label>
+                <label htmlFor="shop-slot">{cfg.branch.delivery ? "เวลาส่ง" : "เวลารับ"}</label>
                 <select id="shop-slot" value={slot} onChange={(e) => setSlot(e.target.value)}>
                   {cfg.slots.map((s) => <option key={s}>{s}</option>)}
                 </select>
@@ -570,7 +679,8 @@ export function ShopOrder({ branch }: { branch?: string }) {
                 <div key={l.name}><span>{l.name} × {l.qty}</span><span>{baht(l.price * l.qty)}</span></div>
               ))}
               {bill.discount > 0 && <div><span>แลกแต้ม ฟรี {bill.freeName}</span><span>−{baht(bill.discount)}</span></div>}
-              <div><span>รับ{bill.pickupLabel} เวลา {slot}</span><span /></div>
+              <div><span>{verb}{bill.pickupLabel} เวลา {slot}</span><span /></div>
+              {cfg.branch.delivery && <div><span>ส่งที่ {address.trim()}</span><span /></div>}
             </div>
             {error && <p className="shop-err">{error}</p>}
             <div className="shop-row">
@@ -600,7 +710,8 @@ export function ShopOrder({ branch }: { branch?: string }) {
                 <div key={l.name}><span>{l.name} × {l.qty}</span><span>{baht(l.price * l.qty)}</span></div>
               ))}
               {sum.discount > 0 && <div><span>แลกแต้ม ฟรี {sum.freeName}</span><span>−{baht(sum.discount)}</span></div>}
-              <div><span>รับ{cfg.pickupLabel} เวลา {slot}</span><span /></div>
+              <div><span>{verb}{cfg.pickupLabel} เวลา {slot}</span><span /></div>
+              {cfg.branch.delivery && <div><span>ส่งที่ {address.trim()}</span><span /></div>}
             </div>
             {error && <p className="shop-err">{error}</p>}
             <div className="shop-row">
@@ -617,7 +728,7 @@ export function ShopOrder({ branch }: { branch?: string }) {
             <div className="shop-big">✓ รับออร์เดอร์แล้ว</div>
             <p>
               เลขออร์เดอร์ <b>{placed.orderNo}</b>
-              <br />รับ{placed.pickupLabel} เวลา {placed.slot ?? slot}
+              <br />{verb}{placed.pickupLabel} เวลา {placed.slot ?? slot}
               {placed.code && <><br />รหัสลูกค้าของคุณ <b>{placed.code}</b></>}
             </p>
             {placed.points !== undefined ? (
@@ -628,7 +739,9 @@ export function ShopOrder({ branch }: { branch?: string }) {
             ) : (
               <p className="shop-note">แต้มเข้าบัญชีแล้ว ดูแต้มได้ตอนเปิดหน้าร้านจากไลน์</p>
             )}
-            <p className="shop-note">ร้านสรุปออร์เดอร์ตอน {cfg.cutoffHour}:00 แล้วเตรียมของให้ตามเวลาที่เลือก</p>
+            <p className="shop-note">
+              ร้านสรุปออร์เดอร์ตอน {cfg.cutoffHour}:00 แล้ว{cfg.branch.delivery ? "นำไปส่งตามเวลาที่เลือก" : "เตรียมของให้ตามเวลาที่เลือก"}
+            </p>
             <button type="button" className="shop-btn is-ghost" onClick={() => setStep("menu")}>สั่งเพิ่ม</button>
           </section>
         )}

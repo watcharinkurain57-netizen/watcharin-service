@@ -36,7 +36,12 @@ export async function GET(req: Request) {
     return Response.json(
       {
         shopName: settings.shop_name,
-        branches: branches.map((b) => ({ slug: b.slug, name: b.name, pickupNote: b.pickup_note })),
+        branches: branches.map((b) => ({
+          slug: b.slug,
+          name: b.name,
+          pickupNote: b.pickup_note,
+          delivery: b.delivery === true,
+        })),
       },
       NO_STORE,
     );
@@ -77,6 +82,8 @@ export async function GET(req: Request) {
         name: branch.name,
         pickupNote: branch.pickup_note,
         openchatUrl: branch.openchat_url,
+        // ส่งถึงที่: หน้าร้านถามที่อยู่ + เบอร์โทร และเขียนว่า "ส่ง" แทน "รับ"
+        delivery: branch.delivery === true,
       },
       cutoffHour: branch.cutoff_hour,
       slots: branch.pickup_slots,
