@@ -15,6 +15,7 @@ export type Branch = {
   pickup_slots: string[];
   accepting: boolean;
   delivery: boolean;
+  notify_orders: boolean;
   orderLink?: string;
 };
 

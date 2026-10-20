@@ -1,4 +1,5 @@
 import { lineChannels, lineCustomer, linkLine, readLineToken, verifyLineUser } from "@/lib/shop/line-user.server";
+import { notifyLater } from "@/lib/shop/notify.server";
 import { createPromptPayCharge, omiseEnabled } from "@/lib/shop/omise";
 import { branchSlug, closed, pickupLabel, readToken, shopDb } from "@/lib/shop/shop.server";
 
@@ -105,7 +106,11 @@ export async function POST(req: Request) {
   // ลูกค้าใหม่จากไลน์: ผูกบัตรที่เพิ่งสร้างกับบัญชีไลน์ (เคยผูกแล้ว = ไม่ทำอะไร)
   if (line && linkNew && data.token) await linkLine(db, data.token, line.uid);
   const placed = { ...data, pickupLabel: pickupLabel(data.pickupDate) };
-  if (!gateway) return Response.json({ ...placed, payment: "manual" });
+  if (!gateway) {
+    // QR ของร้านเอง: ลูกค้ากด "โอนแล้ว" = ออร์เดอร์จ่ายแล้ว → แจ้งเข้าไลน์ (สาขาที่เปิดแจ้งทุกออร์เดอร์)
+    notifyLater(db, data.orderId);
+    return Response.json({ ...placed, payment: "manual" });
+  }
 
   // แลกแต้มจนเหลือ 0 บาท — ไม่มีอะไรให้จ่าย ยืนยันเลย
   if (data.total === 0) {
@@ -118,6 +123,7 @@ export async function POST(req: Request) {
       console.error("[shop] confirm free order:", e.message);
       return Response.json({ error: "ส่งออร์เดอร์ไม่สำเร็จ ลองอีกครั้ง" }, { status: 500 });
     }
+    notifyLater(db, data.orderId);
     return Response.json({ ...placed, ...paid, payment: "omise" });
   }
   // PromptPay ของ Omise รับขั้นต่ำ 20 บาท — ออร์เดอร์ค้าง pending ไว้เฉย ๆ ไม่เข้าสรุป

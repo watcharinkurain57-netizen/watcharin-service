@@ -6,6 +6,7 @@ import { readBranches } from "@/lib/shop/shop.server";
  * ตั้งค่าสาขา
  * GET   → ทุกสาขา (+ ลิงก์ปุ่มสั่งอาหาร)
  * PATCH { id, …ช่องที่แก้ } — แก้ได้แค่: เปิด/ปิดรับ เวลาปิดรับ วันเปิด รอบเวลา วันหยุด จุดรับของ ลิงก์ OpenChat ส่งถึงที่
+ *       แจ้งเข้าไลน์ทุกออร์เดอร์
  *       ชื่อ slug รหัส ไลน์ LIFF ของสาขาแก้จากที่นี่ไม่ได้ (ผูกกับลิงก์ในไลน์ นามบัตร และเลขออร์เดอร์)
  */
 export const runtime = "nodejs";
@@ -22,11 +23,12 @@ type Patch = {
   pickup_note?: string;
   openchat_url?: string;
   delivery?: boolean;
+  notify_orders?: boolean;
 };
 
 function readPatch(b: Record<string, unknown>): Patch | string {
   const p: Patch = {};
-  for (const k of ["accepting", "delivery"] as const) {
+  for (const k of ["accepting", "delivery", "notify_orders"] as const) {
     if (k in b) {
       if (typeof b[k] !== "boolean") return "ค่าเปิด/ปิดไม่ถูกต้อง";
       p[k] = b[k] as boolean;

@@ -1,5 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { notifyLater } from "./notify.server";
 
 /**
  * Omise (Opn Payments) — PromptPay ที่รู้เองว่าเงินเข้า
@@ -160,5 +161,7 @@ export async function confirmFromCharge(db: SupabaseClient, charge: OmiseCharge)
     console.error("[shop] confirm_payment:", charge.id, error.message);
     return null;
   }
+  // เงินเข้าแล้ว → แจ้งเข้าไลน์ (สาขาที่เปิดแจ้งทุกออร์เดอร์) · webhook กับหน้าเว็บมาพร้อมกันได้ ส่งครั้งเดียว
+  notifyLater(db, orderId);
   return data as PaidResult;
 }
