@@ -43,7 +43,9 @@ body:has(.shop-app) { background: #f1f7f4; }
 .shop-section { margin-top: 24px; background: var(--s-card); border: 1px solid var(--s-line); border-radius: 16px; padding: 16px; }
 .shop-field { display: grid; gap: 4px; margin-top: 12px; }
 .shop-field label { font-weight: 500; font-size: .9rem; }
-.shop-app input:not([type="checkbox"]), .shop-app select { font: inherit; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--s-line); background: var(--s-bg); color: var(--s-ink); width: 100%; }
+.shop-app input:not([type="checkbox"]), .shop-app select, .shop-app textarea { font: inherit; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--s-line); background: var(--s-bg); color: var(--s-ink); width: 100%; }
+.shop-app textarea { resize: vertical; min-height: 4.5em; line-height: 1.5; }
+.shop-locate { display: block; margin-top: 8px; text-align: left; }
 .shop-app :focus-visible { outline: 3px solid var(--s-accent); outline-offset: 2px; }
 .shop-points { background: var(--s-bg); border-radius: 12px; padding: 10px 12px; margin-top: 14px; font-size: .92rem; width: 100%; }
 .shop-stamps { display: flex; gap: 4px; margin-top: 6px; flex-wrap: wrap; }
