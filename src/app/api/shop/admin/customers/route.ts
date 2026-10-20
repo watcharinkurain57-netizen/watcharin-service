@@ -2,6 +2,7 @@ import { ORDER_COLS, UUID_RE, adminGuard, badRequest, json, readJson } from "@/l
 
 /**
  * ลูกค้า (ชื่อเล่น + รหัส S001 ไม่มีข้อมูลส่วนตัวอื่น ยกเว้นที่อยู่ในออร์เดอร์ส่งถึงที่)
+ * line = บัตรผูกกับบัญชีไลน์แล้วไหม (0031) — ไม่ส่งรหัสไลน์ออกไป
  * GET   ?q=        → ค้นชื่อเล่น/รหัส (ไม่ใส่ = ล่าสุด 100 คน) พร้อมจำนวนออร์เดอร์
  * GET   ?id=       → ลูกค้าคนนั้น + 20 ออร์เดอร์ล่าสุด
  * PATCH { id, points?, note? } → แก้แต้ม (0-1000) / โน้ต (ไม่เกิน 300 ตัว)
@@ -9,7 +10,13 @@ import { ORDER_COLS, UUID_RE, adminGuard, badRequest, json, readJson } from "@/l
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const COLS = "id, code, nickname, points, rewards_used, total_spent, note, created_at, last_order_at";
+const COLS = "id, code, nickname, points, rewards_used, total_spent, note, created_at, last_order_at, line_user_id";
+
+/** รหัสไลน์ของลูกค้าไม่ออกนอกเซิร์ฟเวอร์ — บอกแค่ว่าผูกแล้วหรือยัง */
+function pub<T extends { line_user_id?: string | null }>(c: T): Omit<T, "line_user_id"> & { line: boolean } {
+  const { line_user_id, ...rest } = c;
+  return { ...rest, line: !!line_user_id };
+}
 
 export async function GET(req: Request) {
   const g = await adminGuard(req);
@@ -29,7 +36,7 @@ export async function GET(req: Request) {
       return json({ error: "โหลดข้อมูลลูกค้าไม่สำเร็จ" }, 500);
     }
     if (!c.data) return json({ error: "ไม่พบลูกค้า" }, 404);
-    return json({ customer: c.data, orders: o.data ?? [] });
+    return json({ customer: pub(c.data), orders: o.data ?? [] });
   }
 
   // ตัดตัวที่ทำให้ตัวกรองของ PostgREST เพี้ยน
@@ -59,7 +66,7 @@ export async function GET(req: Request) {
       .limit(10000);
     for (const r of rows ?? []) count.set(r.customer_id, (count.get(r.customer_id) ?? 0) + 1);
   }
-  return json({ customers: list.map((c) => ({ ...c, orders: count.get(c.id) ?? 0 })) });
+  return json({ customers: list.map((c) => ({ ...pub(c), orders: count.get(c.id) ?? 0 })) });
 }
 
 export async function PATCH(req: Request) {
@@ -85,5 +92,5 @@ export async function PATCH(req: Request) {
     return json({ error: "บันทึกไม่สำเร็จ" }, 500);
   }
   if (!data?.length) return json({ error: "ไม่พบลูกค้า" }, 404);
-  return json({ customer: data[0] });
+  return json({ customer: pub(data[0]) });
 }

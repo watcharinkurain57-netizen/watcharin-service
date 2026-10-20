@@ -9,7 +9,7 @@
 
 ## 1. ฐานข้อมูล
 Supabase (prod) → SQL Editor → วาง `supabase/migrations/0024_shop_orders.sql` ทั้งไฟล์ → Run
-ตามด้วย `0025_shop_menu_images.sql`, `0026_shop_gateway.sql`, `0027_shop_branches.sql`, `0028_shop_cron_auth.sql`, `0029_shop_delivery.sql` และ `0030_shop_admin.sql`
+ตามด้วย `0025_shop_menu_images.sql`, `0026_shop_gateway.sql`, `0027_shop_branches.sql`, `0028_shop_cron_auth.sql`, `0029_shop_delivery.sql`, `0030_shop_admin.sql` และ `0031_shop_line_customer.sql`
 (ต้องมี `is_app_admin()` จาก 0003 อยู่แล้ว)
 
 แล้วใส่เลขพร้อมเพย์:
@@ -85,6 +85,11 @@ Channel ID กับ Channel secret (แท็บ Basic settings) **ไม่ต
 
 ## ชื่อลูกค้าจากไลน์ (LIFF)
 ลูกค้ากดปุ่ม "สั่งอาหาร" ในไลน์ร้าน → ชื่อที่แสดงในไลน์ขึ้นให้เอง ไม่ต้องพิมพ์ (กด "แก้" เปลี่ยนเป็นชื่อเล่นได้)
+และระบบจำลูกค้าด้วยบัญชีไลน์ (0031): บัตรลูกค้า แต้ม ประวัติ ติดตัวลูกค้าแม้เปลี่ยนมือถือ
+- เก็บแค่ userId ของไลน์ใน `shop_customers.line_user_id` (ไม่เก็บชื่อจริง เบอร์ รูป) · หน้าเว็บและหลังบ้านไม่เห็นค่านี้ หลังบ้านเห็นแค่ "ผูกบัญชีไลน์แล้ว"
+- เซิร์ฟเวอร์เช็ก access token กับไลน์เองทุกครั้ง (`/api/shop/line`, `/api/shop/order`) และรับเฉพาะ token ของช่อง LINE Login ที่ตรงกับ LIFF ID ของสาขา ไม่ต้องตั้งค่าเพิ่ม
+- ลูกค้าเดิมที่มือถือจำบัตรไว้ เปิดจากไลน์ครั้งแรก = บัตรนั้นผูกกับไลน์ · ลูกค้าใหม่ = ผูกตอนสั่งครั้งแรก
+- ไลน์ไม่ตอบ / เปิดจากเบราว์เซอร์ทั่วไป = ใช้แบบเดิม (มือถือจำ)
 1. LINE Developers → Provider "Watcharin Service" → Create a new channel → **LINE Login** (ช่องเดียวพอสำหรับทุกสาขา · ต้องอยู่ provider เดียวกับ OA ร้าน · ถ้าถาม App types ให้ติ๊ก Web app)
 2. ในช่อง LINE Login → แท็บ LIFF → Add **สาขาละ 1 อัน** (ช่องเดียวมีได้ 30 อัน)
    - Size: **Full** · Endpoint URL ของแต่ละสาขา:
