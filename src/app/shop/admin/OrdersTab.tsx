@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api, baht, bkkDate, mapUrl, phoneText, shortDate, type Order } from "./api";
+import { Loading } from "./Loading";
 
 type Data = {
   date: string;
@@ -22,6 +23,8 @@ export function OrdersTab() {
   const [busy, setBusy] = useState("");
   /** เพิ่มทีละ 1 = โหลดใหม่ (หลังกดปุ่ม) */
   const [tick, setTick] = useState(0);
+  /** วัน|สาขา ของข้อมูลที่โหลดมาล่าสุด — เปลี่ยนวัน/สาขาแล้วยังโหลดไม่เสร็จ ไม่โชว์ของวันเก่าใต้หัววันใหม่ */
+  const [loaded, setLoaded] = useState("");
 
   useEffect(() => {
     let alive = true;
@@ -30,6 +33,7 @@ export function OrdersTab() {
       .then((d) => {
         if (!alive) return;
         setData(d);
+        setLoaded(`${date}|${branch}`);
         setErr("");
       })
       .catch((e: Error) => alive && setErr(e.message));
@@ -37,6 +41,11 @@ export function OrdersTab() {
       alive = false;
     };
   }, [date, branch, tick]);
+
+  function retry() {
+    setErr("");
+    setTick((t) => t + 1);
+  }
 
   async function act(o: Order, action: Action) {
     if (action === "cancel" && !window.confirm(`ยกเลิกออร์เดอร์ ${o.order_no} ของ ${o.nickname}?\nแต้มที่ได้จากออร์เดอร์นี้จะถูกหักคืน และย้อนกลับไม่ได้`)) return;
@@ -56,7 +65,8 @@ export function OrdersTab() {
   const tomorrow = bkkDate(1);
   const byId = new Map(data?.branches.map((b) => [b.id, b]) ?? []);
   const deliveryOnly = data ? (branch ? !!data.branches.find((b) => b.slug === branch)?.delivery : false) : false;
-  const sorted = data ? [...data.orders].sort((a, b) => Number(a.status === "cancelled") - Number(b.status === "cancelled")) : [];
+  const view = data && loaded === `${date}|${branch}` ? data : null;
+  const sorted = view ? [...view.orders].sort((a, b) => Number(a.status === "cancelled") - Number(b.status === "cancelled")) : [];
 
   return (
     <section className="adm-stack">
@@ -73,24 +83,24 @@ export function OrdersTab() {
       </div>
 
       <h2 className="adm-h">{!branch ? "รับ/ส่ง" : deliveryOnly ? "ส่ง" : "รับ"} {shortDate(date)}</h2>
-      {err && <p className="shop-err" role="alert">{err}</p>}
-      {!data ? (
-        <p className="shop-sub">กำลังโหลด…</p>
+      {view && err && <p className="shop-err" role="alert">{err}</p>}
+      {!view ? (
+        <Loading err={err} onRetry={retry} />
       ) : (
         <>
           <div className="adm-card">
             <div className="adm-sum">
-              <span><b>{data.totals.orders}</b> ออร์เดอร์</span>
-              <span><b>{baht(data.totals.money)}</b></span>
-              {data.totals.unchecked > 0 && <span className="adm-warn">ยังไม่เช็กเงิน {data.totals.unchecked}</span>}
-              {data.totals.pending > 0 && <span className="adm-muted">รอจ่าย {data.totals.pending}</span>}
-              {data.totals.done > 0 && <span className="adm-muted">ส่ง/รับแล้ว {data.totals.done}</span>}
+              <span><b>{view.totals.orders}</b> ออร์เดอร์</span>
+              <span><b>{baht(view.totals.money)}</b></span>
+              {view.totals.unchecked > 0 && <span className="adm-warn">ยังไม่เช็กเงิน {view.totals.unchecked}</span>}
+              {view.totals.pending > 0 && <span className="adm-muted">รอจ่าย {view.totals.pending}</span>}
+              {view.totals.done > 0 && <span className="adm-muted">ส่ง/รับแล้ว {view.totals.done}</span>}
             </div>
-            {data.prep.length > 0 && (
+            {view.prep.length > 0 && (
               <>
                 <h3>ต้องเตรียม</h3>
                 <ul className="adm-prep">
-                  {data.prep.map((p) => <li key={p.name}><span>{p.name}</span><b>{p.qty} กล่อง</b></li>)}
+                  {view.prep.map((p) => <li key={p.name}><span>{p.name}</span><b>{p.qty} กล่อง</b></li>)}
                 </ul>
               </>
             )}

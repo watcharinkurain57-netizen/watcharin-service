@@ -70,6 +70,22 @@ export type Customer = {
 /** ไม่ได้เข้าระบบ (คุกกี้หมดอายุ / ออกจากเครื่องอื่น) — หน้าหลักฟังแล้วพากลับไปหน้าเข้าระบบ */
 export const authLost = typeof window === "undefined" ? null : new EventTarget();
 
+/** รอคำตอบนานสุดเท่านี้ — เกินแล้วขึ้นข้อความพร้อมปุ่ม "ลองใหม่" แทนการค้างที่ "กำลังโหลด" */
+const READ_MS = 12_000;
+const WRITE_MS = 30_000;
+
+/** ยิงหนึ่งครั้ง อ่านคำตอบจนจบภายในเวลาที่กำหนด (หมดเวลา = โยน error) */
+async function once(url: string, init: RequestInit, ms: number): Promise<{ res: Response; text: string }> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), ms);
+  try {
+    const res = await fetch(url, { ...init, signal: ctrl.signal });
+    return { res, text: await res.text() };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function api<T>(path: string, opts: { method?: string; json?: unknown; body?: Blob; type?: string } = {}): Promise<T> {
   const headers: Record<string, string> = {};
   let body: BodyInit | undefined;
@@ -80,21 +96,33 @@ export async function api<T>(path: string, opts: { method?: string; json?: unkno
     headers["Content-Type"] = opts.type ?? opts.body.type;
     body = opts.body;
   }
-  let res: Response;
-  try {
-    res = await fetch(`/api/shop/admin/${path}`, {
-      method: opts.method ?? (body ? "POST" : "GET"),
-      headers,
-      body,
-      cache: "no-store",
-      credentials: "same-origin",
-    });
-  } catch {
-    throw new Error("เน็ตหลุด ลองอีกครั้ง");
+  const method = opts.method ?? (body ? "POST" : "GET");
+  const read = method === "GET";
+  const init: RequestInit = { method, headers, body, cache: "no-store", credentials: "same-origin" };
+
+  let got: { res: Response; text: string } | null = null;
+  // อ่านอย่างเดียว: ไม่สำเร็จรอบแรก ลองให้เองอีกรอบ · คำสั่งแก้ข้อมูลไม่ลองซ้ำ (กันทำซ้ำสองครั้ง)
+  for (let attempt = 0; !got; attempt++) {
+    try {
+      got = await once(`/api/shop/admin/${path}`, init, read ? READ_MS : WRITE_MS);
+    } catch {
+      if (read && attempt === 0) continue;
+      throw new Error(
+        read
+          ? "โหลดไม่สำเร็จ เน็ตอาจช้าหรือหลุด กดปุ่มลองใหม่ได้เลย"
+          : "ระบบตอบช้า ไม่แน่ใจว่าบันทึกแล้วหรือยัง รีเฟรชหน้านี้ดูก่อนกดอีกครั้ง",
+      );
+    }
   }
-  const data = (await res.json().catch(() => ({}))) as { error?: string };
-  if (res.status === 401) authLost?.dispatchEvent(new Event("lost"));
-  if (!res.ok) throw new Error(data.error || "ทำไม่สำเร็จ ลองอีกครั้ง");
+
+  let data: { error?: string } | null = null;
+  try {
+    data = JSON.parse(got.text) as { error?: string };
+  } catch {
+    /* ไม่ใช่ JSON (หน้าเออเรอร์ของเว็บ) */
+  }
+  if (got.res.status === 401) authLost?.dispatchEvent(new Event("lost"));
+  if (!got.res.ok || !data) throw new Error(data?.error || "ทำไม่สำเร็จ ลองอีกครั้ง");
   return data as T;
 }
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api, baht, shortDate } from "./api";
+import { Loading } from "./Loading";
 
 type Sum = { orders: number; money: number };
 type Stats = {
@@ -21,15 +22,19 @@ type Stats = {
 export function SalesTab() {
   const [d, setD] = useState<Stats | null>(null);
   const [err, setErr] = useState("");
+  const [tick, setTick] = useState(0);
 
   useEffect(() => {
+    let alive = true;
     api<Stats>("stats")
-      .then(setD)
-      .catch((e: Error) => setErr(e.message));
-  }, []);
+      .then((r) => alive && setD(r))
+      .catch((e: Error) => alive && setErr(e.message));
+    return () => {
+      alive = false;
+    };
+  }, [tick]);
 
-  if (err) return <p className="shop-err" role="alert">{err}</p>;
-  if (!d) return <p className="shop-sub">กำลังโหลด…</p>;
+  if (!d) return <Loading err={err} onRetry={() => (setErr(""), setTick((t) => t + 1))} />;
 
   const max = Math.max(1, ...d.daily.map((x) => x.money));
   const tiles: [string, Sum][] = [

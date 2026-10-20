@@ -15,12 +15,22 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
  * เพราะบน Vercel Preview เว็บส่วนอื่นต่อ Supabase โปรเจกต์ dev
  * แต่ SUPABASE_SECRET_KEY ใช้ค่าเดียวกับ Production → URL กับ key ต้องเป็นโปรเจกต์เดียวกัน
  */
+/** ฐานข้อมูลไม่ตอบใน 20 วินาที = ตัดทิ้ง ตอบเออเรอร์แทนการค้าง */
+export const DB_TIMEOUT_MS = 20_000;
+
+/**
+ * ทุกคำขอไปฐานข้อมูลของร้านมี signal เสมอ: กันค้าง และ fetch ของ Next.js
+ * จะไม่แอบก๊อปคำตอบ GET ที่ไม่มี signal เก็บไว้อีกชุด (ปัญหาเดียวกับหน้าเช็กไลน์ที่เคยค้าง 20 ต.ค.)
+ */
+export const shopFetch: typeof fetch = (input, init) =>
+  fetch(input, { ...init, signal: init?.signal ?? AbortSignal.timeout(DB_TIMEOUT_MS) });
+
 let client: SupabaseClient | null | undefined;
 export function shopDb(): SupabaseClient | null {
   if (client === undefined) {
     const url = (process.env.SHOP_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL)?.trim();
     const key = process.env.SUPABASE_SECRET_KEY?.trim();
-    client = url && key ? createClient(url, key, { auth: { persistSession: false } }) : null;
+    client = url && key ? createClient(url, key, { auth: { persistSession: false }, global: { fetch: shopFetch } }) : null;
   }
   return client;
 }

@@ -2,19 +2,25 @@
 
 import { useEffect, useState } from "react";
 import { DAY_NAMES, api, bkkDate, shortDate, type Branch } from "./api";
+import { Loading } from "./Loading";
 
 /** ตั้งค่าสาขา: เปิด/ปิดรับ ส่งถึงที่ เวลาปิดรับ วันเปิด รอบเวลา วันหยุด จุดรับของ OpenChat */
 export function BranchesTab() {
   const [list, setList] = useState<Branch[] | null>(null);
   const [err, setErr] = useState("");
+  const [tick, setTick] = useState(0);
 
   useEffect(() => {
+    let alive = true;
     api<{ branches: Branch[] }>("branches")
-      .then((r) => setList(r.branches))
-      .catch((e: Error) => setErr(e.message));
-  }, []);
+      .then((r) => alive && setList(r.branches))
+      .catch((e: Error) => alive && setErr(e.message));
+    return () => {
+      alive = false;
+    };
+  }, [tick]);
 
-  if (!list) return err ? <p className="shop-err" role="alert">{err}</p> : <p className="shop-sub">กำลังโหลด…</p>;
+  if (!list) return <Loading err={err} onRetry={() => (setErr(""), setTick((t) => t + 1))} />;
   return (
     <section className="adm-stack">
       <p className="shop-sub">เมนูและราคาใช้ร่วมกันทุกสาขา ส่วนนี้ตั้งแยกแต่ละสาขา</p>
