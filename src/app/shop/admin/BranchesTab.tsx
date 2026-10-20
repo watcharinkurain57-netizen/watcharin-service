@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { DAY_NAMES, api, bkkDate, shortDate, type Branch } from "./api";
 import { Loading } from "./Loading";
 
-/** ตั้งค่าสาขา: เปิด/ปิดรับ ส่งถึงที่ เวลาปิดรับ วันเปิด รอบเวลา วันหยุด จุดรับของ OpenChat */
+/** ตั้งค่าสาขา: เปิด/ปิดรับ ส่งถึงที่ แจ้งทุกออร์เดอร์ เวลาปิดรับ วันเปิด รอบเวลา วันหยุด จุดรับของ OpenChat */
 export function BranchesTab() {
   const [list, setList] = useState<Branch[] | null>(null);
   const [err, setErr] = useState("");
@@ -50,6 +50,7 @@ function BranchCard({ branch, onSaved }: { branch: Branch; onSaved: (b: Branch) 
           id: b.id,
           accepting: b.accepting,
           delivery: b.delivery,
+          notify_orders: b.notify_orders,
           cutoff_hour: b.cutoff_hour,
           open_days: b.open_days,
           pickup_slots: slots.split(/[\s,]+/).filter(Boolean),
@@ -91,7 +92,15 @@ function BranchCard({ branch, onSaved }: { branch: Branch; onSaved: (b: Branch) 
         <button type="button" className={`adm-toggle${b.delivery ? " is-on" : ""}`} aria-pressed={b.delivery} onClick={() => setB({ ...b, delivery: !b.delivery })}>
           {b.delivery ? "✓ ส่งถึงที่" : "ลูกค้ามารับเอง"}
         </button>
+        <button type="button" className={`adm-toggle${b.notify_orders ? " is-on" : ""}`} aria-pressed={b.notify_orders} onClick={() => setB({ ...b, notify_orders: !b.notify_orders })}>
+          {b.notify_orders ? "✓ แจ้งเข้าไลน์ทุกออร์เดอร์" : "สรุปเข้าไลน์วันละครั้ง"}
+        </button>
       </div>
+      <p className="adm-muted">
+        {b.notify_orders
+          ? `ออร์เดอร์ที่จ่ายแล้วเด้งเข้าไลน์ทันที และยังสรุปตอน ${b.cutoff_hour}:00 เหมือนเดิม · ใช้โควตาไลน์ออร์เดอร์ละ 1 ข้อความ ใกล้หมดจะหยุดแจ้งเอง เก็บไว้ให้สรุปรายวัน`
+          : `สรุปออร์เดอร์เข้าไลน์ตอน ${b.cutoff_hour}:00 วันที่มีคนสั่ง`}
+      </p>
       <div className="adm-form">
         <label>
           ปิดรับออร์เดอร์ของวันถัดไปตอน

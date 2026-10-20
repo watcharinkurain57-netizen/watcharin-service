@@ -28,13 +28,31 @@ export function mapLink(pin: string): string {
 }
 
 /** ที่อยู่ เบอร์ แผนที่ ใต้บรรทัดออร์เดอร์ — เฉพาะออร์เดอร์ที่มีที่อยู่ */
-function deliveryLines(r: SummaryRow): string[] {
+function deliveryLines(r: SummaryRow, indent = "   "): string[] {
   if (!r.delivery_address) return [];
   return [
-    `   📍 ${r.delivery_address}`,
-    ...(r.delivery_phone ? [`   📞 ${formatPhone(r.delivery_phone)}`] : []),
-    ...(r.delivery_map ? [`   🗺 ${mapLink(r.delivery_map)}`] : []),
+    `${indent}📍 ${r.delivery_address}`,
+    ...(r.delivery_phone ? [`${indent}📞 ${formatPhone(r.delivery_phone)}`] : []),
+    ...(r.delivery_map ? [`${indent}🗺 ${mapLink(r.delivery_map)}`] : []),
   ];
+}
+
+/**
+ * แจ้งออร์เดอร์ใหม่ทีละออร์เดอร์ (สาขาที่เปิด notify_orders) — สั้นพออ่านจากแจ้งเตือนไลน์
+ * label = วันรับ/ส่ง เช่น "วันพุธ 21 ต.ค."
+ */
+export function buildOrderNotice(r: SummaryRow, label: string, branch: string, delivery = false): string {
+  const verb = delivery ? "ส่ง" : "รับ";
+  return [
+    `${delivery ? "🛵" : "🛍"} ออร์เดอร์ใหม่ สาขา${branch}`,
+    `${r.order_no} ${r.nickname}`,
+    `${verb}${label} เวลา ${r.pickup_slot}`,
+    ...r.items.map((i) => `• ${i.name} x${i.qty}`),
+    `ยอด ${r.total.toLocaleString("th-TH")} บ.${r.discount ? " (ใช้แต้ม)" : ""}`,
+    ...deliveryLines(r, ""),
+    // QR ของร้านเอง = ระบบไม่รู้ว่าเงินเข้าจริงไหม (Omise เช็กให้แล้ว)
+    ...(r.total > 0 && !r.payment_checked ? ["", "ลูกค้ากดว่าโอนแล้ว เทียบยอดเงินเข้าในแอปธนาคารก่อน" + verb] : []),
+  ].join("\n");
 }
 
 /**
