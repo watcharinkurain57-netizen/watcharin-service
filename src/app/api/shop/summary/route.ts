@@ -9,6 +9,7 @@ import {
   shopDb,
   type ShopBranch,
 } from "@/lib/shop/shop.server";
+import { bearer, cronAuthorized, lineFor } from "@/lib/shop/line.server";
 import { enabledBanks, omiseEnabled, omiseTestKeyIgnored } from "@/lib/shop/omise";
 import { buildCommunityPost, buildSummary, type SummaryRow } from "@/lib/shop/summary";
 
@@ -40,31 +41,6 @@ import { buildCommunityPost, buildSummary, type SummaryRow } from "@/lib/shop/su
  */
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-function safeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return diff === 0;
-}
-
-/** ค่าที่วางใน Vercel: ตัดช่องว่างหัวท้าย เครื่องหมายคำพูด และคำว่า Bearer ที่เผลอก๊อปมาด้วย */
-function cleanToken(v: string | undefined): string {
-  return (v ?? "").trim().replace(/^["']|["']$/g, "").replace(/^Bearer\s+/i, "").trim();
-}
-
-/** คีย์ไลน์ของสาขา — ไม่ตั้งแยก ใช้ตัวกลาง (สาขาแรกที่ตั้งไว้ก่อนมีระบบสาขา) */
-function lineFor(slug: string) {
-  const key = slug.toUpperCase().replace(/-/g, "_");
-  const ownVar = `SHOP_LINE_TOKEN_${key}`;
-  const own = cleanToken(process.env[ownVar]);
-  const token = own || cleanToken(process.env.SHOP_LINE_CHANNEL_TOKEN);
-  const to = (process.env[`SHOP_LINE_TO_${key}`] || process.env.SHOP_LINE_TO || "")
-    .split(",")
-    .map((t) => t.trim())
-    .filter(Boolean);
-  return { token, to, ownVar, tokenVar: own ? ownVar : token ? "SHOP_LINE_CHANNEL_TOKEN" : "" };
-}
 
 /** ผู้รับในไลน์: user ID (U…) กลุ่ม (C…) ห้อง (R…) ตามด้วย hex 32 ตัว — Channel ID (ตัวเลขล้วน) ใช้ไม่ได้ */
 const LINE_TO = /^[UCR][0-9a-f]{32}$/i;
@@ -328,22 +304,6 @@ async function testBranch(b: ShopBranch, all: ShopBranch[], dry: boolean): Promi
   return `✅ ${head}: ส่งแล้ว${from} (ใช้ ${line.tokenVar}${via}) ถ้าไม่เห็นข้อความ ให้แอดไลน์นี้เป็นเพื่อนก่อน`;
 }
 
-/**
- * รหัสที่ส่งมาตรงกับ CRON_SECRET บน Vercel หรือกับ shop_cron_secret ใน Vault
- * ถามฐานข้อมูลเฉพาะรหัสที่ยาวพอ (รหัสใน Vault ยาว 64 ตัว) คนยิงมั่ว ๆ เลยไม่ไปถึงฐานข้อมูล
- */
-async function cronAuthorized(token: string, db: SupabaseClient | null): Promise<boolean> {
-  const secret = process.env.CRON_SECRET;
-  if (secret && token && safeEqual(token, secret)) return true;
-  if (!db || token.length < 32) return false;
-  const { data, error } = await db.rpc("shop_cron_ok", { p_token: token });
-  if (error) {
-    console.error("[shop] summary auth:", error.message);
-    return false;
-  }
-  return data === true;
-}
-
 async function handle(req: Request) {
   const q = new URL(req.url).searchParams;
   // ?test=1 ให้เจ้าของร้านกดลิงก์เองได้ ไม่ต้องรู้ CRON_SECRET
@@ -354,8 +314,7 @@ async function handle(req: Request) {
   const dry = env === "production";
   const db = shopDb();
   if (!testing) {
-    const auth = req.headers.get("authorization") ?? "";
-    if (!(await cronAuthorized(auth.startsWith("Bearer ") ? auth.slice(7) : "", db))) {
+    if (!(await cronAuthorized(bearer(req), db))) {
       return Response.json({ error: "unauthorized" }, { status: 401 });
     }
   }
