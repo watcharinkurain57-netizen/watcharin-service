@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { api, authLost } from "./api";
 import { BranchesTab } from "./BranchesTab";
 import { CustomersTab } from "./CustomersTab";
+import { Loading } from "./Loading";
 import { MenuTab } from "./MenuTab";
 import { OrdersTab } from "./OrdersTab";
 import { SalesTab } from "./SalesTab";
@@ -41,11 +42,21 @@ export function ShopAdmin() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
+  /** เช็กว่าเข้าระบบอยู่ไหมไม่สำเร็จ (เน็ต/เว็บช้า) — ขึ้นปุ่มลองใหม่ ไม่เด้งไปหน้าขอลิงก์ */
+  const [bootErr, setBootErr] = useState("");
+  const [boot, setBoot] = useState(0);
 
   useEffect(() => {
+    let alive = true;
     api<{ admin: boolean }>("session")
-      .then((r) => setAdmin(r.admin))
-      .catch(() => setAdmin(false));
+      .then((r) => alive && setAdmin(r.admin))
+      .catch((e: Error) => alive && setBootErr(e.message));
+    return () => {
+      alive = false;
+    };
+  }, [boot]);
+
+  useEffect(() => {
     const lost = () => setAdmin(false);
     authLost?.addEventListener("lost", lost);
     return () => authLost?.removeEventListener("lost", lost);
@@ -99,7 +110,9 @@ export function ShopAdmin() {
   if (admin === null) {
     return (
       <main id="main-content" className="shop-app adm">
-        <div className="adm-gate"><p className="shop-sub">กำลังโหลด…</p></div>
+        <div className="adm-gate">
+          <Loading err={bootErr} onRetry={() => (setBootErr(""), setBoot((b) => b + 1))} />
+        </div>
       </main>
     );
   }

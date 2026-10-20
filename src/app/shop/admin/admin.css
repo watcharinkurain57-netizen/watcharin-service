@@ -5,6 +5,8 @@
 .adm-muted { color: var(--s-muted); font-size: .88rem; }
 .adm-warn { color: var(--s-amber-text); font-weight: 600; }
 .adm-break { overflow-wrap: anywhere; margin: 0; }
+.adm-retry { display: grid; gap: 10px; justify-items: start; }
+.adm-retry .shop-err { margin: 0; }
 
 /* หัว + แท็บ ติดบนจอ */
 .adm-top { position: sticky; top: 0; z-index: 5; background: rgb(241 247 244 / .97); border-bottom: 1px solid var(--s-line); }

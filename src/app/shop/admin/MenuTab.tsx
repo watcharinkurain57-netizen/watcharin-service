@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api, baht, shrinkImage, type MenuItem } from "./api";
+import { Loading } from "./Loading";
 
 type Draft = { name: string; description: string; price: string; points: string; redeemable: boolean };
 const blank: Draft = { name: "", description: "", price: "", points: "1", redeemable: true };
@@ -83,7 +84,7 @@ export function MenuTab() {
     });
   }
 
-  if (!menu) return err ? <p className="shop-err" role="alert">{err}</p> : <p className="shop-sub">กำลังโหลด…</p>;
+  if (!menu) return <Loading err={err} onRetry={() => (setErr(""), setTick((t) => t + 1))} />;
 
   const form = (m: MenuItem | null) => (
     <div className="adm-form">

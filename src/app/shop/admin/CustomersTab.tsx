@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api, baht, bkkDateTime, mapUrl, phoneText, shortDate, type Customer, type Order } from "./api";
+import { Loading } from "./Loading";
 
 /** ลูกค้า: ค้นชื่อเล่น/รหัส · แตะเพื่อดูออร์เดอร์ล่าสุด แก้แต้ม และจดโน้ต */
 export function CustomersTab() {
@@ -9,6 +10,7 @@ export function CustomersTab() {
   const [list, setList] = useState<Customer[] | null>(null);
   const [open, setOpen] = useState<string | null>(null);
   const [err, setErr] = useState("");
+  const [tick, setTick] = useState(0);
 
   useEffect(() => {
     let alive = true;
@@ -22,14 +24,14 @@ export function CustomersTab() {
       alive = false;
       clearTimeout(t);
     };
-  }, [q]);
+  }, [q, tick]);
 
   return (
     <section className="adm-stack">
       <input type="search" aria-label="ค้นหาลูกค้า" placeholder="ค้นชื่อเล่น หรือรหัส เช่น S012" value={q} onChange={(e) => setQ(e.target.value)} />
-      {err && <p className="shop-err" role="alert">{err}</p>}
+      {list && err && <p className="shop-err" role="alert">{err}</p>}
       {!list ? (
-        <p className="shop-sub">กำลังโหลด…</p>
+        <Loading err={err} onRetry={() => (setErr(""), setTick((t) => t + 1))} />
       ) : !list.length ? (
         <p className="shop-sub">ไม่พบลูกค้า</p>
       ) : (
@@ -61,16 +63,22 @@ function Detail({ id, onSaved }: { id: string; onSaved: (c: Customer) => void })
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
+  const [tick, setTick] = useState(0);
 
   useEffect(() => {
+    let alive = true;
     api<{ customer: Customer; orders: Order[] }>(`customers?id=${id}`)
       .then((r) => {
+        if (!alive) return;
         setData(r);
         setPoints(String(r.customer.points));
         setNote(r.customer.note);
       })
-      .catch((e: Error) => setErr(e.message));
-  }, [id]);
+      .catch((e: Error) => alive && setErr(e.message));
+    return () => {
+      alive = false;
+    };
+  }, [id, tick]);
 
   async function save() {
     setBusy(true);
@@ -87,7 +95,7 @@ function Detail({ id, onSaved }: { id: string; onSaved: (c: Customer) => void })
     }
   }
 
-  if (!data) return err ? <p className="shop-err">{err}</p> : <p className="shop-sub">กำลังโหลด…</p>;
+  if (!data) return <Loading err={err} onRetry={() => (setErr(""), setTick((t) => t + 1))} />;
   const addr = data.orders.find((o) => o.delivery_address);
   return (
     <div className="adm-detail">
