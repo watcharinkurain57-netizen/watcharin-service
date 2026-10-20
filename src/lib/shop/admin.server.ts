@@ -19,10 +19,11 @@ export const sha256 = (s: string) => createHash("sha256").update(s).digest("hex"
 export const newToken = () => randomBytes(32).toString("base64url");
 export const TOKEN_RE = /^[A-Za-z0-9_-]{43}$/;
 
-function cookieToken(req: Request): string {
+/** ค่าคุกกี้ชื่อนี้จาก request ("" = ไม่มี) */
+export function readCookie(req: Request, name: string): string {
   for (const part of (req.headers.get("cookie") ?? "").split(";")) {
     const i = part.indexOf("=");
-    if (i > 0 && part.slice(0, i).trim() === ADMIN_COOKIE) return part.slice(i + 1).trim();
+    if (i > 0 && part.slice(0, i).trim() === name) return part.slice(i + 1).trim();
   }
   return "";
 }
@@ -34,8 +35,23 @@ export function sessionCookie(token: string, maxAge: number): string {
 
 /** รหัสจากคุกกี้ (ถ้ารูปแบบถูก) — ไว้ลบ session ตอนออกจากระบบ */
 export function sessionToken(req: Request): string {
-  const t = cookieToken(req);
+  const t = readCookie(req, ADMIN_COOKIE);
   return TOKEN_RE.test(t) ? t : "";
+}
+
+/** เปิด session ใหม่ 30 วัน (เก็บแค่ hash) → รหัสสำหรับใส่คุกกี้ · บันทึกไม่ได้ = null */
+export async function createSession(db: SupabaseClient): Promise<string | null> {
+  const session = newToken();
+  const { error } = await db.from("shop_admin_tokens").insert({
+    kind: "session",
+    token_hash: sha256(session),
+    expires_at: new Date(Date.now() + SESSION_DAYS * 86400_000).toISOString(),
+  });
+  if (error) {
+    console.error("[shop] admin session insert:", error.message);
+    return null;
+  }
+  return session;
 }
 
 export async function adminAuthorized(req: Request, db: SupabaseClient): Promise<boolean> {

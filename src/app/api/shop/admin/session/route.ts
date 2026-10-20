@@ -2,8 +2,8 @@ import {
   SESSION_DAYS,
   TOKEN_RE,
   adminAuthorized,
+  createSession,
   json,
-  newToken,
   readJson,
   sessionCookie,
   sessionToken,
@@ -50,16 +50,8 @@ export async function POST(req: Request) {
   }
   if (!used?.length) return expired;
 
-  const session = newToken();
-  const { error: e } = await db.from("shop_admin_tokens").insert({
-    kind: "session",
-    token_hash: sha256(session),
-    expires_at: new Date(now.getTime() + SESSION_DAYS * 86400_000).toISOString(),
-  });
-  if (e) {
-    console.error("[shop] admin session insert:", e.message);
-    return json({ error: "เข้าระบบไม่สำเร็จ ลองอีกครั้ง" }, 500);
-  }
+  const session = await createSession(db);
+  if (!session) return json({ error: "เข้าระบบไม่สำเร็จ ลองอีกครั้ง" }, 500);
   return json({ admin: true }, 200, { "Set-Cookie": sessionCookie(session, SESSION_DAYS * 86400) });
 }
 
