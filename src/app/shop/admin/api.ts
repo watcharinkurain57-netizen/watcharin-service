@@ -64,6 +64,8 @@ export type Customer = {
   note: string;
   created_at: string;
   last_order_at: string | null;
+  /** บัตรผูกกับบัญชีไลน์แล้ว (สั่งจากปุ่มในไลน์) — เปลี่ยนมือถือก็ได้แต้มเดิม */
+  line: boolean;
   orders?: number;
 };
 

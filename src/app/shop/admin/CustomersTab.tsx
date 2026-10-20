@@ -101,6 +101,8 @@ function Detail({ id, onSaved }: { id: string; onSaved: (c: Customer) => void })
     <div className="adm-detail">
       <p className="adm-muted">
         เป็นลูกค้าตั้งแต่ {shortDate(data.customer.created_at)} · สั่งล่าสุด {bkkDateTime(data.customer.last_order_at)} · แลกแต้มไปแล้ว {data.customer.rewards_used} ครั้ง
+        {" · "}
+        {data.customer.line ? "ผูกบัญชีไลน์แล้ว (เปลี่ยนมือถือก็ได้แต้มเดิม)" : "ยังไม่ผูกบัญชีไลน์ (มือถือจำไว้)"}
       </p>
       {addr && (
         <div className="adm-addr">

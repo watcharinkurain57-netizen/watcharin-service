@@ -1,3 +1,4 @@
+import { lineChannels, lineCustomer, linkLine, readLineToken, verifyLineUser } from "@/lib/shop/line-user.server";
 import { createPromptPayCharge, omiseEnabled } from "@/lib/shop/omise";
 import { branchSlug, closed, pickupLabel, readToken, shopDb } from "@/lib/shop/shop.server";
 
@@ -65,10 +66,29 @@ export async function POST(req: Request) {
   if (!nickname) return Response.json({ error: "กรอกชื่อเล่นก่อนนะคะ" }, { status: 400 });
   if (!items.length) return Response.json({ error: "ยังไม่ได้เลือกเมนู" }, { status: 400 });
 
+  // สั่งจากปุ่มในไลน์ (LIFF): ใช้บัตรของบัญชีไลน์นี้ · เช็กไม่ผ่าน/ไลน์ไม่ตอบ = ใช้บัตรที่มือถือจำแบบเดิม
+  let token = readToken(req);
+  const lineToken = readLineToken(req);
+  const line = lineToken ? await verifyLineUser(lineToken, await lineChannels(db)) : null;
+  /** ไลน์นี้ยังไม่มีบัตร — บัตรที่ shop_place_order สร้างให้ต้องผูกกับไลน์ */
+  let linkNew = false;
+  if (line) {
+    try {
+      const found = await lineCustomer(db, line.uid, token);
+      if (found) token = found.token;
+      else {
+        token = null;
+        linkNew = true;
+      }
+    } catch (e) {
+      console.error("[shop] order line customer:", (e as Error).message);
+    }
+  }
+
   const gateway = omiseEnabled();
   // ตัว 8 พารามิเตอร์ (0029) — สาขาส่งถึงที่เช็กและเก็บที่อยู่ในคำสั่งเดียวกับที่สร้างออร์เดอร์
   const { data, error } = await db.rpc("shop_place_order", {
-    p_token: readToken(req),
+    p_token: token,
     p_nickname: nickname,
     p_slot: slot,
     p_items: items,
@@ -82,6 +102,8 @@ export async function POST(req: Request) {
     if (e.status === 500) console.error("[shop] place_order:", error.message);
     return Response.json({ error: e.error }, { status: e.status });
   }
+  // ลูกค้าใหม่จากไลน์: ผูกบัตรที่เพิ่งสร้างกับบัญชีไลน์ (เคยผูกแล้ว = ไม่ทำอะไร)
+  if (line && linkNew && data.token) await linkLine(db, data.token, line.uid);
   const placed = { ...data, pickupLabel: pickupLabel(data.pickupDate) };
   if (!gateway) return Response.json({ ...placed, payment: "manual" });
 

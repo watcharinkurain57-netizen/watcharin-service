@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { lineDisplayName } from "@/lib/shop/liff";
+import { lineLogin } from "@/lib/shop/liff";
 
 type MenuItem = {
   name: string;
@@ -28,7 +28,7 @@ type Config = {
   roundOrders: number;
   /** ธนาคารที่กดจ่ายผ่านแอปได้ (Omise mobile banking) ว่าง = มีแต่ QR */
   banks: string[];
-  /** LIFF ของสาขา ไว้ดึงชื่อจากไลน์ — ว่าง = ลูกค้าพิมพ์ชื่อเอง */
+  /** LIFF ของสาขา ไว้ดึงชื่อจากไลน์และจำลูกค้าด้วยบัญชีไลน์ — ว่าง = ลูกค้าพิมพ์ชื่อเอง มือถือจำไว้ */
   liffId: string;
 };
 /** เปิด /shop เฉย ๆ ตอนมีหลายสาขา — ให้เลือกสาขาก่อน (ปกติลูกค้าเข้าทางปุ่มในไลน์ของสาขาอยู่แล้ว) */
@@ -100,6 +100,38 @@ function save(key: string, value: string) {
 }
 const baht = (n: number) => `${n.toLocaleString("th-TH")} บ.`;
 
+/** เปิดจากปุ่มในไลน์: ชื่อในไลน์ + บัตรลูกค้าของบัญชีไลน์นี้ (/api/shop/line) */
+type LineCard = {
+  /** access token ของไลน์ ส่งไปกับออร์เดอร์ ("" = เซิร์ฟเวอร์เช็กไม่ผ่าน ใช้แบบเดิม) */
+  token: string;
+  name: string;
+  customer: Config["customer"];
+  /** รหัสบัตรให้มือถือจำ (null = ไลน์นี้ยังไม่เคยสั่ง) */
+  cardToken: string | null;
+};
+async function lineCard(liffId: string, phoneToken: string): Promise<LineCard | null> {
+  const line = await lineLogin(liffId);
+  if (!line) return null;
+  const out: LineCard = { token: "", name: line.name, customer: null, cardToken: null };
+  if (!line.token) return out;
+  try {
+    const res = await fetch("/api/shop/line", {
+      method: "POST",
+      headers: { "x-line-token": line.token, ...(phoneToken ? { "x-shop-token": phoneToken } : {}) },
+      cache: "no-store",
+    });
+    const body = await res.json();
+    if (res.ok && body.line) {
+      out.token = line.token;
+      out.customer = body.customer ?? null;
+      out.cardToken = body.token ?? null;
+    }
+  } catch {
+    /* เน็ตสะดุด — ใช้แค่ชื่อ มือถือจำบัตรแบบเดิม */
+  }
+  return out;
+}
+
 /**
  * QR ของ Omise เป็น SVG — มือถือหลายรุ่นกดค้างบันทึก SVG ไม่ได้ จึงวาดลง canvas เป็น PNG
  * route อยู่โดเมนเดียวกัน canvas ไม่ติด taint
@@ -154,6 +186,8 @@ export function ShopOrder({ branch }: { branch?: string }) {
   /** กลับมาจากแอปธนาคาร (/shop/<สาขา>?paid=<order id>) — รอเช็กว่าจ่ายสำเร็จไหม */
   const [back, setBack] = useState<{ orderId: string; failed: boolean } | null>(null);
   const checking = useRef(false);
+  /** access token ของไลน์ (เปิดจากปุ่มในไลน์) — ส่งไปกับออร์เดอร์ ให้ใช้บัตรของบัญชีไลน์นี้ */
+  const lineToken = useRef("");
 
   useEffect(() => {
     const token = load(TOKEN_KEY);
@@ -178,16 +212,31 @@ export function ShopOrder({ branch }: { branch?: string }) {
         const known = load(NICK_KEY) || body.customer?.nickname || "";
         setNick(known);
         if (known) setEditNick(false);
-        // เปิดจากไลน์และยังไม่เคยมีชื่อ — ใช้ชื่อที่แสดงในไลน์ (ถ้ายังไม่ได้เริ่มพิมพ์เอง)
-        else
-          lineDisplayName(body.liffId).then((n) => {
-            if (!n) return;
-            setNick((cur) => {
-              if (cur) return cur;
+        // เปิดจากปุ่มในไลน์: ใช้บัตรของบัญชีไลน์ (เปลี่ยนมือถือก็ได้แต้มเดิม) และชื่อในไลน์ถ้ายังไม่มีชื่อ
+        lineCard(body.liffId, token).then((line) => {
+          if (!line) return;
+          lineToken.current = line.token;
+          const card = line.customer;
+          if (card && line.cardToken) {
+            setCfg((c) => (c ? { ...c, customer: card } : c));
+            if (line.cardToken !== token) {
+              // บัตรของไลน์นี้ไม่ใช่บัตรที่มือถือจำไว้ (มือถือใหม่) — จำบัตรนี้แทน
+              save(TOKEN_KEY, line.cardToken);
+              save(NICK_KEY, card.nickname);
+              setNick(card.nickname);
               setEditNick(false);
-              return n;
-            });
+              return;
+            }
+          }
+          const name = card?.nickname || line.name;
+          if (!name) return;
+          // ยังไม่มีชื่อ (และยังไม่ได้เริ่มพิมพ์เอง) — ใช้ชื่อจากไลน์
+          setNick((cur) => {
+            if (cur) return cur;
+            setEditNick(false);
+            return name;
           });
+        });
       })
       .catch((e: Error) => setLoadError(e.message || "โหลดเมนูไม่สำเร็จ ลองรีเฟรช"));
   }, [branch]);
@@ -273,7 +322,11 @@ export function ShopOrder({ branch }: { branch?: string }) {
     try {
       const res = await fetch("/api/shop/order", {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...(token ? { "x-shop-token": token } : {}) },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { "x-shop-token": token } : {}),
+          ...(lineToken.current ? { "x-line-token": lineToken.current } : {}),
+        },
         body: JSON.stringify({
           branch: cfg?.branch.slug,
           nickname: nick.trim(),
