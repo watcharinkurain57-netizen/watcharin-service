@@ -1,0 +1,114 @@
+/* หลังบ้านร้าน /shop/admin — ใช้สีและฟอนต์เดียวกับหน้าร้าน (.shop-app ใน shop.css) */
+.adm { --s-amber: #fef3c7; --s-amber-text: #92400e; }
+.adm-gate { max-width: 420px; margin: 0 auto; padding: 48px 16px; display: grid; gap: 14px; justify-items: start; }
+.adm-ok { color: var(--s-accent-text); font-weight: 600; margin: 0; }
+.adm-muted { color: var(--s-muted); font-size: .88rem; }
+.adm-warn { color: var(--s-amber-text); font-weight: 600; }
+.adm-break { overflow-wrap: anywhere; margin: 0; }
+
+/* หัว + แท็บ ติดบนจอ */
+.adm-top { position: sticky; top: 0; z-index: 5; background: rgb(241 247 244 / .97); border-bottom: 1px solid var(--s-line); }
+.adm-top-in { max-width: 720px; margin: 0 auto; padding: 10px 16px 4px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.adm-tabs { max-width: 720px; margin: 0 auto; padding: 4px 12px 8px; display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+.adm-tabs button { font: inherit; font-weight: 600; font-size: .92rem; border: 0; border-radius: 999px; padding: 7px 14px; background: transparent; color: var(--s-muted); cursor: pointer; white-space: nowrap; }
+.adm-tabs button.is-on { background: var(--s-accent); color: var(--s-accent-ink); }
+.adm-wrap { max-width: 720px; margin: 0 auto; padding: 16px 16px 64px; }
+.adm-stack { display: grid; gap: 12px; }
+.adm-h { margin: 4px 0 0; }
+
+.adm-card { background: var(--s-card); border: 1px solid var(--s-line); border-radius: 14px; padding: 14px; display: grid; gap: 8px; min-width: 0; }
+.adm-card h3 { font-size: .98rem; margin: 4px 0 0; }
+.adm-card.is-off { opacity: .55; }
+
+/* ตัวกรอง */
+.adm-filters { display: grid; gap: 8px; }
+.adm-chips { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.adm-chips button, .adm-days button { font: inherit; font-size: .9rem; border: 1px solid var(--s-line); background: var(--s-card); color: var(--s-ink); border-radius: 999px; padding: 6px 14px; cursor: pointer; }
+.adm-chips button.is-on, .adm-days button.is-on { background: var(--s-accent-soft); border-color: var(--s-accent); color: var(--s-accent-text); font-weight: 600; }
+.adm-chips input[type="date"] { width: auto; flex: 1; min-width: 150px; padding: 6px 10px; }
+
+/* สรุปวัน + ของที่ต้องเตรียม */
+.adm-sum { display: flex; gap: 6px 14px; flex-wrap: wrap; align-items: baseline; }
+.adm-sum b { font-size: 1.15rem; font-variant-numeric: tabular-nums; }
+.adm-prep { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.adm-prep li { display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; border-top: 1px dashed var(--s-line); }
+.adm-prep li:first-child { border-top: 0; }
+.adm-prep b { white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+/* การ์ดออร์เดอร์ */
+.adm-order-head { display: flex; gap: 6px 10px; align-items: baseline; flex-wrap: wrap; }
+.adm-slot { background: var(--s-ink); color: #fff; border-radius: 8px; padding: 1px 8px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.adm-tag { margin-left: auto; font-size: .8rem; color: var(--s-muted); border: 1px solid var(--s-line); border-radius: 999px; padding: 0 8px; }
+.adm-badges { display: flex; gap: 6px; flex-wrap: wrap; }
+.adm-badge { font-size: .78rem; font-weight: 600; border-radius: 999px; padding: 1px 9px; background: var(--s-tint); color: var(--s-muted); }
+.adm-badge.is-green { background: var(--s-accent-soft); color: var(--s-accent-text); }
+.adm-badge.is-amber { background: var(--s-amber); color: var(--s-amber-text); }
+.adm-badge.is-gray { background: #e5e7eb; color: #4b5563; }
+.adm-items { margin: 0; padding-left: 1.1em; }
+.adm-total { font-weight: 700; font-variant-numeric: tabular-nums; }
+.adm-addr { background: var(--s-bg); border-radius: 10px; padding: 8px 10px; display: grid; gap: 4px; overflow-wrap: anywhere; }
+.adm-links { display: flex; gap: 14px; flex-wrap: wrap; }
+.adm-links a, .adm-break a { color: var(--s-accent-text); font-weight: 600; }
+.adm-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.adm-toggle { font: inherit; font-size: .9rem; font-weight: 600; border: 1px solid var(--s-line); background: var(--s-card); color: var(--s-ink); border-radius: 10px; padding: 8px 12px; cursor: pointer; }
+.adm-toggle.is-on { background: var(--s-accent-soft); border-color: var(--s-accent); color: var(--s-accent-text); }
+.adm-toggle[disabled], .adm-move button[disabled] { opacity: .45; cursor: not-allowed; }
+.adm-cancel { margin-left: auto; color: var(--s-warn); }
+
+/* ยอดขาย */
+.adm-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.adm-tile { background: var(--s-card); border: 1px solid var(--s-line); border-radius: 14px; padding: 12px; display: grid; gap: 2px; }
+.adm-tile span { color: var(--s-muted); font-size: .82rem; }
+.adm-tile b { font-size: 1.2rem; font-variant-numeric: tabular-nums; }
+.adm-table { width: 100%; border-collapse: collapse; font-size: .88rem; font-variant-numeric: tabular-nums; }
+.adm-table th { text-align: right; color: var(--s-muted); font-weight: 600; padding: 4px; }
+.adm-table td { text-align: right; padding: 6px 4px; border-top: 1px solid var(--s-line); white-space: nowrap; }
+.adm-table th:first-child, .adm-table td:first-child { text-align: left; white-space: normal; }
+.adm-bars { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.adm-bars li { display: grid; grid-template-columns: 5.5em 1fr 5.5em; gap: 8px; align-items: center; font-size: .85rem; }
+.adm-bar { height: 10px; background: var(--s-tint); border-radius: 999px; overflow: hidden; }
+.adm-bar i { display: block; height: 100%; background: var(--s-accent); border-radius: 999px; }
+.adm-bar-num { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* เมนู */
+.adm-menu-row { display: flex; gap: 12px; align-items: center; }
+.adm-thumb { width: 56px; height: 56px; flex: none; border-radius: 10px; overflow: hidden; background: var(--s-tint); display: grid; place-items: center; color: var(--s-faint); font-weight: 700; }
+.adm-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.adm-menu-info { flex: 1; min-width: 0; display: grid; }
+.adm-menu-info span { color: var(--s-muted); font-size: .85rem; }
+.adm-move { display: flex; gap: 4px; }
+.adm-move button { width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--s-line); background: var(--s-card); font-size: 1rem; cursor: pointer; color: var(--s-ink); }
+.adm-form { display: grid; gap: 10px; }
+.adm-form label { display: grid; gap: 4px; font-weight: 500; font-size: .9rem; }
+.adm-form label.shop-check { display: flex; font-weight: 400; }
+.adm-row2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.adm-photo-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.adm-file { position: relative; overflow: hidden; font-size: .92rem; padding: 9px 16px; }
+.adm-file input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+
+/* ลูกค้า */
+.adm-cust { padding: 0; }
+.adm-cust-row { font: inherit; text-align: left; background: none; border: 0; color: inherit; width: 100%; padding: 12px 14px; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; cursor: pointer; }
+.adm-code { font-size: .8rem; font-weight: 700; color: var(--s-accent-text); background: var(--s-accent-soft); border-radius: 6px; padding: 0 6px; }
+.adm-note { flex-basis: 100%; font-size: .85rem; color: var(--s-muted); }
+.adm-detail { padding: 0 14px 14px; display: grid; gap: 10px; }
+.adm-detail p { margin: 0; }
+.adm-hist { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: .88rem; }
+.adm-hist li { display: grid; gap: 1px; padding-top: 6px; border-top: 1px solid var(--s-line); }
+.adm-hist li.is-off { opacity: .55; }
+
+/* สาขา */
+.adm-branch-head { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; align-items: baseline; }
+.adm-days { border: 0; padding: 0; margin: 0; display: flex; gap: 6px; flex-wrap: wrap; }
+.adm-days legend { font-weight: 500; font-size: .9rem; margin-bottom: 6px; padding: 0; }
+.adm-days button { padding: 5px 11px; }
+.adm-label { font-weight: 500; font-size: .9rem; display: block; margin-bottom: 4px; }
+.adm-dates { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.adm-dates input[type="date"] { width: auto; padding: 6px 10px; }
+.adm-date { display: inline-flex; align-items: center; gap: 2px; background: var(--s-amber); color: var(--s-amber-text); border-radius: 999px; padding: 2px 4px 2px 10px; font-size: .85rem; font-weight: 600; }
+.adm-date button { font: inherit; border: 0; background: none; color: inherit; cursor: pointer; padding: 0 6px; font-size: 1rem; }
+
+@media (min-width: 640px) {
+  .adm-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .adm-filters { grid-template-columns: 1fr 200px; align-items: center; }
+}
