@@ -2,8 +2,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import {
   bangkokDate,
-  bangkokHour,
   branchSlug,
+  cutoffText,
+  dueRounds,
   pickupLabel,
   readBranches,
   shopDb,
@@ -14,9 +15,9 @@ import { enabledBanks, omiseEnabled, omiseTestKeyIgnored } from "@/lib/shop/omis
 import { buildCommunityPost, buildSummary, splitText, type SummaryRow } from "@/lib/shop/summary";
 
 /**
- * สรุปออร์เดอร์ตอนปิดรับของแต่ละสาขา — pg_cron เรียกทุกชั่วโมง นาทีที่ 5 (supabase/cron_shop_summary.sql)
- * สาขาที่เวลาปิดรับ (cutoff_hour) ตรงกับชั่วโมงนี้ → สรุปออร์เดอร์ที่รับของพรุ่งนี้ของสาขานั้น
- * (ออร์เดอร์ของวัน P ปิดรับตอน cutoff ของวันก่อนหน้า P เสมอ ดู shop_branch_pickup ใน 0027)
+ * สรุปออร์เดอร์ตอนปิดรับของแต่ละสาขา — pg_cron เรียกทุก 5 นาที (supabase/cron_shop_summary.sql)
+ * สาขาที่ปิดรับไปแล้ว 5-9 นาที (cutoff_hour:cutoff_minute) → สรุปออร์เดอร์ของวันถัดจากวันที่ปิดรับ (dueRounds)
+ * (ออร์เดอร์ของวัน P ปิดรับตอนเวลาปิดรับของวันก่อนหน้า P เสมอ ดู shop_branch_pickup ใน 0033)
  * ไม่มีคนสั่ง = ไม่ส่งอะไร
  *
  * ส่งผ่านไลน์ของสาขานั้น: SHOP_LINE_TOKEN_<SLUG> + SHOP_LINE_TO_<SLUG>
@@ -294,7 +295,7 @@ async function testBranch(b: ShopBranch, all: ShopBranch[], dry: boolean): Promi
   }
 
   const r = await pushLine(line.token, line.to, [
-    `✅ ทดสอบระบบส่งสรุป ${head} สำเร็จ\nสรุปออร์เดอร์ของสาขานี้ตอน ${b.cutoff_hour}:00 จะมาที่แชทนี้`,
+    `✅ ทดสอบระบบส่งสรุป ${head} สำเร็จ\nสรุปออร์เดอร์ของสาขานี้หลังปิดรับ ${cutoffText(b)} จะมาที่แชทนี้`,
   ]);
   if (r.status === 401) return `❌ ${head}: ${badToken}`;
   if (!r.ok) {
@@ -340,16 +341,17 @@ async function handle(req: Request) {
   }
 
   const branches = await readBranches(db);
-  const hour = bangkokHour();
-  const due = only ? branches.filter((b) => b.slug === only) : branches.filter((b) => b.cutoff_hour === hour);
+  // ?branch=<slug> = ส่งสาขานั้นเลย (วัน ?date= หรือพรุ่งนี้) · ไม่ใส่ = สาขาที่เพิ่งปิดรับ
+  const due = only
+    ? branches.filter((b) => b.slug === only).map((branch) => ({ branch, pickup: date || bangkokDate(1) }))
+    : dueRounds(branches).map((r) => ({ ...r, pickup: date || r.pickup }));
   if (only && !due.length) return Response.json({ error: "ไม่พบสาขานี้" }, { status: 404 });
 
-  const pickup = date || bangkokDate(1);
-  const results: Result[] = [];
-  for (const b of due) results.push(await summarize(db, b, pickup));
+  const results: (Result & { date: string })[] = [];
+  for (const r of due) results.push({ ...(await summarize(db, r.branch, r.pickup)), date: r.pickup });
 
   const failed = results.some((r) => r.failed.length);
-  return Response.json({ date: pickup, hour, branches: results }, { status: failed ? 502 : 200 });
+  return Response.json({ branches: results }, { status: failed ? 502 : 200 });
 }
 
 export const POST = handle;

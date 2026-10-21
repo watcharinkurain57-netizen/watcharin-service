@@ -2,11 +2,13 @@ import { enabledBanks, omiseEnabled } from "@/lib/shop/omise";
 import {
   branchSlug,
   closed,
+  cutoffText,
   pickupLabel,
   readBranches,
   readSettings,
   readToken,
   shopDb,
+  waitingToOpen,
 } from "@/lib/shop/shop.server";
 
 export const runtime = "nodejs";
@@ -58,8 +60,10 @@ export async function GET(req: Request) {
     })(),
   ]);
   if (menu.error || pickup.error) return Response.json({ error: "โหลดเมนูไม่สำเร็จ" }, { status: 500 });
-  // null = สาขาปิดรับออร์เดอร์อยู่ (ปิดชั่วคราว หรือไม่มีวันเปิดข้างหน้า)
+  // null = สาขาปิดรับออร์เดอร์อยู่ (ปิดชั่วคราว ยังไม่ถึงเวลาเริ่มรับ หรือไม่มีวันเปิดข้างหน้า)
   const pickupDate = (pickup.data as string | null) ?? null;
+  // ปิดเพราะยังไม่ถึงเวลาเริ่มรับ → หน้าร้านบอกเวลาเปิด แทน "ปิดรับออร์เดอร์" เฉย ๆ
+  const opensAt = !pickupDate && branch.accepting && waitingToOpen(branch) ? branch.open_from : null;
 
   // นับเฉพาะออร์เดอร์ที่จ่ายแล้วของรอบรับของเดียวกันในสาขานี้ — โชว์ว่ามีคนสั่งจริง ไม่บอกว่าใคร
   let roundOrders = 0;
@@ -85,7 +89,10 @@ export async function GET(req: Request) {
         // ส่งถึงที่: หน้าร้านถามที่อยู่ + เบอร์โทร และเขียนว่า "ส่ง" แทน "รับ"
         delivery: branch.delivery === true,
       },
-      cutoffHour: branch.cutoff_hour,
+      // "19:30" ปิดรับออร์เดอร์ของวันถัดไป · openFrom = เริ่มรับทุกวัน (null = รับตลอด)
+      cutoff: cutoffText(branch),
+      openFrom: branch.open_from ?? null,
+      opensAt,
       slots: branch.pickup_slots,
       pickupLabel: pickupDate ? pickupLabel(pickupDate) : null,
       menu: menu.data,

@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { DAY_NAMES, api, bkkDate, shortDate, type Branch } from "./api";
+import { DAY_NAMES, api, bkkDate, cutoffText, shortDate, type Branch } from "./api";
 import { Loading } from "./Loading";
 
-/** ตั้งค่าสาขา: เปิด/ปิดรับ ส่งถึงที่ แจ้งทุกออร์เดอร์ เวลาปิดรับ วันเปิด รอบเวลา วันหยุด จุดรับของ OpenChat */
+/** ตั้งค่าสาขา: เปิด/ปิดรับ ส่งถึงที่ แจ้งทุกออร์เดอร์ เวลาปิดรับ เวลาเริ่มรับ วันเปิด รอบเวลา วันหยุด จุดรับของ OpenChat */
 export function BranchesTab() {
   const [list, setList] = useState<Branch[] | null>(null);
   const [err, setErr] = useState("");
@@ -34,6 +34,10 @@ export function BranchesTab() {
 function BranchCard({ branch, onSaved }: { branch: Branch; onSaved: (b: Branch) => void }) {
   const [b, setB] = useState(branch);
   const [slots, setSlots] = useState(branch.pickup_slots.join(", "));
+  const [cutoff, setCutoff] = useState(cutoffText(branch));
+  // ว่าง = รับออร์เดอร์ตลอด
+  const [openFrom, setOpenFrom] = useState(branch.open_from ?? "");
+  const [timed, setTimed] = useState(Boolean(branch.open_from));
   const [newDate, setNewDate] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
@@ -51,7 +55,8 @@ function BranchCard({ branch, onSaved }: { branch: Branch; onSaved: (b: Branch) 
           accepting: b.accepting,
           delivery: b.delivery,
           notify_orders: b.notify_orders,
-          cutoff_hour: b.cutoff_hour,
+          cutoff,
+          open_from: timed ? openFrom : null,
           open_days: b.open_days,
           pickup_slots: slots.split(/[\s,]+/).filter(Boolean),
           closed_dates: b.closed_dates,
@@ -61,6 +66,9 @@ function BranchCard({ branch, onSaved }: { branch: Branch; onSaved: (b: Branch) 
       });
       setB(r.branch);
       setSlots(r.branch.pickup_slots.join(", "));
+      setCutoff(cutoffText(r.branch));
+      setOpenFrom(r.branch.open_from ?? "");
+      setTimed(Boolean(r.branch.open_from));
       onSaved(r.branch);
       setMsg("บันทึกแล้ว หน้าร้านเปลี่ยนทันที");
     } catch (e) {
@@ -98,16 +106,28 @@ function BranchCard({ branch, onSaved }: { branch: Branch; onSaved: (b: Branch) 
       </div>
       <p className="adm-muted">
         {b.notify_orders
-          ? `ออร์เดอร์ที่จ่ายแล้วเด้งเข้าไลน์ทันที และยังสรุปตอน ${b.cutoff_hour}:00 เหมือนเดิม · ใช้โควตาไลน์ออร์เดอร์ละ 1 ข้อความ ใกล้หมดจะหยุดแจ้งเอง เก็บไว้ให้สรุปรายวัน`
-          : `สรุปออร์เดอร์เข้าไลน์ตอน ${b.cutoff_hour}:00 วันที่มีคนสั่ง`}
+          ? `ออร์เดอร์ที่จ่ายแล้วเด้งเข้าไลน์ทันที และยังสรุปหลังปิดรับ ${cutoffText(b)} เหมือนเดิม · ใช้โควตาไลน์ออร์เดอร์ละ 1 ข้อความ ใกล้หมดจะหยุดแจ้งเอง เก็บไว้ให้สรุปรายวัน`
+          : `สรุปออร์เดอร์เข้าไลน์หลังปิดรับ ${cutoffText(b)} วันที่มีคนสั่ง`}
       </p>
       <div className="adm-form">
         <label>
           ปิดรับออร์เดอร์ของวันถัดไปตอน
-          <select value={b.cutoff_hour} onChange={(e) => setB({ ...b, cutoff_hour: Number(e.target.value) })}>
-            {Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{h}:00</option>)}
-          </select>
+          <input type="time" value={cutoff} required onChange={(e) => setCutoff(e.target.value)} />
         </label>
+        <div>
+          <span className="adm-label">เวลาเริ่มรับออร์เดอร์</span>
+          <div className="adm-actions">
+            <button type="button" className={`adm-toggle${timed ? " is-on" : ""}`} aria-pressed={timed} onClick={() => { setTimed(!timed); if (!openFrom) setOpenFrom("08:00"); }}>
+              {timed ? "✓ ตั้งเวลาเริ่มรับ" : "รับออร์เดอร์ตลอดวัน"}
+            </button>
+            {timed && <input type="time" aria-label="เริ่มรับออร์เดอร์ตอน" value={openFrom} required onChange={(e) => setOpenFrom(e.target.value)} />}
+          </div>
+          <p className="adm-muted">
+            {timed && openFrom
+              ? `ลูกค้าสั่งได้ ${openFrom}-${cutoff} นอกเวลานี้หน้าร้านขึ้นว่ายังไม่เปิดรับ`
+              : `ลูกค้าสั่งได้ทั้งวัน ออร์เดอร์หลัง ${cutoff} ไปรอบถัดไป`}
+          </p>
+        </div>
         <fieldset className="adm-days">
           <legend>วันที่{b.delivery ? "ส่ง" : "รับของ"}ได้</legend>
           {DAY_NAMES.map((name, d) => (

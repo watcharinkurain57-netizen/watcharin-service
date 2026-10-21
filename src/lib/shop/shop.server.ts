@@ -71,7 +71,11 @@ export type ShopBranch = {
   liff_id: string;
   openchat_url: string;
   pickup_note: string;
+  /** ปิดรับออร์เดอร์ของวันถัดไปตอน cutoff_hour:cutoff_minute (เวลาไทย) */
   cutoff_hour: number;
+  cutoff_minute: number;
+  /** "HH:MM" เริ่มรับออร์เดอร์ทุกวัน (0033) · null = รับตลอด */
+  open_from: string | null;
   open_days: number[];
   closed_dates: string[];
   pickup_slots: string[];
@@ -83,7 +87,7 @@ export type ShopBranch = {
 };
 
 const BRANCH_COLS =
-  "id, slug, code, name, line_id, liff_id, openchat_url, pickup_note, cutoff_hour, open_days, closed_dates, pickup_slots, accepting, delivery, notify_orders";
+  "id, slug, code, name, line_id, liff_id, openchat_url, pickup_note, cutoff_hour, cutoff_minute, open_from, open_days, closed_dates, pickup_slots, accepting, delivery, notify_orders";
 
 export async function readBranches(db: SupabaseClient): Promise<ShopBranch[]> {
   const { data, error } = await db.from("shop_branches").select(BRANCH_COLS).order("sort").order("created_at");
@@ -115,6 +119,62 @@ export function bangkokDate(addDays = 0, now = Date.now()): string {
 /** ชั่วโมงตอนนี้ตามเวลาไทย (0-23) */
 export function bangkokHour(now = Date.now()): number {
   return new Date(now + 7 * 3600_000).getUTCHours();
+}
+
+/** นาทีนับจากเที่ยงคืนตามเวลาไทย (0-1439) */
+export function bangkokMinute(now = Date.now()): number {
+  const t = new Date(now + 7 * 3600_000);
+  return t.getUTCHours() * 60 + t.getUTCMinutes();
+}
+
+/** "08:30" → 510 */
+export function hhmmMinutes(s: string): number {
+  const [h, m] = s.split(":").map(Number);
+  return h * 60 + m;
+}
+
+const pad = (n: number) => String(n).padStart(2, "0");
+
+/** เวลาปิดรับของสาขา "19:30" */
+export function cutoffText(b: Pick<ShopBranch, "cutoff_hour" | "cutoff_minute">): string {
+  return `${pad(b.cutoff_hour)}:${pad(b.cutoff_minute ?? 0)}`;
+}
+
+const cutoffMinutes = (b: Pick<ShopBranch, "cutoff_hour" | "cutoff_minute">) => b.cutoff_hour * 60 + (b.cutoff_minute ?? 0);
+
+/**
+ * ตอนนี้อยู่ในช่วงยังไม่เปิดรับ (ตั้งแต่ปิดรับจนถึงเวลาเริ่มรับ ข้ามเที่ยงคืนได้)
+ * ต้องตรงกับ shop_branch_pickup ใน 0033 — ฐานข้อมูลเป็นตัวตัดสินจริง อันนี้ไว้บอกลูกค้าว่าทำไมสั่งไม่ได้
+ */
+export function waitingToOpen(b: Pick<ShopBranch, "cutoff_hour" | "cutoff_minute" | "open_from">, now = Date.now()): boolean {
+  if (!b.open_from) return false;
+  const cut = cutoffMinutes(b);
+  const open = hhmmMinutes(b.open_from);
+  if (open === cut) return false;
+  return (bangkokMinute(now) - cut + 1440) % 1440 < (open - cut + 1440) % 1440;
+}
+
+/**
+ * สาขาที่ถึงเวลาส่งสรุป — cron เรียกทุก 5 นาที (นาทีที่ 0, 5, 10, …)
+ * ส่งรอบที่เรียกหลังปิดรับ 5-9 นาที (เผื่อลูกค้าที่กำลังจ่ายตอนปิดรับ) = ครั้งเดียวต่อรอบ
+ * นับจากนาทีที่ cron ตั้งเวลาไว้ (ปัดลงทีละ 5 นาที) เรียกช้าไปไม่กี่นาทีก็ไม่ส่งซ้ำ
+ * pickup = วันถัดจากวันที่ปิดรับ (ปิดรับ 23:58 สรุปตอน 00:05 ยังเป็นของวันถัดจากเมื่อวาน)
+ */
+export function dueRounds<B extends Pick<ShopBranch, "cutoff_hour" | "cutoff_minute">>(
+  branches: B[],
+  now = Date.now(),
+): { branch: B; pickup: string }[] {
+  const nowMin = bangkokMinute(now);
+  const slot = nowMin - (nowMin % 5);
+  const out: { branch: B; pickup: string }[] = [];
+  for (const b of branches) {
+    const cut = cutoffMinutes(b);
+    const ago = (slot - cut + 1440) % 1440;
+    if (ago < 5 || ago >= 10) continue;
+    const since = (nowMin - cut + 1440) % 1440;
+    out.push({ branch: b, pickup: bangkokDate(1, now - since * 60_000) });
+  }
+  return out;
 }
 
 /** token ลูกค้าจาก header — uuid เท่านั้น */

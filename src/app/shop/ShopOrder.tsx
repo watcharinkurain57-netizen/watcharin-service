@@ -16,7 +16,12 @@ type Config = {
   shopName: string;
   /** delivery = ส่งถึงที่ ลูกค้าใส่ที่อยู่ + เบอร์โทร · slots = เวลาส่ง */
   branch: { slug: string; name: string; pickupNote: string; openchatUrl: string; delivery: boolean };
-  cutoffHour: number;
+  /** "19:30" ปิดรับออร์เดอร์ของวันถัดไป */
+  cutoff: string;
+  /** "08:00" เริ่มรับออร์เดอร์ทุกวัน · null = รับตลอด */
+  openFrom: string | null;
+  /** ยังไม่ถึงเวลาเริ่มรับ → เวลาที่เปิด (pickupLabel เป็น null) */
+  opensAt: string | null;
   slots: string[];
   /** null = สาขานี้ปิดรับออร์เดอร์อยู่ */
   pickupLabel: string | null;
@@ -263,7 +268,7 @@ export function ShopOrder({ branch }: { branch?: string }) {
 
   function goPay() {
     if (!cfg?.pickupLabel) {
-      setError("สาขานี้ปิดรับออร์เดอร์อยู่");
+      setError(cfg?.opensAt ? `ยังไม่เปิดรับออร์เดอร์ เปิดรับ ${cfg.opensAt}` : "สาขานี้ปิดรับออร์เดอร์อยู่");
       return;
     }
     if (!nick.trim()) {
@@ -556,11 +561,16 @@ export function ShopOrder({ branch }: { branch?: string }) {
               {cfg.pickupLabel ? (
                 <>
                   {/* สาขาเปิดแค่บางวัน (เช่น เสาร์-อาทิตย์) "วันทำการถัดไป" ไม่ตรง — วันรับจริงอยู่ในป้ายข้างล่าง */}
-                  <p className="shop-sub">สั่งและโอนก่อน {cfg.cutoffHour}:00 ของวันก่อน{cfg.branch.delivery ? "ส่ง" : "รับของ"}</p>
+                  <p className="shop-sub">
+                    สั่งและโอนก่อน {cfg.cutoff} ของวันก่อน{cfg.branch.delivery ? "ส่ง" : "รับของ"}
+                    {cfg.openFrom && <> · เปิดรับ {cfg.openFrom}-{cfg.cutoff}</>}
+                  </p>
                   <span className="shop-pill">ออร์เดอร์ตอนนี้ {verb}{cfg.pickupLabel}</span>
                 </>
               ) : (
-                <span className="shop-pill is-closed">ตอนนี้สาขานี้ปิดรับออร์เดอร์</span>
+                <span className="shop-pill is-closed">
+                  {cfg.opensAt ? `ยังไม่เปิดรับ เปิดรับออร์เดอร์ ${cfg.opensAt}-${cfg.cutoff}` : "ตอนนี้สาขานี้ปิดรับออร์เดอร์"}
+                </span>
               )}
               {cfg.pickupLabel && cfg.roundOrders >= SHOW_ROUND_FROM && (
                 <span className="shop-social">🔥 รอบนี้สั่งแล้ว {cfg.roundOrders} ออร์เดอร์</span>
@@ -793,7 +803,7 @@ export function ShopOrder({ branch }: { branch?: string }) {
               <p className="shop-note">แต้มเข้าบัญชีแล้ว ดูแต้มได้ตอนเปิดหน้าร้านจากไลน์</p>
             )}
             <p className="shop-note">
-              ร้านสรุปออร์เดอร์ตอน {cfg.cutoffHour}:00 แล้ว{cfg.branch.delivery ? "นำไปส่งตามเวลาที่เลือก" : "เตรียมของให้ตามเวลาที่เลือก"}
+              ร้านสรุปออร์เดอร์ตอน {cfg.cutoff} แล้ว{cfg.branch.delivery ? "นำไปส่งตามเวลาที่เลือก" : "เตรียมของให้ตามเวลาที่เลือก"}
             </p>
             <button type="button" className="shop-btn is-ghost" onClick={() => setStep("menu")}>สั่งเพิ่ม</button>
           </section>
@@ -810,7 +820,7 @@ export function ShopOrder({ branch }: { branch?: string }) {
               <b>{baht(sum.total)}</b>
             </div>
             <button type="button" className="shop-btn" disabled={!sum.count || sending || !cfg.pickupLabel} onClick={goPay}>
-              {!cfg.pickupLabel ? "ปิดรับออร์เดอร์" : sending ? "กำลังสร้าง QR…" : "ไปจ่ายเงิน"}
+              {!cfg.pickupLabel ? (cfg.opensAt ? `เปิดรับ ${cfg.opensAt}` : "ปิดรับออร์เดอร์") : sending ? "กำลังสร้าง QR…" : "ไปจ่ายเงิน"}
             </button>
           </div>
         </div>
