@@ -10,6 +10,9 @@ export type Branch = {
   openchat_url: string;
   pickup_note: string;
   cutoff_hour: number;
+  cutoff_minute: number;
+  /** "08:00" เริ่มรับออร์เดอร์ทุกวัน · null = รับตลอด */
+  open_from: string | null;
   open_days: number[];
   closed_dates: string[];
   pickup_slots: string[];
@@ -186,4 +189,9 @@ export async function shrinkImage(file: File, max = 1200): Promise<Blob> {
   } finally {
     URL.revokeObjectURL(src);
   }
+}
+
+/** เวลาปิดรับของสาขา "19:30" */
+export function cutoffText(b: Pick<Branch, "cutoff_hour" | "cutoff_minute">): string {
+  return `${String(b.cutoff_hour).padStart(2, "0")}:${String(b.cutoff_minute ?? 0).padStart(2, "0")}`;
 }

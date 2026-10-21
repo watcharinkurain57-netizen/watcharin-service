@@ -5,8 +5,8 @@ import { readBranches } from "@/lib/shop/shop.server";
 /**
  * ตั้งค่าสาขา
  * GET   → ทุกสาขา (+ ลิงก์ปุ่มสั่งอาหาร)
- * PATCH { id, …ช่องที่แก้ } — แก้ได้แค่: เปิด/ปิดรับ เวลาปิดรับ วันเปิด รอบเวลา วันหยุด จุดรับของ ลิงก์ OpenChat ส่งถึงที่
- *       แจ้งเข้าไลน์ทุกออร์เดอร์
+ * PATCH { id, …ช่องที่แก้ } — แก้ได้แค่: เปิด/ปิดรับ เวลาปิดรับ (cutoff "19:30") เวลาเริ่มรับ (open_from "08:00" ว่าง = รับตลอด)
+ *       วันเปิด รอบเวลา วันหยุด จุดรับของ ลิงก์ OpenChat ส่งถึงที่ แจ้งเข้าไลน์ทุกออร์เดอร์
  *       ชื่อ slug รหัส ไลน์ LIFF ของสาขาแก้จากที่นี่ไม่ได้ (ผูกกับลิงก์ในไลน์ นามบัตร และเลขออร์เดอร์)
  */
 export const runtime = "nodejs";
@@ -17,6 +17,8 @@ const SLOT_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 type Patch = {
   accepting?: boolean;
   cutoff_hour?: number;
+  cutoff_minute?: number;
+  open_from?: string | null;
   open_days?: number[];
   pickup_slots?: string[];
   closed_dates?: string[];
@@ -34,10 +36,20 @@ function readPatch(b: Record<string, unknown>): Patch | string {
       p[k] = b[k] as boolean;
     }
   }
-  if ("cutoff_hour" in b) {
+  if ("cutoff" in b) {
+    if (typeof b.cutoff !== "string" || !SLOT_RE.test(b.cutoff.trim())) return "เวลาปิดรับต้องเป็นแบบ 19:30";
+    const [h, m] = b.cutoff.trim().split(":").map(Number);
+    p.cutoff_hour = h;
+    p.cutoff_minute = m;
+  } else if ("cutoff_hour" in b) {
     const h = b.cutoff_hour;
     if (typeof h !== "number" || !Number.isInteger(h) || h < 0 || h > 23) return "เวลาปิดรับต้องเป็น 0-23 นาฬิกา";
     p.cutoff_hour = h;
+  }
+  if ("open_from" in b) {
+    const o = b.open_from === null ? "" : typeof b.open_from === "string" ? b.open_from.trim() : null;
+    if (o === null || (o && !SLOT_RE.test(o))) return "เวลาเริ่มรับต้องเป็นแบบ 08:00 หรือเว้นว่าง";
+    p.open_from = o || null;
   }
   if ("open_days" in b) {
     const d = b.open_days;
