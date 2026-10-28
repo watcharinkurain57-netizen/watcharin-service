@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { lineLogin } from "@/lib/shop/liff";
 
@@ -498,6 +499,9 @@ export function ShopOrder({ branch }: { branch?: string }) {
               </a>
             ))}
           </nav>
+          <p className="shop-legal">
+            <Link href="/shop/info">ข้อมูลร้าน ช่องทางติดต่อ และนโยบายคืนเงิน</Link>
+          </p>
         </div>
       </main>
     );
@@ -701,6 +705,9 @@ export function ShopOrder({ branch }: { branch?: string }) {
               )}
               {error && <p className="shop-err">{error}</p>}
             </div>
+            <p className="shop-legal">
+              <Link href={`/shop/info?from=${cfg.branch.slug}`}>ข้อมูลร้าน ช่องทางติดต่อ และนโยบายคืนเงิน</Link>
+            </p>
           </section>
         )}
 
@@ -745,6 +752,7 @@ export function ShopOrder({ branch }: { branch?: string }) {
               <div><span>{verb}{bill.pickupLabel} เวลา {slot}</span><span /></div>
               {cfg.branch.delivery && <div><span>ส่งที่ {address.trim()}</span><span /></div>}
             </div>
+            <p className="shop-note">ยกเลิกได้ก่อน {cfg.cutoff} ของวันก่อน{cfg.branch.delivery ? "ส่ง" : "รับของ"} คืนเงินเต็มจำนวน ทักไลน์ของสาขา</p>
             {error && <p className="shop-err">{error}</p>}
             <div className="shop-row">
               <button type="button" className="shop-btn is-ghost" onClick={() => { setBill(null); setStep("menu"); }}>แก้ออร์เดอร์</button>
@@ -776,6 +784,7 @@ export function ShopOrder({ branch }: { branch?: string }) {
               <div><span>{verb}{cfg.pickupLabel} เวลา {slot}</span><span /></div>
               {cfg.branch.delivery && <div><span>ส่งที่ {address.trim()}</span><span /></div>}
             </div>
+            <p className="shop-note">ยกเลิกได้ก่อน {cfg.cutoff} ของวันก่อน{cfg.branch.delivery ? "ส่ง" : "รับของ"} คืนเงินเต็มจำนวน ทักไลน์ของสาขา</p>
             {error && <p className="shop-err">{error}</p>}
             <div className="shop-row">
               <button type="button" className="shop-btn is-ghost" onClick={() => setStep("menu")}>แก้ออร์เดอร์</button>

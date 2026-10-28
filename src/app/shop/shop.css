@@ -106,3 +106,23 @@ body:has(.shop-app) { background: #f1f7f4; }
 .shop-branch { display: grid; gap: 2px; padding: 14px 16px; border-radius: 14px; background: var(--s-card); border: 1px solid var(--s-line); color: var(--s-ink); text-decoration: none; }
 .shop-branch:hover, .shop-branch:focus-visible { border-color: var(--s-accent); }
 .shop-branch span { color: var(--s-muted); font-size: .9rem; }
+
+/* ข้อมูลร้านและนโยบาย (/shop/info) */
+.shop-doc .shop-section { margin-top: 16px; }
+.shop-doc .shop-section p { margin: 8px 0 0; }
+.shop-doc ul, .shop-doc ol { margin: 8px 0 0; padding-left: 1.3em; display: grid; gap: 6px; }
+.shop-doc a:not(.shop-btn) { color: var(--s-accent-text); font-weight: 600; }
+.shop-back { display: inline-block; margin: 0 0 12px; padding: 4px 0; text-decoration: none; }
+.shop-contact { list-style: none; padding-left: 0 !important; }
+.shop-contact li { display: grid; gap: 2px; padding: 10px 12px; background: var(--s-bg); border-radius: 10px; }
+.shop-contact span { color: var(--s-muted); font-size: .9rem; }
+.shop-price-list { list-style: none; padding-left: 0 !important; }
+.shop-price-list li { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding-bottom: 6px; border-bottom: 1px solid var(--s-line); }
+.shop-price-list li:last-child { border-bottom: 0; }
+.shop-price-list small { display: block; color: var(--s-muted); font-size: .82rem; }
+.shop-price-list b { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.shop-order-links { display: grid; gap: 8px; }
+.shop-order-links .shop-btn { text-align: center; }
+/* ลิงก์ไปหน้าข้อมูลร้านจากหน้าสั่งอาหาร */
+.shop-legal { margin: 20px 0 0; text-align: center; font-size: .88rem; }
+.shop-legal a { color: var(--s-muted); text-decoration: underline; }
