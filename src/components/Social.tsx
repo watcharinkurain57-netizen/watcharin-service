@@ -34,7 +34,7 @@ const links = [
   },
   {
     label: "LinkedIn",
-    href: "https://www.linkedin.com/in/watcharin-kurain-28bb593b1/",
+    href: "https://www.linkedin.com/in/watcharinkurain/",
     Icon: LinkedInIcon,
     external: true,
   },

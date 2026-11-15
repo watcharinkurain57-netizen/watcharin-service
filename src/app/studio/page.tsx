@@ -50,7 +50,7 @@ const jsonLd = {
       email: "watcharin@watcharin-service.com",
       sameAs: [
         "https://github.com/watcharinkurain57-netizen",
-        "https://www.linkedin.com/in/watcharin-kurain-28bb593b1/",
+        "https://www.linkedin.com/in/watcharinkurain/",
       ],
       alumniOf: {
         "@type": "CollegeOrUniversity",

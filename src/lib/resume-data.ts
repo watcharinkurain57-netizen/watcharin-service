@@ -39,7 +39,7 @@ const sharedContact = {
   email: "watcharin@watcharin-service.com",
   website: "watcharin-service.com",
   github: "github.com/watcharinkurain57-netizen",
-  linkedin: "linkedin.com/in/watcharin-kurain-28bb593b1",
+  linkedin: "linkedin.com/in/watcharinkurain",
   location: "Thailand",
 };
 
