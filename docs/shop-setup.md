@@ -74,6 +74,8 @@ Channel ID กับ Channel secret (แท็บ Basic settings) **ไม่ต
 (ติดต่อ ไลน์ทุกสาขา เมนูและราคา วิธีสั่งและจ่าย การรับส่ง ยกเลิกและคืนเงิน ความเป็นส่วนตัว)
 สาขา ไลน์ วันเวลา เมนู ราคา ดึงจากฐานข้อมูล ข้อความนโยบายแก้ที่ `src/app/shop/info/page.tsx` (แก้แล้วเปลี่ยนวันที่ `UPDATED` ด้วย)
 
+ช่องทางติดต่อร้าน (Omise ขอชื่อ ที่อยู่ เบอร์โทร อีเมล) อยู่ในตาราง `shop_settings` คอลัมน์ `contact_name` `contact_address` `contact_phone` `contact_email` (migration `0034_shop_contact.sql`) แก้ใน Supabase > Table Editor > shop_settings ช่องไหนว่างหน้าเว็บจะไม่แสดง ห้ามใส่ค่าพวกนี้ในโค้ดเพราะ repo เป็นสาธารณะ
+
 ทดสอบ (คีย์ test): สั่งในหน้า /shop → Omise Dashboard → Charges → charge ล่าสุด → Actions → Mark as successful → หน้าเว็บขึ้น "รับออร์เดอร์แล้ว" เอง
 
 - ค่าธรรมเนียม PromptPay ~1.65% + VAT · ยอดขั้นต่ำ 20 บาท · QR หมดอายุ 30 นาที (ลูกค้ากดสร้างใหม่ได้)

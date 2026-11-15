@@ -116,6 +116,11 @@ body:has(.shop-app) { background: #f1f7f4; }
 .shop-contact { list-style: none; padding-left: 0 !important; }
 .shop-contact li { display: grid; gap: 2px; padding: 10px 12px; background: var(--s-bg); border-radius: 10px; }
 .shop-contact span { color: var(--s-muted); font-size: .9rem; }
+.shop-contact-card { margin: 8px 0 0; padding: 12px; display: grid; gap: 8px; border: 1px solid var(--s-line); border-radius: 10px; }
+.shop-contact-card div { display: grid; grid-template-columns: 4.5em 1fr; gap: 8px; align-items: baseline; }
+.shop-contact-card dt { color: var(--s-muted); font-size: .9rem; }
+.shop-contact-card dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.shop-contact-card small { display: block; color: var(--s-muted); font-size: .85rem; }
 .shop-price-list { list-style: none; padding-left: 0 !important; }
 .shop-price-list li { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding-bottom: 6px; border-bottom: 1px solid var(--s-line); }
 .shop-price-list li:last-child { border-bottom: 0; }
