@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation";
+import { siteFeatures } from "@/lib/site-config";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ProjectCard } from "@/components/archive/ProjectCard";
@@ -20,6 +22,7 @@ export const metadata: Metadata = {
 export const revalidate = 300;
 
 export default async function ProjectArchivePage() {
+  if (!siteFeatures.workspace) redirect("/campus/work");
   const all = await fetchProjects();
   const rows = buildRows(all);
   const hero = featuredProject(all);

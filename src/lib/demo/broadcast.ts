@@ -1,5 +1,5 @@
 import "server-only";
-import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/lib/supabase/env";
+import { getSupabaseEnv } from "@/lib/supabase/env";
 import {
   OPERATOR_EVENT,
   READINGS_EVENT,
@@ -34,11 +34,12 @@ async function post(
   event: string,
   payload: ReadingsEvent | OperatorEvent
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const res = await fetch(`${SUPABASE_URL}/realtime/v1/api/broadcast`, {
+  const { url, publishableKey } = getSupabaseEnv();
+  const res = await fetch(`${url}/realtime/v1/api/broadcast`, {
     method: "POST",
     headers: {
-      apikey: SUPABASE_PUBLISHABLE_KEY,
-      Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
+      apikey: publishableKey,
+      Authorization: `Bearer ${publishableKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({

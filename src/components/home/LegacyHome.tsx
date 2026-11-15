@@ -8,8 +8,6 @@ import { fetchProjects } from "@/lib/project-archive-repo";
 
 const SITE = "https://watcharin-service.com";
 
-export const revalidate = 300;
-
 /** ขอบเขตงานที่รับ — บอกตรง ๆ แทนการโฆษณา */
 const SCOPE = [
   { group: "โรงงาน", items: ["PLC", "Sensor", "SCADA", "MES", "ERP"] },
@@ -56,7 +54,7 @@ const jsonLd = {
   founder: { "@type": "Person", name: "Watcharin Kurain" },
 };
 
-export default async function Home() {
+export default async function LegacyHome() {
   const projects = await fetchProjects();
   // ตัวเด่นใบใหญ่ + อีกสองใบ สำหรับ hero
   const hero = projects.slice(0, 3);

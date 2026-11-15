@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
-import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "./env";
+import { getSupabaseEnv } from "./env";
 
 /**
  * Supabase สำหรับฝั่งเซิร์ฟเวอร์ (Server Component / Route Handler)
@@ -9,9 +9,10 @@ import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "./env";
  * ไม่ใช่การซ่อนคีย์ เพราะฉะนั้นทุกตารางต้องเปิด RLS เสมอ
  */
 export async function createSupabaseServerClient() {
+  const { url, publishableKey } = getSupabaseEnv();
   const cookieStore = await cookies();
 
-  return createServerClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  return createServerClient(url, publishableKey, {
     cookies: {
       getAll() {
         return cookieStore.getAll();

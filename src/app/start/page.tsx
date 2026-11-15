@@ -1,3 +1,4 @@
+import { requireWorkspace } from "@/lib/workspace-access";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -21,6 +22,7 @@ export const dynamic = "force-dynamic";
  * ถ้าจู่ ๆ พื้นเปลี่ยนเป็นสีเข้มแบบคลังโปรเจกต์ จะรู้สึกเหมือนหลุดไปอีกเว็บ
  */
 export default async function StartPage() {
+  requireWorkspace();
   const supabase = await createSupabaseServerClient();
 
   const {

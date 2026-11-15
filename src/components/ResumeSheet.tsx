@@ -17,7 +17,7 @@ const ui = {
   },
 } as const;
 
-export function ResumeSheet({ lang }: { lang: Lang }) {
+export function ResumeSheet({ lang, backHref = "/#resume", backLabel }: { lang: Lang; backHref?: string; backLabel?: string }) {
   const { profile, highlights, experience, education, skills, ecosystem, labels } =
     getResume(lang);
   const t = ui[lang];
@@ -40,8 +40,8 @@ export function ResumeSheet({ lang }: { lang: Lang }) {
 
       {/* Toolbar (screen only) */}
       <div className="no-print max-w-[210mm] mx-auto mb-5 flex flex-wrap items-center justify-between gap-3">
-        <Link href="/#resume" className="text-sm text-slate-500 hover:text-slate-900">
-          {t.back}
+        <Link href={backHref} className="text-sm text-slate-500 hover:text-slate-900">
+          {backLabel ?? t.back}
         </Link>
         <div className="flex items-center gap-3">
           <span className="text-sm text-slate-500 hidden sm:inline">{t.hint}</span>
@@ -56,7 +56,7 @@ export function ResumeSheet({ lang }: { lang: Lang }) {
         {/* Header */}
         <header className="flex flex-col sm:flex-row justify-between gap-4 border-b-2 border-brand-500 pb-5 mb-6">
           <div>
-            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">{profile.name}</h1>
+            <h1 tabIndex={-1} className="text-3xl font-extrabold text-slate-900 tracking-tight">{profile.name}</h1>
             <div className="text-brand-700 font-semibold mt-1">{profile.role}</div>
             <div className="text-sm text-slate-500 mt-0.5">{profile.tagline}</div>
           </div>

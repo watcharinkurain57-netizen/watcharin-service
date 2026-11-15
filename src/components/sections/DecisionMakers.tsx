@@ -19,7 +19,7 @@ export function DecisionMakers() {
                 points: [
                   "Time-to-market เร็วขึ้นด้วย AI-augmented delivery — เห็น MVP ใช้งานได้ในหลักสัปดาห์",
                   "Architect คนเดียวรับผิดชอบ end-to-end — ตัดต้นทุนการประสานงานหลายทีม/หลาย vendor",
-                  "Production-proven จริง: 3 ระบบที่ออกแบบเองใช้งานอยู่บน production ตอนนี้",
+                  "เคยส่งระบบขึ้น production 3 ระบบ — เว็บหลักยังเปิดอยู่ ส่วน TangTee และ XTier ปิดบริการแล้ว",
                   "ออกแบบให้ scale ได้ตั้งแต่ต้น — ลดค่า rebuild ในระยะยาว",
                 ],
               },

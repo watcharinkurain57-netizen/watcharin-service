@@ -1,5 +1,5 @@
-import { createClient } from "@supabase/supabase-js";
-import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "./env";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { getSupabaseEnv } from "./env";
 
 /**
  * ตัวอ่านข้อมูลสาธารณะ — ไม่แตะคุกกี้ ไม่มี session
@@ -12,6 +12,13 @@ import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "./env";
  * ใช้ตัวนี้กับข้อมูลที่ทุกคนเห็นเหมือนกัน (คลังโปรเจกต์ หน้ารายละเอียด)
  * ส่วนของที่ขึ้นกับว่าใครล็อกอินอยู่ ค่อยใช้ server.ts
  */
-export const supabasePublic = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  auth: { persistSession: false, autoRefreshToken: false },
-});
+let client: SupabaseClient | undefined;
+export function getSupabasePublicClient() {
+  if (!client) {
+    const { url, publishableKey } = getSupabaseEnv();
+    client = createClient(url, publishableKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+  }
+  return client;
+}

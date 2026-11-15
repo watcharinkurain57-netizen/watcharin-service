@@ -1,3 +1,4 @@
+import { siteFeatures } from "@/lib/site-config";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import {
@@ -38,6 +39,7 @@ function safeEqual(a: string, b: string): boolean {
 }
 
 export async function POST(req: Request) {
+  if (!siteFeatures.workspace) return new Response(null, { status: 404 });
   const secret = process.env.CRON_SECRET;
   if (!secret) {
     return Response.json({ error: "ยังไม่ได้ตั้ง CRON_SECRET" }, { status: 503 });

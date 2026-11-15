@@ -1,8 +1,9 @@
+import { requireWorkspace } from "@/lib/workspace-access";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AcceptInvite } from "@/components/archive/AcceptInvite";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { supabasePublic } from "@/lib/supabase/public";
+import { getSupabasePublicClient } from "@/lib/supabase/public";
 
 export const metadata: Metadata = {
   title: "คำเชิญเข้าโปรเจกต์",
@@ -21,11 +22,12 @@ type Peek = {
 };
 
 export default async function InvitePage({ params }: Params) {
+  requireWorkspace();
   const { token } = await params;
 
   // เรียกด้วยตัวอ่านสาธารณะ เพราะคนกดลิงก์มาอาจยังไม่ได้ล็อกอิน
   // ฟังก์ชันเป็น security definer จึงอ่านคำเชิญได้ทั้งที่ตารางปิดอยู่
-  const { data, error } = await supabasePublic.rpc("peek_project_invite", { p_token: token });
+  const { data, error } = await getSupabasePublicClient().rpc("peek_project_invite", { p_token: token });
   const peek = (Array.isArray(data) ? data[0] : data) as Peek | undefined;
 
   const supabase = await createSupabaseServerClient();

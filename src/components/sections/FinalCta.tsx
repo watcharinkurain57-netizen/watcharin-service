@@ -25,7 +25,7 @@ export function FinalCta() {
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 text-sm text-ink-faint">
             <span className="flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-brand-400 pulse-dot" />
-              ปกติตอบกลับใน 24 ชั่วโมง
+              ติดตามการตอบกลับทางอีเมลที่ให้ไว้
             </span>
             <span className="hidden sm:inline text-ink-muted">·</span>
             <a

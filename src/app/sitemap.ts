@@ -1,10 +1,26 @@
 import type { MetadataRoute } from "next";
 import { fetchProjects } from "@/lib/project-archive-repo";
+import { siteFeatures } from "@/lib/site-config";
+import { campusContent, zoneKeys } from "@/lib/campus";
 
 const SITE_URL = "https://watcharin-service.com";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
+  if (siteFeatures.portfolio) {
+    const paths = [
+      "", "/campus/work", "/campus/about", "/campus/contact",
+      ...zoneKeys.map((key) => `/campus/zones/${key}`),
+      ...campusContent.projects.map((project) => `/campus/projects/${project.key}`),
+      "/studio", "/ai-map", "/coresync",
+    ];
+    return paths.map((path) => ({
+      url: `${SITE_URL}${path}`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: path === "" ? 1 : path === "/campus/work" ? 0.9 : 0.7,
+    }));
+  }
   const projects = await fetchProjects();
   return [
     {
@@ -33,6 +49,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly" as const,
       priority: 0.7,
     })),
+    {
+      // แผนที่คำศัพท์ AI — หน้าความรู้ คนค้นคำอย่าง "MCP คืออะไร" มีโอกาสเจอ
+      url: `${SITE_URL}/ai-map`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
     {
       // The Factory OS demo is a sales asset in its own right — it answers
       // "what does an MES dashboard actually look like" for search traffic.

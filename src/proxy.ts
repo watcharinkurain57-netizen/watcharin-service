@@ -1,5 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { siteFeatures } from "@/lib/site-config";
+import { isWorkspacePath, workspaceDecision } from "@/lib/site-features";
+import { getSupabaseEnv } from "@/lib/supabase/env";
 
 /**
  * ต่ออายุ session ทุก request
@@ -17,11 +20,25 @@ import { createServerClient } from "@supabase/ssr";
  * แต่ถ้าวันหน้าจะย้ายอะไรเข้ามาในนี้ ให้รู้ไว้ว่ามันรันใกล้ผู้ใช้น้อยลงกว่าเดิม
  */
 export async function proxy(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+  const decision = workspaceDecision(siteFeatures, pathname, request.method, request.headers.has("next-action"));
+  if (decision.kind === "closed") {
+    return new NextResponse(null, { status: 404, headers: { "Cache-Control": "no-store" } });
+  }
+  if (decision.kind === "redirect") {
+    // Temporary: reopening the workspace must restore the original URLs.
+    return NextResponse.redirect(new URL(decision.destination, request.url), 307);
+  }
+  // Public portfolio, static demos and contact delivery never need a session.
+  if (!siteFeatures.workspace || !isWorkspacePath(pathname) || pathname.startsWith("/api/cron/")) {
+    return NextResponse.next({ request });
+  }
   let response = NextResponse.next({ request });
 
+  const { url, publishableKey } = getSupabaseEnv();
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    url,
+    publishableKey,
     {
       cookies: {
         getAll() {

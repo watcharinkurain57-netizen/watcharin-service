@@ -1,3 +1,4 @@
+import { requireWorkspace } from "@/lib/workspace-access";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -15,6 +16,7 @@ export const dynamic = "force-dynamic";
 type Params = { params: Promise<{ slug: string }> };
 
 export default async function EditProjectPage({ params }: Params) {
+  requireWorkspace();
   const { slug } = await params;
 
   const supabase = await createSupabaseServerClient();

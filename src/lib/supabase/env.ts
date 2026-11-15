@@ -1,6 +1,6 @@
 /**
- * อ่านค่า env ของ Supabase ที่เดียว จะได้พังตั้งแต่ตอน build ถ้าลืมตั้ง
- * ไม่ใช่ไปพังตอนผู้ใช้กดใช้งานจริงแล้วขึ้นหน้าขาว
+ * อ่านค่า env ของ Supabase เมื่อเปิดใช้ฐานข้อมูลเท่านั้น
+ * site-config ตรวจตอน build/start หากเปิดระบบงานภายในไว้
  */
 function required(name: string, value: string | undefined): string {
   // ตัดช่องว่างและขึ้นบรรทัดใหม่ที่ติดมาตอนคัดลอกวาง
@@ -26,12 +26,9 @@ function required(name: string, value: string | undefined): string {
   return clean;
 }
 
-export const SUPABASE_URL = required(
-  "NEXT_PUBLIC_SUPABASE_URL",
-  process.env.NEXT_PUBLIC_SUPABASE_URL
-);
-
-export const SUPABASE_PUBLISHABLE_KEY = required(
-  "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-);
+export function getSupabaseEnv() {
+  return {
+    url: required("NEXT_PUBLIC_SUPABASE_URL", process.env.NEXT_PUBLIC_SUPABASE_URL),
+    publishableKey: required("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY),
+  };
+}

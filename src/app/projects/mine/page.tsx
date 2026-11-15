@@ -1,3 +1,4 @@
+import { requireWorkspace } from "@/lib/workspace-access";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -41,6 +42,7 @@ const ROLE_LABEL: Partial<Record<Row["role"], string>> = {
 };
 
 export default async function MyProjectsPage() {
+  requireWorkspace();
   const supabase = await createSupabaseServerClient();
 
   const {

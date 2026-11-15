@@ -59,7 +59,7 @@ export default function ConnectPage() {
             <dt className="font-semibold">ระดับ 2 — ต่อระบบจริง</dt>
             <dd className="mt-1 text-ink-muted">
               ต่อ OPC-UA หรือ Modbus บนเครื่องทดสอบ ระดับนี้ต้องคุยกันก่อนเพราะต้องมีวิศวกรฝั่งคุณช่วย —{" "}
-              <Link href="/#contact" className="text-brand-400 underline underline-offset-4">
+              <Link href="/campus/contact" className="text-brand-400 underline underline-offset-4">
                 ทักมาคุยได้
               </Link>
             </dd>

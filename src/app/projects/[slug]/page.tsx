@@ -1,3 +1,5 @@
+import { siteFeatures } from "@/lib/site-config";
+import { requireWorkspace } from "@/lib/workspace-access";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -7,17 +9,20 @@ import { ProjectCover } from "@/components/archive/ProjectCover";
 import { can, PUBLIC_VIEWER } from "@/lib/archive-access";
 import { STATUS_LABEL, type ArchiveProject } from "@/lib/project-archive";
 import { fetchProject, fetchProjects } from "@/lib/project-archive-repo";
+import { SHARE_IMAGE } from "@/lib/share-image";
 
 type Params = { params: Promise<{ slug: string }> };
 
 export const revalidate = 300;
 
 export async function generateStaticParams() {
+  if (!siteFeatures.workspace) return [];
   const all = await fetchProjects();
   return all.map((p) => ({ slug: p.slug }));
 }
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
+  if (!siteFeatures.workspace) return { robots: { index: false, follow: false } };
   const { slug } = await params;
   const project = await fetchProject(slug);
   if (!project) return { title: "ไม่พบโปรเจกต์" };
@@ -30,6 +35,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
       title: `${project.name} — ${project.tagline}`,
       description: project.problem[0],
       type: "article",
+      images: [SHARE_IMAGE],
     },
   };
 }
@@ -50,6 +56,7 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
 }
 
 export default async function ProjectDetailPage({ params }: Params) {
+  requireWorkspace();
   const { slug } = await params;
   const project = await fetchProject(slug);
   if (!project) notFound();

@@ -3,6 +3,7 @@ import { Inter, IBM_Plex_Sans_Thai } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
+import { siteFeatures } from "@/lib/site-config";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -21,8 +22,8 @@ const SITE_URL = "https://watcharin-service.com";
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "watcharin-service — ปรึกษา และทำร่วมกันได้",
-    template: "%s | watcharin-service",
+    default: siteFeatures.portfolio ? "Creative Campus — Watcharin" : "watcharin-service — ปรึกษา และทำร่วมกันได้",
+    template: "%s | Watcharin Service",
   },
   description:
     "ที่ปรึกษาและรับพัฒนาระบบ ตั้งแต่ระบบในโรงงาน (PLC, Sensor, SCADA, MES, ERP) ไปจนถึงเว็บ แอปมือถือ งาน AI แอปจัดการชีวิตประจำวัน และบอทไลน์ — จะให้ช่วยดูให้อย่างเดียว หรือทำด้วยกันก็ได้",

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { DesktopNotice, FactoryOS } from "@/components/coresync/FactoryOS";
+import { SHARE_IMAGE } from "@/lib/share-image";
 import "./coresync.css";
 
 const SITE = "https://watcharin-service.com";
@@ -17,6 +18,7 @@ export const metadata: Metadata = {
     siteName: "Watcharin Service",
     type: "website",
     locale: "th_TH",
+    images: [SHARE_IMAGE],
   },
 };
 

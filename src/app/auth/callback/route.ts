@@ -1,3 +1,4 @@
+import { siteFeatures } from "@/lib/site-config";
 import { NextResponse, type NextRequest } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -8,6 +9,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
  * ตรงนี้เอา code แลกเป็น session แล้วเขียนลงคุกกี้
  */
 export async function GET(request: NextRequest) {
+  if (!siteFeatures.workspace) return new Response(null, { status: 404 });
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
   // กลับไปหน้าที่ผู้ใช้กดเข้าสู่ระบบ ไม่ใช่โยนกลับหน้าแรกเสมอ
