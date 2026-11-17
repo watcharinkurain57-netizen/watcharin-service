@@ -61,6 +61,25 @@ export async function readSettings(db: SupabaseClient): Promise<ShopSettings | n
   return data;
 }
 
+/** ช่องทางติดต่อร้าน (0034) — ว่าง = ไม่แสดง · ค่าจริงอยู่ในฐานข้อมูลเท่านั้น ห้ามใส่ใน repo */
+export type ShopContact = { name: string; address: string; phone: string; email: string };
+
+/** อ่านแยกจาก readSettings: ถ้ายังไม่รัน 0034 แค่ไม่แสดงช่องทางติดต่อ หน้าสั่งซื้อไม่พัง */
+export async function readContact(db: SupabaseClient): Promise<ShopContact> {
+  const { data, error } = await db
+    .from("shop_settings")
+    .select("contact_name, contact_address, contact_phone, contact_email")
+    .eq("id", 1)
+    .maybeSingle();
+  if (error) console.error("[shop] readContact:", error.message);
+  return {
+    name: data?.contact_name?.trim() ?? "",
+    address: data?.contact_address?.trim() ?? "",
+    phone: data?.contact_phone?.trim() ?? "",
+    email: data?.contact_email?.trim() ?? "",
+  };
+}
+
 /** สาขา (0027_shop_branches) — แต่ละสาขามีไลน์ร้านของตัวเอง เวลาปิดรับ วันเปิด และรอบรับของเอง */
 export type ShopBranch = {
   id: string;

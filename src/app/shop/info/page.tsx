@@ -1,6 +1,15 @@
 import type { Metadata } from "next";
 import { enabledBanks, omiseEnabled } from "@/lib/shop/omise";
-import { branchSlug, cutoffText, readBranches, readSettings, shopDb, type ShopBranch } from "@/lib/shop/shop.server";
+import {
+  branchSlug,
+  cutoffText,
+  readBranches,
+  readContact,
+  readSettings,
+  shopDb,
+  type ShopBranch,
+  type ShopContact,
+} from "@/lib/shop/shop.server";
 import { shopMetadata, shopViewport } from "../meta";
 import "../shop.css";
 
@@ -16,7 +25,7 @@ export const dynamic = "force-dynamic";
 type Props = { searchParams: Promise<{ from?: string }> };
 type MenuRow = { name: string; description: string; price: number; points: number; redeemable: boolean; available: boolean };
 
-const UPDATED = "28 ตุลาคม 2569";
+const UPDATED = "15 พฤศจิกายน 2569";
 const DAY_NAMES = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์"];
 
 /** [1,2,3,4,5] → "จันทร์-ศุกร์" · [6,0] → "เสาร์-อาทิตย์" (เริ่มนับจากวันจันทร์) */
@@ -42,17 +51,24 @@ function lineUrl(id: string): string {
 
 const baht = (n: number) => `${n.toLocaleString("th-TH")} บาท`;
 
+const NO_CONTACT: ShopContact = { name: "", address: "", phone: "", email: "" };
+
+/** "081-234 5678" → "0812345678" สำหรับลิงก์โทร */
+const telHref = (phone: string) => `tel:${phone.replace(/[^0-9+]/g, "")}`;
+
 async function loadShop() {
   const db = shopDb();
-  if (!db) return { shopName: "แซลดอง กุ้งแช่", branches: [] as ShopBranch[], menu: [] as MenuRow[] };
-  const [settings, branches, menu] = await Promise.all([
+  if (!db) return { shopName: "แซลดอง กุ้งแช่", contact: NO_CONTACT, branches: [] as ShopBranch[], menu: [] as MenuRow[] };
+  const [settings, contact, branches, menu] = await Promise.all([
     readSettings(db),
+    readContact(db),
     readBranches(db),
     db.from("shop_menu").select("name, description, price, points, redeemable, available").order("sort"),
   ]);
   if (menu.error) console.error("[shop] info menu:", menu.error.message);
   return {
     shopName: settings?.shop_name || "แซลดอง กุ้งแช่",
+    contact,
     branches,
     menu: (menu.data ?? []) as MenuRow[],
   };
@@ -63,10 +79,11 @@ async function loadShop() {
  * ผู้ให้บริการรับชำระเงิน (Omise) ใช้ตรวจว่าร้านมีช่องทางติดต่อ ราคา และนโยบายครบ
  * สาขา ไลน์ วันเวลา เมนู ราคา ดึงจากฐานข้อมูล ส่วนนโยบายเป็นข้อความคงที่ด้านล่าง
  * ห้ามใส่อีเมลหรือเบอร์ส่วนตัวของเจ้าของร้านในไฟล์นี้ (repo เป็นสาธารณะ)
+ * ชื่อ ที่อยู่ เบอร์โทร อีเมลของร้านอ่านจาก shop_settings (0034) ว่าง = ไม่แสดง
  */
 export default async function ShopInfoPage({ searchParams }: Props) {
   const { from } = await searchParams;
-  const { shopName, branches, menu } = await loadShop();
+  const { shopName, contact, branches, menu } = await loadShop();
   const back = branches.find((b) => b.slug === branchSlug(from));
   const cutoffs = [...new Set(branches.map(cutoffText))];
   const cutoff = cutoffs.length === 1 ? cutoffs[0] : "เวลาปิดรับของสาขา";
@@ -95,7 +112,43 @@ export default async function ShopInfoPage({ searchParams }: Props) {
 
         <section className="shop-section" aria-labelledby="contact">
           <h2 id="contact">ติดต่อร้าน</h2>
-          <p>ติดต่อร้านทางไลน์ของสาขาที่สั่ง (กดลิงก์เพื่อเพิ่มเพื่อน แล้วพิมพ์ข้อความได้เลย) ร้านตอบทุกวันที่เปิดรับออร์เดอร์</p>
+          {(contact.address || contact.phone || contact.email) && (
+            <dl className="shop-contact-card">
+              <div>
+                <dt>ร้าน</dt>
+                <dd>
+                  {shopName}
+                  {contact.name && ` (เจ้าของร้าน ${contact.name})`}
+                </dd>
+              </div>
+              {contact.address && (
+                <div>
+                  <dt>ที่อยู่</dt>
+                  <dd>
+                    {contact.address}
+                    <small>ครัวของร้าน ไม่มีหน้าร้าน รับของตามสาขาด้านล่าง</small>
+                  </dd>
+                </div>
+              )}
+              {contact.phone && (
+                <div>
+                  <dt>โทร</dt>
+                  <dd>
+                    <a href={telHref(contact.phone)}>{contact.phone}</a>
+                  </dd>
+                </div>
+              )}
+              {contact.email && (
+                <div>
+                  <dt>อีเมล</dt>
+                  <dd>
+                    <a href={`mailto:${contact.email}`}>{contact.email}</a>
+                  </dd>
+                </div>
+              )}
+            </dl>
+          )}
+          <p>เรื่องออร์เดอร์ ติดต่อทางไลน์ของสาขาที่สั่งจะเร็วที่สุด (กดลิงก์เพื่อเพิ่มเพื่อน แล้วพิมพ์ข้อความได้เลย) ร้านตอบทุกวันที่เปิดรับออร์เดอร์</p>
           {branches.length > 0 ? (
             <ul className="shop-contact">
               {branches.map((b) => (
@@ -251,7 +304,7 @@ export default async function ShopInfoPage({ searchParams }: Props) {
               มือถือของลูกค้าจำชื่อเล่น รหัสบัตรลูกค้า{delivery.length > 0 && " ที่อยู่และเบอร์โทร"} ไว้ในเครื่อง ครั้งหน้าจะได้ไม่ต้องกรอกใหม่
               ลบได้โดยล้างข้อมูลเว็บไซต์ในเบราว์เซอร์
             </li>
-            <li>ขอดู แก้ไข หรือลบข้อมูลของตัวเองได้ทุกเมื่อ ทางไลน์ของสาขาที่สั่ง</li>
+            <li>ขอดู แก้ไข หรือลบข้อมูลของตัวเองได้ทุกเมื่อ ทางไลน์ของสาขาที่สั่ง{contact.email && " หรืออีเมลของร้าน"}</li>
           </ul>
         </section>
 
